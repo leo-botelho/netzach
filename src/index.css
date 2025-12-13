@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-netzach-bg text-netzach-text font-sans antialiased selection:bg-netzach-gold selection:text-netzach-bg;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Títulos com a fonte Mística */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-mystic text-netzach-gold tracking-wide;
+  }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0F0518; 
+}
+::-webkit-scrollbar-thumb {
+  background: #362052; 
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C5A059; 
+}

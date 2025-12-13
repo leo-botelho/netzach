@@ -7,18 +7,19 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', // Atualiza o app automaticamente quando você sobe melhorias
-      includeAssets: ['favicon.ico', 'logo.svg'], // Arquivos estáticos importantes
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'logo.svg'],
       manifest: {
-        name: 'LEO System',
-        short_name: 'LEO',
-        description: 'Listen. Engage. Organize. O novo padrão em agendamento.',
-        theme_color: '#FDFBF7', // Cor de fundo do LEO
-        background_color: '#FDFBF7',
-        display: 'standalone', // Abre sem a barra do navegador (jeito de app)
-        orientation: 'portrait', // Bloqueia rotação se quiser, ou remova para livre
+        name: 'Netzach - Desperte sua Deusa interior',
+        short_name: 'Netzach',
+        description: 'Desperte sua Deusa interior',
+        theme_color: '#700B97', // Roxo Vibrante (cor da barra do app)
+        background_color: '#0F0518', // Roxo Quase Preto (fundo do app)
+        display: 'standalone',
+        orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        categories: ['lifestyle', 'health', 'wellness'],
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -34,9 +35,56 @@ export default defineConfig({
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable' // Importante para Android
+            purpose: 'any maskable'
           }
         ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 30
+              }
+            }
+          }
+        ]
+      },
+      devOptions: {
+        enabled: false
       }
     })
   ],

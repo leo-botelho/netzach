@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Moon, Droplet, Star, LogOut, Calendar as CalendarIcon, Sparkles, BookOpen, Sun, MessageSquare } from 'lucide-react';
+import { Moon, Droplet, Star, LogOut, Calendar as CalendarIcon, Sparkles, BookOpen, Sun, MessageSquare, X } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 
 interface UserProfile {
@@ -25,10 +25,18 @@ export default function Temple() {
   
   // Dados do Admin (Raquel)
   const [horoscope, setHoroscope] = useState<{ sky: string, sign: string }>({ sky: '', sign: '' });
-  const [dailyInsight, setDailyInsight] = useState<{ tarot: string, bath: string }>({ tarot: '', bath: '' });
+  
+  // ATUALIZADO: Estado do Insight Diário
+  const [dailyInsight, setDailyInsight] = useState<{ 
+    tarot: string, 
+    bath: string, 
+    image: string,
+    meaning: string
+  }>({ tarot: '', bath: '', image: '', meaning: '' });
 
-  // Modal
+  // Modais
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isArcanoModalOpen, setIsArcanoModalOpen] = useState(false);
   const [newPeriodDate, setNewPeriodDate] = useState('');
 
   useEffect(() => {
@@ -82,7 +90,7 @@ export default function Temple() {
         sign: signData?.content || ''
       });
 
-      // 4. Busca Insight do Dia (Arcano e Banho)
+      // 4. Busca Insight do Dia (Arcano e Banho) - ATUALIZADO
       const { data: insightData } = await supabase
         .from('daily_insights')
         .select('*')
@@ -92,8 +100,10 @@ export default function Temple() {
 
       if (insightData) {
         setDailyInsight({
-            tarot: insightData.tarot_card_id || 'O Louco', // Usando campo ID como texto provisório ou nome
-            bath: insightData.recommended_bath || 'Banho de Ervas'
+            tarot: insightData.tarot_card_id || 'O Mistério',
+            bath: insightData.recommended_bath || 'Banho de Ervas',
+            image: insightData.card_image_url || '',
+            meaning: insightData.card_meaning || 'A Sacerdotisa ainda está interpretando as cartas...'
         });
       }
     }
@@ -171,25 +181,41 @@ export default function Temple() {
           </button>
         </section>
 
-        {/* INSIGHT DO DIA (Arcano) */}
+        {/* INSIGHT DO DIA (Arcano) - ATUALIZADO */}
         <section className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-6 relative overflow-hidden shadow-lg">
           <div className="flex items-start justify-between mb-4">
             <div>
               <span className="text-[10px] uppercase tracking-[0.2em] text-netzach-gold font-bold">Arcano da Semana</span>
-              <h3 className="font-mystic text-2xl text-white mt-1">{dailyInsight.tarot || "O Mistério"}</h3>
+              <h3 className="font-mystic text-2xl text-white mt-1">{dailyInsight.tarot}</h3>
             </div>
-            <Star className="text-netzach-gold opacity-50" size={24}/>
+            <button onClick={() => setIsArcanoModalOpen(true)} className="text-netzach-gold hover:text-white transition-colors">
+                <Star size={24}/>
+            </button>
           </div>
           
           <div className="flex gap-4">
-            <div className="w-24 h-36 bg-black/30 rounded border border-netzach-border shrink-0 flex items-center justify-center">
-                <span className="text-xs text-netzach-muted">Carta</span>
-            </div>
-            <div className="text-sm text-netzach-text/80 leading-relaxed font-light">
-              <p>{dailyInsight.tarot ? "A energia desta carta influencia sua semana. Medite sobre seu significado." : "A Sacerdotisa está consultando as cartas..."}</p>
-              <div className="mt-3 flex items-center gap-2 text-netzach-gold text-xs font-bold uppercase tracking-wider cursor-pointer hover:underline">
+            {dailyInsight.image ? (
+                <img 
+                    src={dailyInsight.image} 
+                    alt={dailyInsight.tarot} 
+                    className="w-24 h-36 object-cover rounded border border-netzach-border shadow-md cursor-pointer hover:scale-105 transition-transform"
+                    onClick={() => setIsArcanoModalOpen(true)}
+                />
+            ) : (
+                <div className="w-24 h-36 bg-black/30 rounded border border-netzach-border shrink-0 flex items-center justify-center">
+                    <span className="text-xs text-netzach-muted">Carta</span>
+                </div>
+            )}
+            
+            <div className="text-sm text-netzach-text/80 leading-relaxed font-light flex flex-col justify-between">
+              <p className="line-clamp-4">{dailyInsight.meaning}</p>
+              
+              <button 
+                onClick={() => setIsArcanoModalOpen(true)}
+                className="mt-2 flex items-center gap-2 text-netzach-gold text-xs font-bold uppercase tracking-wider cursor-pointer hover:underline"
+              >
                 <BookOpen size={12}/> Ler interpretação
-              </div>
+              </button>
             </div>
           </div>
         </section>
@@ -223,7 +249,7 @@ export default function Temple() {
             <div className="w-12 h-12 rounded-full bg-netzach-bg border border-netzach-border flex items-center justify-center text-2xl">🌿</div>
             <div>
                 <h4 className="font-mystic text-netzach-gold">Ritual Sugerido</h4>
-                <p className="text-sm text-netzach-muted">{dailyInsight.bath || "Banho de Limpeza Energética"}</p>
+                <p className="text-sm text-netzach-muted">{dailyInsight.bath}</p>
             </div>
         </section>
 
@@ -248,6 +274,43 @@ export default function Temple() {
             </div>
         </div>
       )}
+
+      {/* MODAL DO ARCANO - NOVO */}
+      {isArcanoModalOpen && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-netzach-card border border-netzach-gold/30 p-0 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
+                
+                {dailyInsight.image && (
+                    <div className="h-64 w-full relative">
+                        <img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-full h-full object-cover opacity-80" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-netzach-card to-transparent"></div>
+                        <button onClick={() => setIsArcanoModalOpen(false)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black transition-colors"><X size={20}/></button>
+                    </div>
+                )}
+                
+                {!dailyInsight.image && (
+                     <div className="p-4 flex justify-end"><button onClick={() => setIsArcanoModalOpen(false)}><X size={24} className="text-white"/></button></div>
+                )}
+
+                <div className="p-8 pt-4 overflow-y-auto">
+                    <span className="text-xs font-bold text-netzach-gold uppercase tracking-widest mb-2 block">Interpretação</span>
+                    <h2 className="text-3xl font-mystic text-white mb-6">{dailyInsight.tarot}</h2>
+                    
+                    <div className="prose prose-invert prose-p:text-netzach-text/90 prose-p:font-light prose-p:leading-loose">
+                        <p className="whitespace-pre-wrap">{dailyInsight.meaning}</p>
+                    </div>
+
+                    <button 
+                        onClick={() => setIsArcanoModalOpen(false)}
+                        className="w-full mt-8 border border-netzach-border text-netzach-muted py-3 rounded-lg hover:text-white hover:border-white transition-colors uppercase text-xs tracking-widest"
+                    >
+                        Fechar Oráculo
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }

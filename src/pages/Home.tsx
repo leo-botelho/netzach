@@ -31,7 +31,7 @@ export default function Home() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-mystic font-bold text-netzach-gold mb-6 leading-tight drop-shadow-[0_0_15px_rgba(197,160,89,0.3)]">
-          Desperte sua<br/>Bruxa Interior
+          Desperte sua<br/>Deusa Interior
         </h1>
 
         <p className="text-lg text-netzach-text/70 max-w-xl mb-10 leading-relaxed font-light">

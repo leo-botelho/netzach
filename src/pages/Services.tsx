@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowLeft, Loader2, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Sparkles, ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react';
 import type { ServiceCatalog } from '../types';
 
 export default function Services() {
@@ -19,20 +19,16 @@ export default function Services() {
   }, []);
 
   const handleAcquire = async (service: ServiceCatalog) => {
-    // Pega dados do usuário para passar no link (opcional, para automação avançada)
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return navigate('/portal');
 
     if (service.payment_url) {
-        // Se for um link simples, abre. 
-        // Se for webhook n8n, podemos anexar o ID: ?client_id=123
         const finalUrl = service.payment_url.includes('?') 
             ? `${service.payment_url}&client_id=${session.user.id}` 
             : `${service.payment_url}?client_id=${session.user.id}`;
             
         window.open(finalUrl, '_blank');
     } else {
-        // Fallback: Se Raquel não botou link, avisa para pedir pelo suporte
         alert(`Para adquirir ${service.title}, entre em contato com o suporte ou aguarde a liberação.`);
     }
   };

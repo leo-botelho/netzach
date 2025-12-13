@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Save, 
   Star, 
-  Moon, 
   Feather, 
   CheckCircle, 
   Sun, 
@@ -99,7 +97,6 @@ export default function AdminPanel() {
     const type = selectedSign === 'Geral' ? 'sky_weekly' : 'sign_weekly';
     const signKey = selectedSign === 'Geral' ? 'ceu_semana' : selectedSign.toLowerCase();
     
-    // Remove anterior para evitar duplicação simples no MVP
     await supabase.from('horoscopes').delete().match({ sign: signKey, type: type });
     
     const { error } = await supabase.from('horoscopes').insert({
@@ -272,7 +269,6 @@ export default function AdminPanel() {
                     <input type="number" placeholder="Preço (R$)" className="p-3 bg-[#0F0518] border border-netzach-border rounded-lg text-white outline-none focus:border-netzach-gold" onChange={e => setNewService({...newService, price: e.target.value})} value={newService.price}/>
                 </div>
                 
-                {/* Link de Pagamento */}
                 <div className="relative">
                     <LinkIcon className="absolute left-3 top-3.5 text-netzach-muted" size={16}/>
                     <input placeholder="Link de Pagamento / Webhook (Opcional)" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg text-white placeholder-netzach-muted/50 outline-none focus:border-netzach-gold" onChange={e => setNewService({...newService, payment_url: e.target.value})} value={newService.payment_url}/>

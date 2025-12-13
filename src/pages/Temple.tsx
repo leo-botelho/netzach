@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Moon, Droplet, Star, LogOut, Calendar as CalendarIcon, Sparkles, BookOpen, Sun, MessageSquare, X } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
+import NumerologySection from '../components/NumerologySection';
 
 interface UserProfile {
   id: string;
@@ -12,6 +13,7 @@ interface UserProfile {
   last_period_date: string | null;
   cycle_duration?: number;
   sign_sun?: string;
+  birth_date?: string; // Adicionado para numerologia
 }
 
 export default function Temple() {
@@ -252,6 +254,14 @@ export default function Temple() {
                 <p className="text-sm text-netzach-muted">{dailyInsight.bath}</p>
             </div>
         </section>
+
+        {/* NUMEROLOGIA */}
+        {profile && (
+            <NumerologySection 
+                fullName={profile.full_name} 
+                birthDate={profile.birth_date} 
+            />
+        )}
 
       </main>
 

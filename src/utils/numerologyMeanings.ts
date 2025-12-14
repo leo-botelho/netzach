@@ -1,4 +1,4 @@
-export interface NumberMeaning {
+export type NumberMeaning = {
   expression: string;
   soul: string;
   personality: string;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { calcularMatrizDestino } from '../utils/matrizCalculations';
+import { calcularMatrizDestino } from '../utils/calculationsMatriz';
 import { MatrizMandala } from '../components/MatrizMandala';
 import type { MatrizDestino as MatrizDestinoType } from '../types';
 import { ARCANOS } from '../types';

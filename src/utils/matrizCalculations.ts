@@ -31,7 +31,7 @@ const extrairData = (dateString: string) => {
   return {
     dia,
     mes,
-    somaAno: reduzir(somaAno), // Removemos o retorno do 'ano' puro pois não era usado
+    somaAno: reduzir(somaAno),
     somaTotalDigitos: reduzir(somaTotalDigitos)
   };
 };
@@ -92,7 +92,6 @@ export const calcularMatrizDestino = (birthDate: string): MatrizDestino => {
   const propGlobal = reduzir(propEspiritual + propSocialFinal);
 
   // 7. PREENCHIMENTO OBRIGATÓRIO DE CAMPOS FALTANTES
-  // Estes campos estavam faltando e podem estar causando o erro visual
   const circuloVerdeCentralTopo = criarCirculo(centralMaior.arcano + topoMenor.arcano);
   const circuloVerdeCentralEsquerda = criarCirculo(centralMaior.arcano + latEsqMenor.arcano);
 

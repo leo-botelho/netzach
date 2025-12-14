@@ -1,126 +1,130 @@
 import type { MatrizDestino, MatrizCircle } from '../types';
 
-const reduzir = (num: number): number => {
-  if (num === 0) return 22;
+// Função para reduzir apenas quando necessário (números mestres e arcanos)
+const reduzirParaArcano = (num: number): number => {
+  if (num === 0) return 22; // O Louco
   if (num <= 22) return num;
-  const soma = num.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
-  return soma > 22 ? reduzir(soma) : soma;
+  
+  // Para números acima de 22, usa módulo
+  const resultado = num % 22;
+  return resultado === 0 ? 22 : resultado;
 };
 
 const criarCirculo = (valor: number): MatrizCircle => ({
   value: valor,
-  arcano: reduzir(valor)
+  arcano: reduzirParaArcano(valor)
 });
 
 const extrairData = (dateString: string) => {
   const date = new Date(dateString);
-  // Ajuste de fuso para garantir o dia correto
   const userTimezoneOffset = date.getTimezoneOffset() * 60000;
   const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
 
   const dia = adjustedDate.getDate();
   const mes = adjustedDate.getMonth() + 1;
-  const ano = adjustedDate.getFullYear();
+  const anoCompleto = adjustedDate.getFullYear();
   
-  const digitosAno = ano.toString().split('').map(d => parseInt(d));
+  // Soma dos dígitos do ano
+  const digitosAno = anoCompleto.toString().split('').map(d => parseInt(d));
   const somaAno = digitosAno.reduce((acc, d) => acc + d, 0);
   
-  const digitosTotal = (dia.toString() + mes.toString() + ano.toString()).split('').map(d => parseInt(d));
+  // Soma total de todos os dígitos da data
+  const digitosTotal = (dia.toString() + mes.toString() + anoCompleto.toString()).split('').map(d => parseInt(d));
   const somaTotalDigitos = digitosTotal.reduce((acc, d) => acc + d, 0);
   
   return {
     dia,
     mes,
-    somaAno: reduzir(somaAno),
-    somaTotalDigitos: reduzir(somaTotalDigitos)
+    somaAno,
+    somaTotalDigitos
   };
 };
 
 export const calcularMatrizDestino = (birthDate: string): MatrizDestino => {
   const { dia, mes, somaAno, somaTotalDigitos } = extrairData(birthDate);
   
-  // 1. PONTAS PRINCIPAIS
+  // 1. PONTAS PRINCIPAIS (os 4 cantos da mandala)
   const latEsqMaior = criarCirculo(dia);
   const topoMaior = criarCirculo(mes);
   const latDirMaior = criarCirculo(somaAno);
   const baseMaior = criarCirculo(somaTotalDigitos);
 
-  // 2. CENTRO
-  const centroValor = latEsqMaior.arcano + topoMaior.arcano + latDirMaior.arcano + baseMaior.arcano;
+  // 2. CENTRO (soma dos 4 cantos)
+  const centroValor = latEsqMaior.value + topoMaior.value + latDirMaior.value + baseMaior.value;
   const centralMaior = criarCirculo(centroValor);
 
-  // 3. DIAGONAIS
-  const diagSupEsqMaior = criarCirculo(latEsqMaior.arcano + topoMaior.arcano);
-  const diagSupDirMaior = criarCirculo(topoMaior.arcano + latDirMaior.arcano);
-  const diagInfDirMaior = criarCirculo(latDirMaior.arcano + baseMaior.arcano);
-  const diagInfEsqMaior = criarCirculo(baseMaior.arcano + latEsqMaior.arcano);
+  // 3. DIAGONAIS MAIORES
+  const diagSupEsqMaior = criarCirculo(latEsqMaior.value + topoMaior.value);
+  const diagSupDirMaior = criarCirculo(topoMaior.value + latDirMaior.value);
+  const diagInfDirMaior = criarCirculo(latDirMaior.value + baseMaior.value);
+  const diagInfEsqMaior = criarCirculo(baseMaior.value + latEsqMaior.value);
 
-  // 4. INTERMEDIÁRIOS
-  const topoMenor = criarCirculo(topoMaior.arcano + centralMaior.arcano);
-  const topoIntermediario = criarCirculo(topoMaior.arcano + topoMenor.arcano);
+  // 4. CÍRCULOS INTERMEDIÁRIOS (entre pontas e centro)
+  const topoMenor = criarCirculo(topoMaior.value + centralMaior.value);
+  const topoIntermediario = criarCirculo(topoMaior.value + topoMenor.value);
 
-  const baseMenor = criarCirculo(baseMaior.arcano + centralMaior.arcano);
-  const baseIntermediario = criarCirculo(baseMaior.arcano + baseMenor.arcano);
+  const baseMenor = criarCirculo(baseMaior.value + centralMaior.value);
+  const baseIntermediario = criarCirculo(baseMaior.value + baseMenor.value);
 
-  const latEsqMenor = criarCirculo(latEsqMaior.arcano + centralMaior.arcano);
-  const latEsqIntermediario = criarCirculo(latEsqMaior.arcano + latEsqMenor.arcano);
+  const latEsqMenor = criarCirculo(latEsqMaior.value + centralMaior.value);
+  const latEsqIntermediario = criarCirculo(latEsqMaior.value + latEsqMenor.value);
 
-  const latDirMenor = criarCirculo(latDirMaior.arcano + centralMaior.arcano);
-  const latDirIntermediario = criarCirculo(latDirMaior.arcano + latDirMenor.arcano);
+  const latDirMenor = criarCirculo(latDirMaior.value + centralMaior.value);
+  const latDirIntermediario = criarCirculo(latDirMaior.value + latDirMenor.value);
 
-  // 5. LINHA PONTILHADA
-  const linhaPontMeio = criarCirculo(latDirMenor.arcano + baseMenor.arcano);
+  // 5. LINHA PONTILHADA (linha do dinheiro)
+  const linhaPontMeio = criarCirculo(latDirMenor.value + baseMenor.value);
   
   const linhaPont = {
     menorBase: baseMenor,
-    primeiroEsquerda: criarCirculo(baseMenor.arcano + linhaPontMeio.arcano),
+    primeiroEsquerda: criarCirculo(baseMenor.value + linhaPontMeio.value),
     meio: linhaPontMeio,
-    primeiroDireita: criarCirculo(latDirMenor.arcano + linhaPontMeio.arcano),
+    primeiroDireita: criarCirculo(latDirMenor.value + linhaPontMeio.value),
     menorDireita: latDirMenor
   };
 
   // 6. PROPÓSITOS
-  const propCeu = reduzir(topoMaior.arcano + baseMaior.arcano);
-  const propTerra = reduzir(latEsqMaior.arcano + latDirMaior.arcano);
-  const propPessoalFinal = reduzir(propCeu + propTerra);
+  const propCeu = reduzirParaArcano(topoMaior.value + baseMaior.value);
+  const propTerra = reduzirParaArcano(latEsqMaior.value + latDirMaior.value);
+  const propPessoalFinal = reduzirParaArcano(propCeu + propTerra);
   
-  const propMasc = reduzir(diagSupEsqMaior.arcano + diagInfDirMaior.arcano);
-  const propFem = reduzir(diagSupDirMaior.arcano + diagInfEsqMaior.arcano);
-  const propSocialFinal = reduzir(propMasc + propFem);
+  const propMasc = reduzirParaArcano(diagSupEsqMaior.value + diagInfDirMaior.value);
+  const propFem = reduzirParaArcano(diagSupDirMaior.value + diagInfEsqMaior.value);
+  const propSocialFinal = reduzirParaArcano(propMasc + propFem);
   
-  const propEspiritual = reduzir(propPessoalFinal + propSocialFinal);
-  const propGlobal = reduzir(propEspiritual + propSocialFinal);
+  const propEspiritual = reduzirParaArcano(propPessoalFinal + propSocialFinal);
+  const propGlobal = reduzirParaArcano(propEspiritual + propSocialFinal);
 
-  // 7. PREENCHIMENTO OBRIGATÓRIO DE CAMPOS FALTANTES
-  const circuloVerdeCentralTopo = criarCirculo(centralMaior.arcano + topoMenor.arcano);
-  const circuloVerdeCentralEsquerda = criarCirculo(centralMaior.arcano + latEsqMenor.arcano);
+  // 7. CÍRCULOS VERDES (entre centro e intermediários)
+  const circuloVerdeCentralTopo = criarCirculo(centralMaior.value + topoMenor.value);
+  const circuloVerdeCentralEsquerda = criarCirculo(centralMaior.value + latEsqMenor.value);
 
-  // Preenchimento de diagonais completas
+  // 8. DIAGONAIS COMPLETAS (maior, meio, menor)
   const diagonalSuperiorEsquerda = {
       maior: diagSupEsqMaior,
-      menor: criarCirculo(latEsqMenor.arcano + topoMenor.arcano),
-      meio: criarCirculo(diagSupEsqMaior.arcano + criarCirculo(latEsqMenor.arcano + topoMenor.arcano).arcano)
+      menor: criarCirculo(latEsqMenor.value + topoMenor.value),
+      meio: criarCirculo(diagSupEsqMaior.value + (latEsqMenor.value + topoMenor.value))
   };
   
   const diagonalSuperiorDireita = {
       maior: diagSupDirMaior,
-      menor: criarCirculo(topoMenor.arcano + latDirMenor.arcano),
-      meio: criarCirculo(diagSupDirMaior.arcano + criarCirculo(topoMenor.arcano + latDirMenor.arcano).arcano)
+      menor: criarCirculo(topoMenor.value + latDirMenor.value),
+      meio: criarCirculo(diagSupDirMaior.value + (topoMenor.value + latDirMenor.value))
   };
 
   const diagonalInferiorEsquerda = {
       maior: diagInfEsqMaior,
-      menor: criarCirculo(latEsqMenor.arcano + baseMenor.arcano),
-      meio: criarCirculo(diagInfEsqMaior.arcano + criarCirculo(latEsqMenor.arcano + baseMenor.arcano).arcano)
+      menor: criarCirculo(latEsqMenor.value + baseMenor.value),
+      meio: criarCirculo(diagInfEsqMaior.value + (latEsqMenor.value + baseMenor.value))
   };
 
   const diagonalInferiorDireita = {
       maior: diagInfDirMaior,
-      menor: criarCirculo(baseMenor.arcano + latDirMenor.arcano),
-      meio: criarCirculo(diagInfDirMaior.arcano + criarCirculo(baseMenor.arcano + latDirMenor.arcano).arcano)
+      menor: criarCirculo(baseMenor.value + latDirMenor.value),
+      meio: criarCirculo(diagInfDirMaior.value + (baseMenor.value + latDirMenor.value))
   };
 
-  // Chakras simulados (cálculo simplificado para não quebrar a tipagem)
+  // Chakras (simplificado - pode ser expandido depois)
   const chakras = {
     sahashara: { fisico: 0, energia: 0, emocoes: 0 },
     ajna: { fisico: 0, energia: 0, emocoes: 0 },
@@ -137,8 +141,8 @@ export const calcularMatrizDestino = (birthDate: string): MatrizDestino => {
     birthDate,
     central: {
       maior: centralMaior,
-      medio: criarCirculo(centralMaior.arcano + topoMenor.arcano),
-      menor: criarCirculo(centralMaior.arcano + baseMenor.arcano)
+      medio: criarCirculo(centralMaior.value + topoMenor.value),
+      menor: criarCirculo(centralMaior.value + baseMenor.value)
     },
     base: { maior: baseMaior, intermediario: baseIntermediario, menor: baseMenor },
     topo: { maior: topoMaior, intermediario: topoIntermediario, menor: topoMenor },

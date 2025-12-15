@@ -1,5 +1,3 @@
-// src/components/MatrizMandala.tsx
-
 import type { MatrizDestino } from '../types';
 
 interface Props {
@@ -7,256 +5,166 @@ interface Props {
 }
 
 export const MatrizMandala = ({ matriz }: Props) => {
-  // Tamanho do SVG
-  const width = 800;
-  const height = 800;
-  const centerX = width / 2;
-  const centerY = height / 2;
+  const size = 800;
+  const center = size / 2;
   
-  // Raios para diferentes níveis
-  const radiusOuter = 350; // Heptágono externo
-  const radiusMain = 280; // Círculos principais
-  const radiusMid = 200; // Círculos médios
-  const radiusInner = 120; // Círculos internos
+  // Raios
+  const r1 = 280; // Círculos externos (pontas da estrela)
+  const r2 = 200; // Círculos médios
+  const r3 = 120; // Círculos internos
+  const rHex = 340; // Raio do hexágono externo
   
-  // Tamanho dos círculos
-  const circleSize = 35;
-  const circleSizeMid = 30;
-  const circleSizeSmall = 25;
+  // Posições cardeais (4 direções principais)
+  const top = { x: center, y: center - r1 };
+  const right = { x: center + r1, y: center };
+  const bottom = { x: center, y: center + r1 };
+  const left = { x: center - r1, y: center };
   
-  // Função para calcular ponto em círculo
-  const getPointOnCircle = (angle: number, radius: number) => ({
-    x: centerX + radius * Math.cos((angle - 90) * Math.PI / 180),
-    y: centerY + radius * Math.sin((angle - 90) * Math.PI / 180)
+  // Diagonais (para formar estrela de 8 pontas)
+  const topRight = { x: center + r1 * 0.707, y: center - r1 * 0.707 };
+  const topLeft = { x: center - r1 * 0.707, y: center - r1 * 0.707 };
+  const bottomRight = { x: center + r1 * 0.707, y: center + r1 * 0.707 };
+  const bottomLeft = { x: center - r1 * 0.707, y: center + r1 * 0.707 };
+  
+  // Círculos médios
+  const topMid = { x: center, y: center - r2 };
+  const rightMid = { x: center + r2, y: center };
+  const bottomMid = { x: center, y: center + r2 };
+  const leftMid = { x: center - r2, y: center };
+  
+  const topRightMid = { x: center + r2 * 0.707, y: center - r2 * 0.707 };
+  const topLeftMid = { x: center - r2 * 0.707, y: center - r2 * 0.707 };
+  const bottomRightMid = { x: center + r2 * 0.707, y: center + r2 * 0.707 };
+  const bottomLeftMid = { x: center - r2 * 0.707, y: center + r2 * 0.707 };
+  
+  // Círculos internos
+  const topIn = { x: center, y: center - r3 };
+  const rightIn = { x: center + r3, y: center };
+  const bottomIn = { x: center, y: center + r3 };
+  const leftIn = { x: center - r3, y: center };
+  
+  // Hexágono externo (6 pontos)
+  const hexPoints = Array.from({ length: 6 }, (_, i) => {
+    const angle = (Math.PI / 3) * i - Math.PI / 2;
+    return {
+      x: center + rHex * Math.cos(angle),
+      y: center + rHex * Math.sin(angle)
+    };
   });
   
-  // Função para criar heptágono (7 lados)
-  const createHeptagon = () => {
-    const points: string[] = [];
-    const chakraNames = ['Sahashara', 'Ajna', 'Vishuddha', 'Anahata', 'Manipura', 'Svadhishthana', 'Muladhara'];
-    
-    for (let i = 0; i < 7; i++) {
-      const angle = (360 / 7) * i;
-      const point = getPointOnCircle(angle, radiusOuter);
-      points.push(`${point.x},${point.y}`);
-    }
-    
-    return (
-      <>
-        <polygon
-          points={points.join(' ')}
-          fill="none"
-          stroke="#2d1b4e"
-          strokeWidth="2"
-        />
-        {/* Marcações dos chakras */}
-        {chakraNames.map((name, i) => {
-          const angle = (360 / 7) * i;
-          const point = getPointOnCircle(angle, radiusOuter + 30);
-          return (
-            <text
-              key={name}
-              x={point.x}
-              y={point.y}
-              fill="#c5a059"
-              fontSize="12"
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              {name}
-            </text>
-          );
-        })}
-      </>
-    );
-  };
+  const hexPath = hexPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
   
-  const Circle = ({
-    x,
-    y,
-    value,
-    size = circleSize,
-    color = '#1a0b2e'
-  }: {
-    x: number;
-    y: number;
-    value: number;
-    size?: number;
-    color?: string;
-  }) => (
+  // Componente de círculo
+  const Circle = ({ x, y, num, r = 28, color = '#c5a059', strokeWidth = 2 }: any) => (
     <g>
-      <circle
-        cx={x}
-        cy={y}
-        r={size}
-        fill={color}
-        stroke="#c5a059"
-        strokeWidth="2"
-      />
-      <text
-        x={x}
-        y={y}
-        fill="#c5a059"
-        fontSize="18"
-        fontWeight="bold"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {value}
+      <circle cx={x} cy={y} r={r} fill="#1a0b2e" stroke={color} strokeWidth={strokeWidth} />
+      <text x={x} y={y} fill={color} fontSize="20" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">
+        {num}
       </text>
     </g>
   );
   
-  // Posições dos círculos principais (baseado no livro)
-  const topPos = getPointOnCircle(0, radiusMain);
-  const rightPos = getPointOnCircle(90, radiusMain);
-  const bottomPos = getPointOnCircle(180, radiusMain);
-  const leftPos = getPointOnCircle(270, radiusMain);
-  
-  // Posições intermediárias
-  const topMidPos = getPointOnCircle(0, radiusMid);
-  const rightMidPos = getPointOnCircle(90, radiusMid);
-  const bottomMidPos = getPointOnCircle(180, radiusMid);
-  const leftMidPos = getPointOnCircle(270, radiusMid);
-  
-  // Posições internas
-  const topInnerPos = getPointOnCircle(0, radiusInner);
-  const rightInnerPos = getPointOnCircle(90, radiusInner);
-  const bottomInnerPos = getPointOnCircle(180, radiusInner);
-  const leftInnerPos = getPointOnCircle(270, radiusInner);
-  
-  // Diagonais
-  const topRightDiagPos = getPointOnCircle(45, radiusMain * 0.7);
-  const topLeftDiagPos = getPointOnCircle(315, radiusMain * 0.7);
-  const bottomRightDiagPos = getPointOnCircle(135, radiusMain * 0.7);
-  const bottomLeftDiagPos = getPointOnCircle(225, radiusMain * 0.7);
+  // Marcações de anos no hexágono
+  const yearMarks = [];
+  for (let i = 0; i <= 60; i++) {
+    const angle = (Math.PI / 3) * (i / 10) - Math.PI / 2;
+    const rMark = rHex + 15;
+    const x = center + rMark * Math.cos(angle);
+    const y = center + rMark * Math.sin(angle);
+    
+    if (i % 5 === 0) {
+      yearMarks.push(
+        <text key={`year-${i}`} x={x} y={y} fill="#c5a059" fontSize="10" textAnchor="middle" dominantBaseline="middle">
+          {i}
+        </text>
+      );
+    }
+  }
   
   return (
-    <svg width={width} height={height} className="mx-auto">
-      {/* Heptágono externo */}
-      {createHeptagon()}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* Hexágono tracejado externo */}
+      <path d={hexPath} fill="none" stroke="#2d1b4e" strokeWidth="2" strokeDasharray="10,5" opacity="0.6" />
       
-      {/* Linhas de conexão principais */}
-      <line x1={centerX} y1={centerY} x2={topPos.x} y2={topPos.y} stroke="#2d1b4e" strokeWidth="2" />
-      <line x1={centerX} y1={centerY} x2={rightPos.x} y2={rightPos.y} stroke="#2d1b4e" strokeWidth="2" />
-      <line x1={centerX} y1={centerY} x2={bottomPos.x} y2={bottomPos.y} stroke="#2d1b4e" strokeWidth="2" />
-      <line x1={centerX} y1={centerY} x2={leftPos.x} y2={leftPos.y} stroke="#2d1b4e" strokeWidth="2" />
+      {/* Marcações de anos */}
+      {yearMarks}
       
-      {/* Linhas diagonais */}
-      <line x1={topPos.x} y1={topPos.y} x2={leftPos.x} y2={leftPos.y} stroke="#2d1b4e" strokeWidth="1.5" strokeDasharray="5,5" />
-      <line x1={topPos.x} y1={topPos.y} x2={rightPos.x} y2={rightPos.y} stroke="#2d1b4e" strokeWidth="1.5" strokeDasharray="5,5" />
-      <line x1={bottomPos.x} y1={bottomPos.y} x2={leftPos.x} y2={leftPos.y} stroke="#2d1b4e" strokeWidth="1.5" strokeDasharray="5,5" />
-      <line x1={bottomPos.x} y1={bottomPos.y} x2={rightPos.x} y2={rightPos.y} stroke="#2d1b4e" strokeWidth="1.5" strokeDasharray="5,5" />
+      {/* Quadrado principal (linhas cardeais) */}
+      <line x1={center} y1={center} x2={top.x} y2={top.y} stroke="#c5a059" strokeWidth="2" />
+      <line x1={center} y1={center} x2={right.x} y2={right.y} stroke="#c5a059" strokeWidth="2" />
+      <line x1={center} y1={center} x2={bottom.x} y2={bottom.y} stroke="#c5a059" strokeWidth="2" />
+      <line x1={center} y1={center} x2={left.x} y2={left.y} stroke="#c5a059" strokeWidth="2" />
       
-      {/* Linha pontilhada (Amor e Dinheiro) */}
-      <line x1={bottomInnerPos.x} y1={bottomInnerPos.y} x2={rightInnerPos.x} y2={rightInnerPos.y} 
-        stroke="#c5a059" strokeWidth="2" strokeDasharray="3,3" />
+      {/* Quadrado rotacionado (diagonais) */}
+      <line x1={center} y1={center} x2={topRight.x} y2={topRight.y} stroke="#c5a059" strokeWidth="2" />
+      <line x1={center} y1={center} x2={topLeft.x} y2={topLeft.y} stroke="#c5a059" strokeWidth="2" />
+      <line x1={center} y1={center} x2={bottomRight.x} y2={bottomRight.y} stroke="#c5a059" strokeWidth="2" />
+      <line x1={center} y1={center} x2={bottomLeft.x} y2={bottomLeft.y} stroke="#c5a059" strokeWidth="2" />
       
-      {/* ===== CÍRCULO CENTRAL (ESSÊNCIA) ===== */}
-      <Circle x={centerX} y={centerY} value={matriz.central.maior.arcano} size={40} />
-      <Circle x={centerX + 50} y={centerY} value={matriz.central.medio.arcano} size={circleSizeMid} />
-      <Circle x={centerX + 50} y={centerY + 35} value={matriz.central.menor.arcano} size={circleSizeSmall} />
+      {/* Conectar pontas formando estrela */}
+      <line x1={top.x} y1={top.y} x2={topRight.x} y2={topRight.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={topRight.x} y1={topRight.y} x2={right.x} y2={right.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={right.x} y1={right.y} x2={bottomRight.x} y2={bottomRight.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={bottomRight.x} y1={bottomRight.y} x2={bottom.x} y2={bottom.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={bottom.x} y1={bottom.y} x2={bottomLeft.x} y2={bottomLeft.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={bottomLeft.x} y1={bottomLeft.y} x2={left.x} y2={left.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={left.x} y1={left.y} x2={topLeft.x} y2={topLeft.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
+      <line x1={topLeft.x} y1={topLeft.y} x2={top.x} y2={top.y} stroke="#2d1b4e" strokeWidth="1" opacity="0.5" />
       
-      {/* ===== TOPO (DONS E TALENTOS) ===== */}
-      <Circle x={topPos.x} y={topPos.y} value={matriz.topo.maior.arcano} />
-      <Circle x={topMidPos.x} y={topMidPos.y} value={matriz.topo.intermediario.arcano} size={circleSizeMid} />
-      <Circle x={topInnerPos.x} y={topInnerPos.y} value={matriz.topo.menor.arcano} size={circleSizeSmall} />
+      {/* PONTAS CARDEAIS (4 principais) */}
+      <Circle x={top.x} y={top.y} num={matriz.topo.maior.arcano} r={32} color="#a78bfa" />
+      <Circle x={right.x} y={right.y} num={matriz.lateralDireita.maior.arcano} r={32} color="#f87171" />
+      <Circle x={bottom.x} y={bottom.y} num={matriz.base.maior.arcano} r={32} color="#f87171" />
+      <Circle x={left.x} y={left.y} num={matriz.lateralEsquerda.maior.arcano} r={32} color="#a78bfa" />
       
-      {/* ===== BASE (ZONA CÁRMICA) ===== */}
-      <Circle x={bottomPos.x} y={bottomPos.y} value={matriz.base.maior.arcano} />
-      <Circle x={bottomMidPos.x} y={bottomMidPos.y} value={matriz.base.intermediario.arcano} size={circleSizeMid} />
-      <Circle x={bottomInnerPos.x} y={bottomInnerPos.y} value={matriz.base.menor.arcano} size={circleSizeSmall} />
+      {/* PONTAS DIAGONAIS */}
+      <Circle x={topRight.x} y={topRight.y} num={matriz.diagonalSuperiorDireita.maior.arcano} r={28} />
+      <Circle x={topLeft.x} y={topLeft.y} num={matriz.diagonalSuperiorEsquerda.maior.arcano} r={28} />
+      <Circle x={bottomRight.x} y={bottomRight.y} num={matriz.diagonalInferiorDireita.maior.arcano} r={28} />
+      <Circle x={bottomLeft.x} y={bottomLeft.y} num={matriz.diagonalInferiorEsquerda.maior.arcano} r={28} />
       
-      {/* ===== LATERAL DIREITA (CARMA MATERIAL) ===== */}
-      <Circle x={rightPos.x} y={rightPos.y} value={matriz.lateralDireita.maior.arcano} />
-      <Circle x={rightMidPos.x} y={rightMidPos.y} value={matriz.lateralDireita.intermediario.arcano} size={circleSizeMid} />
-      <Circle x={rightInnerPos.x} y={rightInnerPos.y} value={matriz.lateralDireita.menor.arcano} size={circleSizeSmall} />
+      {/* CÍRCULOS MÉDIOS (cardeais) */}
+      <Circle x={topMid.x} y={topMid.y} num={matriz.topo.intermediario.arcano} r={24} color="#60a5fa" />
+      <Circle x={rightMid.x} y={rightMid.y} num={matriz.lateralDireita.intermediario.arcano} r={24} />
+      <Circle x={bottomMid.x} y={bottomMid.y} num={matriz.base.intermediario.arcano} r={24} />
+      <Circle x={leftMid.x} y={leftMid.y} num={matriz.lateralEsquerda.intermediario.arcano} r={24} />
       
-      {/* ===== LATERAL ESQUERDA (CARMA PAIS/FILHOS) ===== */}
-      <Circle x={leftPos.x} y={leftPos.y} value={matriz.lateralEsquerda.maior.arcano} />
-      <Circle x={leftMidPos.x} y={leftMidPos.y} value={matriz.lateralEsquerda.intermediario.arcano} size={circleSizeMid} />
-      <Circle x={leftInnerPos.x} y={leftInnerPos.y} value={matriz.lateralEsquerda.menor.arcano} size={circleSizeSmall} />
+      {/* CÍRCULOS MÉDIOS (diagonais) */}
+      <Circle x={topRightMid.x} y={topRightMid.y} num={matriz.diagonalSuperiorDireita.meio.arcano} r={22} />
+      <Circle x={topLeftMid.x} y={topLeftMid.y} num={matriz.diagonalSuperiorEsquerda.meio.arcano} r={22} />
+      <Circle x={bottomRightMid.x} y={bottomRightMid.y} num={matriz.diagonalInferiorDireita.meio.arcano} r={22} />
+      <Circle x={bottomLeftMid.x} y={bottomLeftMid.y} num={matriz.diagonalInferiorEsquerda.meio.arcano} r={22} />
       
-      {/* ===== CÍRCULOS VERDES ===== */}
-      <Circle 
-        x={getPointOnCircle(315, radiusInner * 0.8).x} 
-        y={getPointOnCircle(315, radiusInner * 0.8).y} 
-        value={matriz.circuloVerdeCentralEsquerda.arcano} 
-        size={circleSizeSmall}
-        color="#1a4d2e"
-      />
-      <Circle 
-        x={getPointOnCircle(0, radiusInner * 0.8).x} 
-        y={getPointOnCircle(0, radiusInner * 0.8).y} 
-        value={matriz.circuloVerdeCentralTopo.arcano} 
-        size={circleSizeSmall}
-        color="#1a4d2e"
-      />
+      {/* CÍRCULOS INTERNOS (cardeais) */}
+      <Circle x={topIn.x} y={topIn.y} num={matriz.topo.menor.arcano} r={20} color="#4ade80" />
+      <Circle x={rightIn.x} y={rightIn.y} num={matriz.lateralDireita.menor.arcano} r={20} color="#4ade80" />
+      <Circle x={bottomIn.x} y={bottomIn.y} num={matriz.base.menor.arcano} r={20} color="#4ade80" />
+      <Circle x={leftIn.x} y={leftIn.y} num={matriz.lateralEsquerda.menor.arcano} r={20} color="#4ade80" />
       
-      {/* ===== DIAGONAIS SUPERIORES (DONS) ===== */}
-      {/* Superior Esquerda (Paterna) */}
-      <Circle x={topLeftDiagPos.x} y={topLeftDiagPos.y} value={matriz.diagonalSuperiorEsquerda.maior.arcano} size={circleSizeMid} />
-      <Circle x={topLeftDiagPos.x - 30} y={topLeftDiagPos.y + 30} value={matriz.diagonalSuperiorEsquerda.meio.arcano} size={circleSizeSmall} />
-      <Circle x={topLeftDiagPos.x - 50} y={topLeftDiagPos.y + 50} value={matriz.diagonalSuperiorEsquerda.menor.arcano} size={circleSizeSmall} />
+      {/* CENTRO (Essência) */}
+      <Circle x={center} y={center} num={matriz.central.maior.arcano} r={38} color="#fbbf24" strokeWidth={3} />
+      <Circle x={center + 65} y={center} num={matriz.central.medio.arcano} r={26} color="#fb923c" />
+      <Circle x={center} y={center + 65} num={matriz.central.menor.arcano} r={22} />
       
-      {/* Superior Direita (Materna) */}
-      <Circle x={topRightDiagPos.x} y={topRightDiagPos.y} value={matriz.diagonalSuperiorDireita.maior.arcano} size={circleSizeMid} />
-      <Circle x={topRightDiagPos.x + 30} y={topRightDiagPos.y + 30} value={matriz.diagonalSuperiorDireita.meio.arcano} size={circleSizeSmall} />
-      <Circle x={topRightDiagPos.x + 50} y={topRightDiagPos.y + 50} value={matriz.diagonalSuperiorDireita.menor.arcano} size={circleSizeSmall} />
+      {/* Círculos especiais */}
+      <Circle x={center - 90} y={center} num={matriz.circuloVerdeCentralEsquerda.arcano} r={20} color="#4ade80" />
+      <Circle x={center} y={center - 90} num={matriz.circuloVerdeCentralTopo.arcano} r={20} color="#4ade80" />
       
-      {/* ===== DIAGONAIS INFERIORES (DÍVIDAS) ===== */}
-      {/* Inferior Esquerda */}
-      <Circle x={bottomLeftDiagPos.x} y={bottomLeftDiagPos.y} value={matriz.diagonalInferiorEsquerda.maior.arcano} size={circleSizeMid} />
-      <Circle x={bottomLeftDiagPos.x - 30} y={bottomLeftDiagPos.y - 30} value={matriz.diagonalInferiorEsquerda.meio.arcano} size={circleSizeSmall} />
-      <Circle x={bottomLeftDiagPos.x - 50} y={bottomLeftDiagPos.y - 50} value={matriz.diagonalInferiorEsquerda.menor.arcano} size={circleSizeSmall} />
+      {/* Linha do dinheiro (linha pontilhada inferior direita) */}
+      {matriz.linhaPontilhada && (
+        <>
+          <Circle x={center + 40} y={center + 130} num={matriz.linhaPontilhada.menorBase.arcano} r={18} color="#ec4899" />
+          <Circle x={center + 80} y={center + 100} num={matriz.linhaPontilhada.primeiroEsquerda.arcano} r={18} color="#ec4899" />
+          <Circle x={center + 120} y={center + 70} num={matriz.linhaPontilhada.meio.arcano} r={18} color="#ec4899" />
+        </>
+      )}
       
-      {/* Inferior Direita */}
-      <Circle x={bottomRightDiagPos.x} y={bottomRightDiagPos.y} value={matriz.diagonalInferiorDireita.maior.arcano} size={circleSizeMid} />
-      <Circle x={bottomRightDiagPos.x + 30} y={bottomRightDiagPos.y - 30} value={matriz.diagonalInferiorDireita.meio.arcano} size={circleSizeSmall} />
-      <Circle x={bottomRightDiagPos.x + 50} y={bottomRightDiagPos.y - 50} value={matriz.diagonalInferiorDireita.menor.arcano} size={circleSizeSmall} />
-      
-      {/* ===== LINHA PONTILHADA (AMOR E DINHEIRO) ===== */}
-      <Circle 
-        x={(bottomInnerPos.x + rightInnerPos.x) / 2 - 40} 
-        y={(bottomInnerPos.y + rightInnerPos.y) / 2} 
-        value={matriz.linhaPontilhada.primeiroEsquerda.arcano} 
-        size={circleSizeSmall}
-      />
-      <Circle 
-        x={(bottomInnerPos.x + rightInnerPos.x) / 2} 
-        y={(bottomInnerPos.y + rightInnerPos.y) / 2} 
-        value={matriz.linhaPontilhada.meio.arcano} 
-        size={circleSizeSmall}
-      />
-      <Circle 
-        x={(bottomInnerPos.x + rightInnerPos.x) / 2 + 40} 
-        y={(bottomInnerPos.y + rightInnerPos.y) / 2} 
-        value={matriz.linhaPontilhada.primeiroDireita.arcano} 
-        size={circleSizeSmall}
-      />
-      
-      {/* Ícones de Coração e Cifrão */}
-      <text 
-        x={(bottomInnerPos.x + rightInnerPos.x) / 2 - 40} 
-        y={(bottomInnerPos.y + rightInnerPos.y) / 2 - 30} 
-        fontSize="20"
-      >
-        ❤️
+      {/* Labels */}
+      <text x={center} y={50} fill="#c5a059" fontSize="14" textAnchor="middle" fontWeight="bold">
+        Dons e Talentos
       </text>
-      <text 
-        x={(bottomInnerPos.x + rightInnerPos.x) / 2 + 40} 
-        y={(bottomInnerPos.y + rightInnerPos.y) / 2 - 30} 
-        fontSize="20"
-      >
-        💰
-      </text>
-      
-      {/* Labels das Diagonais */}
-      <text x={topLeftDiagPos.x - 100} y={topLeftDiagPos.y - 40} fill="#c5a059" fontSize="11" textAnchor="middle">
-        Linha de Geração Paterna
-      </text>
-      <text x={topRightDiagPos.x + 100} y={topRightDiagPos.y - 40} fill="#c5a059" fontSize="11" textAnchor="middle">
-        Linha de Geração Materna
+      <text x={center} y={size - 50} fill="#c5a059" fontSize="14" textAnchor="middle" fontWeight="bold">
+        Zona Cármica
       </text>
     </svg>
   );

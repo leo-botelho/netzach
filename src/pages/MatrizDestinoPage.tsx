@@ -21,7 +21,6 @@ export default function MatrizDestinoPage() {
   const loadProfileAndCalculate = async () => {
     try {
       setLoading(true);
-      
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!session) throw new Error('Usuário não autenticado');
@@ -37,24 +36,21 @@ export default function MatrizDestinoPage() {
       if (!profile.birth_date) throw new Error('Data de nascimento não cadastrada');
 
       setProfileData(profile);
-
       const matrizCalculada = calcularMatrizDestino(profile.birth_date);
       setMatriz(matrizCalculada);
 
-      // Debug: verifique se os valores estão corretos
-      console.log('Matriz calculada:', matrizCalculada);
-
     } catch (err: any) {
-      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Função helper para pegar nome do arcano com fallback
-  const getArcanoName = (numero: number): string => {
-    return ARCANOS[numero] || `Arcano ${numero}`;
+  // Função auxiliar para formatar data sem erro de fuso
+  const formatDateSafe = (dateString: string) => {
+    if(!dateString) return "";
+    const parts = dateString.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
   };
 
   if (loading) return <div className="min-h-screen bg-netzach-bg flex items-center justify-center text-netzach-gold font-mystic"><Loader2 className="animate-spin mr-2"/> Calculando...</div>;
@@ -83,7 +79,7 @@ export default function MatrizDestinoPage() {
           <h1 className="text-3xl md:text-4xl font-mystic text-netzach-gold mb-2">Matriz da Alma</h1>
           <p className="text-lg text-white font-light">{profileData.full_name}</p>
           <p className="text-xs text-netzach-muted uppercase tracking-widest mt-1">
-            {new Date(profileData.birth_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+            {formatDateSafe(profileData.birth_date)}
           </p>
         </div>
 
@@ -91,47 +87,104 @@ export default function MatrizDestinoPage() {
           <div className="min-w-[300px] md:min-w-[600px]"><MatrizMandala matriz={matriz} /></div>
         </div>
 
-        {/* Informações Básicas */}
+        {/* Grid de Informações Detalhadas */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           
-          {/* Essência */}
-          <div className="bg-netzach-card border border-netzach-border rounded-xl p-6">
-            <h3 className="text-lg font-mystic text-netzach-gold mb-4 border-b border-netzach-border pb-2">Essência</h3>
-            <p className="text-sm text-netzach-muted">
-              Arcano Principal: <span className="text-white font-bold">{matriz.central.maior.arcano} - {getArcanoName(matriz.central.maior.arcano)}</span>
-            </p>
+          {/* Card 1: Essência (CORRIGIDO: 3 Itens, mesmo tamanho, negrito) */}
+          <div className="bg-netzach-card border border-netzach-border rounded-xl p-6 hover:border-netzach-gold/30 transition-colors">
+            <h3 className="text-lg font-mystic text-netzach-gold mb-4 border-b border-netzach-border pb-2">
+              Essência
+            </h3>
+            <div className="space-y-4 text-sm">
+              <div>
+                <span className="text-netzach-muted block text-xs uppercase mb-1">Central (Maior)</span> 
+                <span className="font-bold text-white block">
+                    {matriz.central.maior.arcano} - {ARCANOS[matriz.central.maior.arcano]}
+                </span>
+              </div>
+              <div>
+                <span className="text-netzach-muted block text-xs uppercase mb-1">Médio</span> 
+                <span className="text-white font-bold block">
+                    {matriz.central.medio.arcano} - {ARCANOS[matriz.central.medio.arcano]}
+                </span>
+              </div>
+              <div>
+                <span className="text-netzach-muted block text-xs uppercase mb-1">Menor</span>
+                <span className="text-white font-bold block">
+                    {matriz.central.menor.arcano} - {ARCANOS[matriz.central.menor.arcano]}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Destino Pessoal */}
-          <div className="bg-netzach-card border border-netzach-border rounded-xl p-6">
-            <h3 className="text-lg font-mystic text-netzach-gold mb-4 border-b border-netzach-border pb-2">Destino Pessoal</h3>
-            <p className="text-sm text-netzach-muted">
-              Até os 40 anos: <span className="text-white font-bold">{matriz.propositos.pessoal.final} - {getArcanoName(matriz.propositos.pessoal.final)}</span>
-            </p>
+          {/* Card 2: Destino (Padronizado) */}
+          <div className="bg-netzach-card border border-netzach-border rounded-xl p-6 hover:border-netzach-gold/30 transition-colors">
+            <h3 className="text-lg font-mystic text-netzach-gold mb-4 border-b border-netzach-border pb-2">
+              Destino Pessoal
+            </h3>
+            <div className="space-y-4 text-sm">
+              <div>
+                <span className="text-netzach-muted text-xs uppercase block mb-1">Até os 40 anos (Pessoal)</span>
+                <span className="text-white block font-bold">
+                    {matriz.propositos.pessoal.final} - {ARCANOS[matriz.propositos.pessoal.final]}
+                </span>
+              </div>
+              <div>
+                <span className="text-netzach-muted text-xs uppercase block mb-1">40-60 anos (Social)</span>
+                <span className="text-white block font-bold">
+                    {matriz.propositos.social.final} - {ARCANOS[matriz.propositos.social.final]}
+                </span>
+              </div>
+              <div>
+                <span className="text-netzach-muted text-xs uppercase block mb-1">Espiritual (+60)</span>
+                <span className="text-white block font-bold">
+                    {matriz.propositos.espiritual} - {ARCANOS[matriz.propositos.espiritual]}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Dinheiro */}
-          <div className="bg-netzach-card border border-netzach-border rounded-xl p-6">
-            <h3 className="text-lg font-mystic text-netzach-gold mb-4 border-b border-netzach-border pb-2">Dinheiro</h3>
-            <p className="text-sm text-netzach-muted">
-              Entrada: <span className="text-white font-bold">{matriz.linhaPontilhada.primeiroDireita.arcano} - {getArcanoName(matriz.linhaPontilhada.primeiroDireita.arcano)}</span>
-            </p>
+          {/* Card 3: Dinheiro (CORRIGIDO: Cores e Fontes iguais) */}
+          <div className="bg-netzach-card border border-netzach-border rounded-xl p-6 hover:border-netzach-gold/30 transition-colors">
+            <h3 className="text-lg font-mystic text-netzach-gold mb-4 border-b border-netzach-border pb-2">
+              Dinheiro & Carreira
+            </h3>
+            <div className="space-y-4 text-sm">
+              <div>
+                <span className="text-netzach-muted text-xs uppercase block mb-1">Entrada de Dinheiro</span>
+                <span className="text-white font-bold block">
+                  {matriz.linhaPontilhada.primeiroDireita.arcano} - {ARCANOS[matriz.linhaPontilhada.primeiroDireita.arcano]}
+                </span>
+              </div>
+              <div>
+                <span className="text-netzach-muted text-xs uppercase block mb-1">Bloqueio Cármico</span>
+                <span className="text-white block font-bold">
+                  {matriz.lateralDireita.maior.arcano} - {ARCANOS[matriz.lateralDireita.maior.arcano]}
+                </span>
+              </div>
+              <div>
+                <span className="text-netzach-muted text-xs uppercase block mb-1">Ponto de Equilíbrio</span>
+                <span className="text-white block font-bold">
+                  {matriz.linhaPontilhada.meio.arcano} - {ARCANOS[matriz.linhaPontilhada.meio.arcano]}
+                </span>
+              </div>
+            </div>
           </div>
 
         </div>
 
-        {/* BOTÃO DE VENDA */}
+        {/* CTA - Venda */}
         <div className="text-center bg-gradient-to-r from-netzach-card to-[#2a1245] p-8 rounded-2xl border border-netzach-gold/50 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles size={100}/></div>
             
-            <h2 className="text-2xl font-mystic text-white mb-4">Quer desvendar todos os segredos da sua Matriz?</h2>
-            <p className="text-netzach-muted mb-8 max-w-xl mx-auto">
-                A análise completa revela seus karmas de vidas passadas, sua missão espiritual, talentos ocultos e o caminho exato para a prosperidade.
+            <h2 className="text-2xl font-mystic text-white mb-4">Quer desvendar todos os segredos da sua Alma?</h2>
+            <p className="text-netzach-muted mb-8 max-w-xl mx-auto leading-relaxed">
+                Esta é apenas a superfície. A análise completa revela seus karmas de vidas passadas, sua missão espiritual detalhada, talentos ocultos e o caminho exato para a prosperidade.
             </p>
             
             <button 
                 onClick={() => navigate('/servicos')}
-                className="bg-netzach-gold text-netzach-bg px-8 py-4 rounded-xl font-mystic font-bold text-lg hover:bg-white transition-all shadow-[0_0_20px_rgba(197,160,89,0.3)] animate-pulse flex items-center justify-center gap-2 mx-auto"
+                className="bg-netzach-gold text-netzach-bg px-8 py-4 rounded-xl font-mystic font-bold text-lg hover:bg-white transition-all shadow-lg animate-pulse flex items-center justify-center gap-2 mx-auto"
             >
                 Solicitar Leitura Completa <ArrowRight size={20}/>
             </button>

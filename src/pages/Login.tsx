@@ -61,7 +61,7 @@ export default function Login() {
             <Lock className="absolute left-3 top-3.5 text-netzach-muted group-focus-within:text-netzach-gold transition-colors" size={18} />
             <input
               type="password"
-              placeholder="Sua senha secreta"
+              placeholder="Digite sua senha"
               className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold focus:ring-1 focus:ring-netzach-gold outline-none transition-all placeholder-netzach-muted/50 text-netzach-text"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

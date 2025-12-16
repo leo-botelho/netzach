@@ -8,6 +8,9 @@ export interface Profile {
   whatsapp?: string;
   role: 'student' | 'admin';
   subscription_status?: string; // Ativo/Inativo
+  plan_type?: string;
+  subscription_end_date?: string;
+  last_payment_method?: string;
   
   // Astrologia e Dados Pessoais
   birth_date?: string;

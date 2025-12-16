@@ -39,7 +39,7 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col md:flex-row gap-4">
-            <Link to="/iniciacao" className="bg-netzach-gold text-netzach-bg px-8 py-4 rounded-lg font-mystic font-bold text-lg hover:bg-white transition-all shadow-[0_0_20px_rgba(197,160,89,0.2)] flex items-center justify-center gap-2">
+            <Link to="/assinar" className="bg-netzach-gold text-netzach-bg px-8 py-4 rounded-lg font-mystic font-bold text-lg hover:bg-white transition-all shadow-[0_0_20px_rgba(197,160,89,0.2)] flex items-center justify-center gap-2">
                 Iniciar Jornada <ArrowRight size={20}/>
             </Link>
             <a href="#detalhes" className="px-8 py-4 rounded-lg border border-netzach-border text-netzach-muted hover:text-netzach-gold hover:border-netzach-gold transition-all font-sans uppercase tracking-widest text-xs flex items-center justify-center">

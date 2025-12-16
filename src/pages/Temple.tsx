@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Moon, Droplet, Star, LogOut, Calendar as CalendarIcon, 
-  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, Shield 
+  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle 
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import NumerologySection from '../components/NumerologySection';
@@ -20,15 +20,23 @@ export default function Temple() {
   const [moon, setMoon] = useState<any>(null);
   const [cycle, setCycle] = useState<any>(null);
   
-  // Conteúdos
-  const [horoscope, setHoroscope] = useState<{ sky: string, sign: string }>({ sky: '', sign: '' });
+  // Conteúdos - AGORA COM LUA E ASCENDENTE
+  const [horoscope, setHoroscope] = useState<{ 
+    sky: string, 
+    sun: string, 
+    moon: string, 
+    rising: string 
+  }>({ sky: '', sun: '', moon: '', rising: '' });
+  
   const [dailyInsight, setDailyInsight] = useState<{ tarot: string, bath: string, image: string, meaning: string }>({ tarot: '', bath: '', image: '', meaning: '' });
 
   // Modais
-  const [isModalOpen, setIsModalOpen] = useState(false);        // Ciclo
-  const [isArcanoModalOpen, setIsArcanoModalOpen] = useState(false); // Arcano
-  const [isSkyModalOpen, setIsSkyModalOpen] = useState(false);  // Céu da Semana
-  const [isSignModalOpen, setIsSignModalOpen] = useState(false); // Signo
+  const [isModalOpen, setIsModalOpen] = useState(false);        
+  const [isArcanoModalOpen, setIsArcanoModalOpen] = useState(false); 
+  const [isSkyModalOpen, setIsSkyModalOpen] = useState(false);  
+  
+  // Modais de Horóscopo (Um estado para controlar qual texto mostrar)
+  const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{title: string, sign: string, text: string} | null>(null);
   
   const [newPeriodDate, setNewPeriodDate] = useState('');
 
@@ -51,30 +59,31 @@ export default function Temple() {
       }
 
       // Conteúdos
-      const { data: skyData } = await supabase
-        .from('horoscopes')
-        .select('content')
-        .or('sign.eq.Geral,sign.eq.geral,sign.eq.ceu_semana')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      let signData = null;
+      const newHoroscopes = { sky: '', sun: '', moon: '', rising: '' };
+
+      // 1. Céu da Semana
+      const { data: skyData } = await supabase.from('horoscopes').select('content').or('sign.eq.Geral,sign.eq.geral,sign.eq.ceu_semana').order('created_at', { ascending: false }).limit(1).single();
+      if (skyData) newHoroscopes.sky = skyData.content;
+
+      // 2. Solar
       if (profileData.sign_sun) {
-        const { data } = await supabase
-            .from('horoscopes')
-            .select('content')
-            .eq('sign', profileData.sign_sun.toLowerCase())
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-        signData = data;
+        const { data } = await supabase.from('horoscopes').select('content').eq('sign', profileData.sign_sun.toLowerCase()).order('created_at', { ascending: false }).limit(1).single();
+        if (data) newHoroscopes.sun = data.content;
       }
 
-      setHoroscope({
-        sky: skyData?.content || '',
-        sign: signData?.content || ''
-      });
+      // 3. Lunar (NOVO)
+      if (profileData.sign_moon) {
+        const { data } = await supabase.from('horoscopes').select('content').eq('sign', profileData.sign_moon.toLowerCase()).order('created_at', { ascending: false }).limit(1).single();
+        if (data) newHoroscopes.moon = data.content;
+      }
+
+      // 4. Ascendente (NOVO)
+      if (profileData.sign_rising) {
+        const { data } = await supabase.from('horoscopes').select('content').eq('sign', profileData.sign_rising.toLowerCase()).order('created_at', { ascending: false }).limit(1).single();
+        if (data) newHoroscopes.rising = data.content;
+      }
+
+      setHoroscope(newHoroscopes);
 
       const { data: insightData } = await supabase.from('daily_insights').select('*').order('created_at', { ascending: false }).limit(1).single();
       if (insightData) {
@@ -139,17 +148,14 @@ export default function Temple() {
         </div>
         
         <div className="flex items-center gap-3">
-            {/* BOTÃO ADMIN (Só aparece para Raquel) */}
             {profile?.role === 'admin' && (
                 <button 
                     onClick={() => navigate('/admin')}
                     className="bg-netzach-gold/10 border border-netzach-gold text-netzach-gold p-2 rounded-lg hover:bg-netzach-gold hover:text-netzach-bg transition-colors"
-                    title="Painel Admin"
                 >
-                    <Shield size={20}/>
+                    <img src="/logo.svg" className="w-5 h-5 invert brightness-0" alt="Admin"/> {/* Ícone Shield ou Logo */}
                 </button>
             )}
-            
             <button onClick={handleLogout} className="text-netzach-muted hover:text-netzach-gold transition-colors">
                 <LogOut size={20}/>
             </button>
@@ -175,22 +181,43 @@ export default function Temple() {
           )}
         </section>
 
-        {/* 2. ASTROLOGIA (Céu e Pessoal) */}
-        <section className="grid grid-cols-2 gap-4">
-            {/* Céu da Semana */}
-            <button onClick={() => setIsSkyModalOpen(true)} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group h-full flex flex-col justify-between">
-                <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><CloudMoon size={16}/></div><p className="text-[10px] text-netzach-gold uppercase tracking-widest mb-1">Coletivo</p><h3 className="font-mystic text-xl text-white mb-2">Céu da Semana</h3></div><p className="text-xs text-netzach-muted underline mt-2">Ver orientações &rarr;</p>
-            </button>
+        {/* 2. ASTROLOGIA (Céu + Solar + Lunar + Ascendente) - ATUALIZADO */}
+        <div>
+            <h3 className="text-xs text-netzach-gold uppercase font-bold mb-3 tracking-widest pl-1">Mapa Celeste</h3>
+            <div className="grid grid-cols-2 gap-4">
+                
+                {/* Céu da Semana */}
+                <button onClick={() => setIsSkyModalOpen(true)} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
+                    <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><CloudMoon size={16}/></div><p className="text-[10px] text-netzach-gold uppercase tracking-widest mb-1">Coletivo</p><h3 className="font-mystic text-lg text-white">Céu da Semana</h3></div>
+                    <p className="text-xs text-netzach-muted underline mt-2">Ler orientações &rarr;</p>
+                </button>
 
-            {/* Signo Solar */}
-            <button onClick={() => setIsSignModalOpen(true)} className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group h-full flex flex-col justify-between">
-                <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><Sun size={16} className="text-netzach-gold"/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Seu Sol</p><h3 className="font-mystic text-xl text-white mb-2">{profile?.sign_sun || "..."}</h3><div className="text-xs text-netzach-text/80 font-light line-clamp-3 leading-relaxed">{horoscope.sign || "Aguardando previsão..."}</div></div>
-                <p className="text-xs text-netzach-muted underline mt-2">Ler previsão &rarr;</p>
-            </button>
-        </section>
+                {/* Signo Solar */}
+                <button onClick={() => setActiveHoroscopeModal({title: 'Seu Sol', sign: profile?.sign_sun || '', text: horoscope.sun})} className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
+                    <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><Sun size={16} className="text-netzach-gold"/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Sol (Essência)</p><h3 className="font-mystic text-lg text-white">{profile?.sign_sun || "..."}</h3></div>
+                    <p className="text-xs text-netzach-muted underline mt-2">Ler previsões &rarr;</p>
+                </button>
+
+                {/* Signo Lunar (Se existir) */}
+                {profile?.sign_moon && (
+                     <button onClick={() => setActiveHoroscopeModal({title: 'Sua Lua', sign: profile.sign_moon || '', text: horoscope.moon})} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
+                        <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><Moon size={16}/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Lua (Emoção)</p><h3 className="font-mystic text-lg text-white">{profile.sign_moon}</h3></div>
+                        <p className="text-xs text-netzach-muted underline mt-2">Ler previsões &rarr;</p>
+                    </button>
+                )}
+
+                {/* Ascendente (Se existir) */}
+                {profile?.sign_rising && (
+                     <button onClick={() => setActiveHoroscopeModal({title: 'Seu Ascendente', sign: profile.sign_rising || '', text: horoscope.rising})} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
+                        <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><ArrowUpCircle size={16}/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Ascendente</p><h3 className="font-mystic text-lg text-white">{profile.sign_rising}</h3></div>
+                        <p className="text-xs text-netzach-muted underline mt-2">Ler previsões &rarr;</p>
+                    </button>
+                )}
+            </div>
+        </div>
 
         {/* 3. ARCANO */}
-        <section className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-6 relative overflow-hidden shadow-lg">
+        <section className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-6 relative overflow-hidden shadow-lg mt-6">
           <div className="flex justify-between mb-4"><div><span className="text-[10px] uppercase tracking-[0.2em] text-netzach-gold font-bold">Arcano da Semana</span><h3 className="font-mystic text-2xl text-white mt-1">{dailyInsight.tarot}</h3></div><button onClick={() => setIsArcanoModalOpen(true)} className="text-netzach-gold hover:text-white transition-colors"><Star size={24}/></button></div>
           <div className="flex gap-4">
             {dailyInsight.image ? (<img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-24 h-36 object-cover rounded border border-netzach-border shadow-md cursor-pointer hover:scale-105 transition-transform" onClick={() => setIsArcanoModalOpen(true)}/>) : (<div className="w-24 h-36 bg-black/30 rounded border border-netzach-border shrink-0 flex items-center justify-center"><span className="text-xs text-netzach-muted">Carta</span></div>)}
@@ -207,7 +234,7 @@ export default function Temple() {
         {/* 5. NUMEROLOGIA */}
         {profile && <NumerologySection fullName={profile.full_name} birthDate={profile.birth_date} />}
 
-        {/* 6. BOTÃO MATRIZ DA ALMA */}
+        {/* 6. BOTÃO MATRIZ */}
         <button onClick={() => navigate('/matriz')} className="w-full bg-gradient-to-r from-netzach-card to-[#2a1245] border border-netzach-border p-6 rounded-xl flex items-center justify-between group hover:border-netzach-gold transition-all shadow-lg">
             <div className="text-left"><h3 className="font-mystic text-lg text-white group-hover:text-netzach-gold transition-colors flex items-center gap-2"><Sparkles size={18} className="text-netzach-gold"/> Matriz da Alma</h3><p className="text-xs text-netzach-muted mt-1">Sua mandala pessoal de propósito e carma.</p></div>
             <div className="w-8 h-8 rounded-full bg-netzach-bg border border-netzach-gold/30 flex items-center justify-center text-netzach-gold group-hover:bg-netzach-gold group-hover:text-netzach-bg transition-all"><ArrowRight size={16}/></div>
@@ -215,16 +242,14 @@ export default function Temple() {
 
       </main>
 
-      {/* FOOTER NAV */}
+      {/* FOOTER */}
       <nav className="fixed bottom-0 w-full bg-[#0F0518]/95 backdrop-blur-md border-t border-netzach-border p-4 flex justify-around items-center z-30 pb-6 safe-area-pb">
         <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-gold"><Moon size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Templo</span></button>
         <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><MessageSquare size={20}/><span className="text-[10px] uppercase tracking-wider">Serviços</span></button>
         <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span></button>
       </nav>
 
-      {/* MODAIS */}
-      
-      {/* Modal Céu */}
+      {/* MODAL CÉU */}
       {isSkyModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-netzach-card border border-netzach-gold/30 p-8 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
@@ -236,17 +261,23 @@ export default function Temple() {
         </div>
       )}
 
-      {/* Modal Signo (Pessoal) */}
-      {isSignModalOpen && (
+      {/* MODAL HORÓSCOPO PESSOAL (Solar/Lunar/Asc) - NOVO */}
+      {activeHoroscopeModal && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-netzach-card border border-netzach-gold/30 p-8 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
-                <button onClick={() => setIsSignModalOpen(false)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black transition-colors z-10"><X size={20}/></button>
-                <div className="relative z-10 overflow-y-auto custom-scrollbar"><span className="text-xs font-bold text-netzach-gold uppercase tracking-widest mb-2 block">Horóscopo Pessoal</span><h2 className="text-3xl font-mystic text-white mb-6">{profile?.sign_sun}</h2><div className="prose prose-invert prose-p:text-netzach-text/90 prose-p:font-light prose-p:leading-loose text-sm"><p className="whitespace-pre-wrap">{horoscope.sign || "Aguardando previsão para seu signo..."}</p></div></div>
+                <button onClick={() => setActiveHoroscopeModal(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black transition-colors z-10"><X size={20}/></button>
+                <div className="relative z-10 overflow-y-auto custom-scrollbar">
+                    <span className="text-xs font-bold text-netzach-gold uppercase tracking-widest mb-2 block">{activeHoroscopeModal.title}</span>
+                    <h2 className="text-3xl font-mystic text-white mb-6">{activeHoroscopeModal.sign}</h2>
+                    <div className="prose prose-invert prose-p:text-netzach-text/90 prose-p:font-light prose-p:leading-loose text-sm">
+                        <p className="whitespace-pre-wrap">{activeHoroscopeModal.text || `Aguardando a previsão para ${activeHoroscopeModal.sign}...`}</p>
+                    </div>
+                </div>
             </div>
         </div>
       )}
 
-      {/* Modal Arcano */}
+      {/* MODAL ARCANO */}
       {isArcanoModalOpen && dailyInsight.meaning && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-netzach-card border border-netzach-gold/30 p-0 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
@@ -257,7 +288,7 @@ export default function Temple() {
         </div>
       )}
 
-      {/* Modal Ciclo */}
+      {/* MODAL CICLO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-netzach-card border border-netzach-gold/30 p-6 rounded-2xl w-full max-w-sm relative"><button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><LogOut className="rotate-180" size={20}/></button><h3 className="font-mystic text-xl text-netzach-gold mb-2 text-center">Sintonizar Ciclo</h3><input type="date" className="w-full p-4 bg-netzach-bg border border-netzach-border rounded-xl text-white text-center text-lg outline-none focus:border-netzach-gold mb-6" value={newPeriodDate} onChange={(e) => setNewPeriodDate(e.target.value)} /><button onClick={handleUpdateCycle} className="w-full bg-netzach-gold text-netzach-bg font-bold font-mystic py-3 rounded-xl hover:bg-white transition-colors">Confirmar</button></div>

@@ -4,12 +4,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, User, Moon, Loader2, Calendar, Phone, Clock, MapPin } from 'lucide-react';
 import { getSunSign } from '../utils/mysticMath';
 
+const UFS = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+];
+
 export default function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Estado para controlar se tem ciclo
   const [hasCycle, setHasCycle] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -19,7 +24,8 @@ export default function Register() {
     password: '',
     birthDate: '',
     birthTime: '',
-    birthCity: '', // Novo
+    city: '',     // Separado
+    state: '',    // Separado
     lastPeriod: '',
     cycleDays: '28',
     periodDays: '5'
@@ -31,6 +37,10 @@ export default function Register() {
 
     const sign = getSunSign(formData.birthDate);
 
+    // Formata a cidade para garantir precisão na geolocalização
+    // Ex: "Campinas, SP, BR"
+    const formattedCity = `${formData.city.trim()}, ${formData.state}, BR`;
+
     const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -40,9 +50,8 @@ export default function Register() {
           whatsapp: formData.whatsapp,
           birth_date: formData.birthDate,
           birth_time: formData.birthTime,
-          birth_city: formData.birthCity,
+          birth_city: formattedCity, // Envia formatado
           sign_sun: sign,
-          // Se não tiver ciclo, envia vazio para o banco salvar NULL
           last_period_date: hasCycle ? formData.lastPeriod : '',
           cycle_duration: hasCycle ? formData.cycleDays : '',
           period_duration: hasCycle ? formData.periodDays : ''
@@ -55,7 +64,7 @@ export default function Register() {
     if (error) {
       alert('Erro: ' + error.message);
     } else {
-      alert(`Bem-vinda, ${sign}! ✨\nVerifique seu e-mail para confirmar a entrada no Templo.`);
+      alert(`Bem-vinda, ${sign}! ✨\nVerifique seu e-mail para confirmar a entrada no Templo.\n(Olhe também na caixa de SPAM)`);
       navigate('/portal');
     }
   };
@@ -72,59 +81,94 @@ export default function Register() {
 
         <form onSubmit={handleRegister} className="space-y-4">
           
+          {/* PASSO 1: DADOS DE CONTATO */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
               <div className="relative group">
                 <User className="absolute left-3 top-3.5 text-netzach-muted" size={18} />
-                <input placeholder="Nome de Batismo Completo" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                <input placeholder="Nome de Batismo Completo" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all"
+                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
               </div>
               <div className="relative group">
                 <Mail className="absolute left-3 top-3.5 text-netzach-muted" size={18} />
-                <input type="email" placeholder="Seu Melhor E-mail" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+                <input type="email" placeholder="Seu Melhor E-mail" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all"
+                  value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
               </div>
               <div className="relative group">
                 <Phone className="absolute left-3 top-3.5 text-netzach-muted" size={18} />
-                <input type="tel" placeholder="WhatsApp (DDD + Número)" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} required />
+                <input type="tel" placeholder="WhatsApp (DDD + Número)" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all"
+                  value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} required />
               </div>
               <div className="relative group">
                 <Lock className="absolute left-3 top-3.5 text-netzach-muted" size={18} />
-                <input type="password" placeholder="Crie sua Senha Secreta" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                <input type="password" placeholder="Crie sua Senha Secreta" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all"
+                  value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
               </div>
-              <button type="button" onClick={() => setStep(2)} disabled={!formData.name || !formData.email || !formData.whatsapp || !formData.password} className="w-full bg-netzach-accent text-white p-3 rounded-lg font-bold hover:bg-purple-800 transition-all disabled:opacity-50 mt-2">Continuar</button>
+              <button type="button" onClick={() => setStep(2)} disabled={!formData.name || !formData.email || !formData.whatsapp || !formData.password}
+                className="w-full bg-netzach-accent text-white p-3 rounded-lg font-bold hover:bg-purple-800 transition-all disabled:opacity-50 mt-2">
+                Continuar
+              </button>
             </div>
           )}
 
+          {/* PASSO 2: DADOS MÍSTICOS & CICLO */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+              
               <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="text-[10px] text-netzach-gold uppercase font-bold mb-1 block">Nascimento</label>
                     <div className="relative">
                         <Calendar className="absolute left-2 top-2.5 text-netzach-muted" size={14} />
-                        <input type="date" className="w-full pl-7 p-2 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-xs text-white/90" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required />
+                        <input type="date" className="w-full pl-7 p-2.5 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-xs text-white/90"
+                        value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required />
                     </div>
                 </div>
                 <div>
                     <label className="text-[10px] text-netzach-gold uppercase font-bold mb-1 block">Horário</label>
                     <div className="relative">
                         <Clock className="absolute left-2 top-2.5 text-netzach-muted" size={14} />
-                        <input type="time" className="w-full pl-7 p-2 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-xs text-white/90" value={formData.birthTime} onChange={e => setFormData({...formData, birthTime: e.target.value})} required />
+                        <input type="time" className="w-full pl-7 p-2.5 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-xs text-white/90"
+                        value={formData.birthTime} onChange={e => setFormData({...formData, birthTime: e.target.value})} required />
                     </div>
                 </div>
               </div>
 
+              {/* LOCAL DE NASCIMENTO (CIDADE + ESTADO) */}
               <div>
-                <label className="text-[10px] text-netzach-gold uppercase font-bold mb-1 block">Cidade de Nascimento</label>
-                <div className="relative">
-                    <MapPin className="absolute left-3 top-3.5 text-netzach-muted" size={16} />
-                    <input type="text" placeholder="Cidade - Estado" className="w-full pl-9 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-sm" value={formData.birthCity} onChange={e => setFormData({...formData, birthCity: e.target.value})} required />
+                <label className="text-[10px] text-netzach-gold uppercase font-bold mb-1 block">Local de Nascimento</label>
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <MapPin className="absolute left-2 top-3 text-netzach-muted" size={14} />
+                        <input 
+                            type="text" 
+                            placeholder="Cidade" 
+                            className="w-full pl-7 p-2.5 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-sm" 
+                            value={formData.city} 
+                            onChange={e => setFormData({...formData, city: e.target.value})} 
+                            required 
+                        />
+                    </div>
+                    <div className="w-20">
+                        <select 
+                            className="w-full p-2.5 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none text-sm text-center appearance-none"
+                            value={formData.state}
+                            onChange={e => setFormData({...formData, state: e.target.value})}
+                            required
+                        >
+                            <option value="">UF</option>
+                            {UFS.map(uf => (
+                                <option key={uf} value={uf}>{uf}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
               </div>
 
               <div className="border-t border-netzach-border pt-2">
                  <div className="flex items-center gap-2 mb-3">
                     <input type="checkbox" id="noCycle" checked={!hasCycle} onChange={(e) => setHasCycle(!e.target.checked)} className="accent-netzach-gold w-4 h-4"/>
-                    <label htmlFor="noCycle" className="text-xs text-netzach-muted cursor-pointer select-none">Não acompanho ciclo menstrual (Menopausa/Outros)</label>
+                    <label htmlFor="noCycle" className="text-xs text-netzach-muted cursor-pointer select-none">Não acompanho ciclo menstrual</label>
                  </div>
 
                  {hasCycle && (
@@ -143,13 +187,17 @@ export default function Register() {
 
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setStep(1)} className="flex-1 bg-transparent border border-netzach-border text-netzach-muted p-3 rounded-lg font-bold hover:text-white text-sm">Voltar</button>
-                <button disabled={loading} className="flex-[2] bg-netzach-gold text-netzach-bg p-3 rounded-lg font-mystic font-bold hover:bg-white transition-all disabled:opacity-50 text-sm">{loading ? <Loader2 className="animate-spin mx-auto"/> : 'Finalizar Iniciação'}</button>
+                <button disabled={loading} className="flex-[2] bg-netzach-gold text-netzach-bg p-3 rounded-lg font-mystic font-bold hover:bg-white transition-all disabled:opacity-50 text-sm">
+                    {loading ? <Loader2 className="animate-spin mx-auto"/> : 'Finalizar Iniciação'}
+                </button>
               </div>
             </div>
           )}
+
         </form>
+        
         <div className="mt-6 text-center text-xs border-t border-netzach-border pt-4">
-            <Link to="/portal" className="text-netzach-muted hover:text-netzach-gold transition-colors">Já tenho acesso</Link>
+          <Link to="/portal" className="text-netzach-muted hover:text-netzach-gold transition-colors">Já tenho acesso</Link>
         </div>
       </div>
     </div>

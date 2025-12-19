@@ -101,7 +101,7 @@ export default function Register() {
               </div>
               <div className="relative group">
                 <Lock className="absolute left-3 top-3.5 text-netzach-muted" size={18} />
-                <input type="password" placeholder="Crie sua Senha Secreta" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all"
+                <input type="password" placeholder="Crie sua Senha" className="w-full pl-10 p-3 bg-[#0F0518] border border-netzach-border rounded-lg focus:border-netzach-gold outline-none transition-all"
                   value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
               </div>
               <button type="button" onClick={() => setStep(2)} disabled={!formData.name || !formData.email || !formData.whatsapp || !formData.password}

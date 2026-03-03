@@ -60,19 +60,32 @@ export const calculateCycleStatus = (lastPeriod: string, cycleDays = 28) => {
 
 // 3. Lua
 export const getMoonPhase = (date: Date = new Date()) => {
-  let year = date.getFullYear();
-  let month = date.getMonth() + 1;
-  let day = date.getDate();
-  if (month < 3) { year--; month += 12; }
-  ++month;
-  let c = 365.25 * year;
-  let e = 30.6 * month;
-  let total = c + e + day - 694039.09;
-  let cycle = total / 29.53;
-  let phase = cycle - Math.floor(cycle);
+  // Duração exata de um ciclo lunar em dias (Ciclo Sinódico)
+  const LUNAR_MONTH = 29.53058867;
+  
+  // Data histórica exata de uma Lua Nova para servir de ponto de partida absoluto
+  // Usando o primeiro eclipse/lua nova de 2000 (UTC)
+  const NEW_MOON_REFERENCE = new Date('2000-01-06T18:14:00Z').getTime();
+  
+  // Transforma as datas em milissegundos e depois em dias exatos
+  const now = date.getTime();
+  const diffInDays = (now - NEW_MOON_REFERENCE) / (1000 * 60 * 60 * 24);
+  
+  // Calcula quantos ciclos completos se passaram e pega apenas o resto (a fase atual de 0.0 a 1.0)
+  const cycles = diffInDays / LUNAR_MONTH;
+  const phase = cycles - Math.floor(cycles);
 
-  if (phase < 0.03 || phase > 0.97) return { phase: 'Nova', label: 'Sementes no Escuro' };
-  if (phase < 0.25) return { phase: 'Crescente', label: 'Expansão e Ação' };
-  if (phase < 0.53) return { phase: 'Cheia', label: 'Plenitude e Luz' };
+  // Dividimos o ciclo em 4 partes equilibradas (aprox. 7.3 dias cada fase)
+  // Centralizando para que a energia da fase fique correta no app
+  if (phase >= 0.875 || phase < 0.125) {
+    return { phase: 'Nova', label: 'Sementes no Escuro' };
+  }
+  if (phase >= 0.125 && phase < 0.375) {
+    return { phase: 'Crescente', label: 'Expansão e Ação' };
+  }
+  if (phase >= 0.375 && phase < 0.625) {
+    return { phase: 'Cheia', label: 'Plenitude e Luz' };
+  }
+  
   return { phase: 'Minguante', label: 'Limpeza e Desapego' };
 };

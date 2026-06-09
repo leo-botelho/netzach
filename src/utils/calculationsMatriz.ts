@@ -1,217 +1,173 @@
 import type { MatrizDestino, MatrizCircle } from '../types';
 
-// Função para reduzir para Arcano (1-22)
-const reduzirParaArcano = (num: number): number => {
-  if (num === 0) return 22; // O Louco
+/**
+ * Reduz qualquer número para um Arcano (1-22).
+ * Números mestres 11 e 22 são preservados na primeira redução.
+ */
+const r = (num: number): number => {
+  if (num === 0) return 22;
   if (num <= 22) return num;
-  
-  // Para números acima de 22, soma os dígitos
-  let soma = num;
-  while (soma > 22) {
-    soma = soma.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+  let s = num;
+  while (s > 22) {
+    s = s.toString().split('').reduce((acc, d) => acc + parseInt(d), 0);
   }
-  return soma;
+  return s;
 };
 
-// Cria o objeto do círculo com o valor original e o arcano correspondente
-const criarCirculo = (valor: number): MatrizCircle => ({
-  value: valor,
-  arcano: reduzirParaArcano(valor)
-});
+const c = (arcano: number): MatrizCircle => ({ value: arcano, arcano });
 
 const extrairData = (dateString: string) => {
   const date = new Date(dateString);
-  const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-  const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
+  const offset = date.getTimezoneOffset() * 60000;
+  const d = new Date(date.getTime() + offset);
 
-  const dia = adjustedDate.getDate();
-  const mes = adjustedDate.getMonth() + 1;
-  const anoCompleto = adjustedDate.getFullYear();
-  
-  const digitosAno = anoCompleto.toString().split('').map(d => parseInt(d));
-  const somaAno = digitosAno.reduce((acc, d) => acc + d, 0);
-  
-  const digitosTotal = (dia.toString() + mes.toString() + anoCompleto.toString()).split('').map(d => parseInt(d));
-  const somaTotalDigitos = digitosTotal.reduce((acc, d) => acc + d, 0);
-  
-  return {
-    dia,
-    mes,
-    somaAno, 
-    somaTotalDigitos
-  };
+  const dia = d.getDate();
+  const mes = d.getMonth() + 1;
+  const ano = d.getFullYear();
+  const somaAno = ano.toString().split('').reduce((acc, x) => acc + parseInt(x), 0);
+
+  return { dia, mes, somaAno };
 };
 
 export const calcularMatrizDestino = (birthDate: string): MatrizDestino => {
-  const { dia, mes, somaAno, somaTotalDigitos } = extrairData(birthDate);
-  
-  // 1. PONTAS PRINCIPAIS (Cardeais)
-  const latEsqMaior = criarCirculo(dia);
-  const topoMaior = criarCirculo(mes);
-  const latDirMaior = criarCirculo(somaAno);
-  const baseMaior = criarCirculo(somaTotalDigitos);
+  const { dia, mes, somaAno } = extrairData(birthDate);
 
-  // 2. CENTRO
-  const centroValor = latEsqMaior.value + topoMaior.value + latDirMaior.value + baseMaior.value;
-  const centralMaior = criarCirculo(centroValor);
+  // ── 4 PONTAS CARDEAIS ──────────────────────────────────────────────
+  // Toda operação usa o valor arcano (1-22) — nunca o número bruto.
+  const D = r(dia);      // LEFT  — karma / passado
+  const M = r(mes);      // TOP   — missão / dons e talentos
+  const A = r(somaAno);  // RIGHT — imagem social / ano
+  const B = r(D + M + A);// BOTTOM — propósito geral (redução de D+M+A)
+  const CC = r(D + M + A + B); // CENTRO
 
-  // 3. DIAGONAIS MAIORES (Externas)
-  const diagSupEsqMaior = criarCirculo(latEsqMaior.value + topoMaior.value);
-  const diagSupDirMaior = criarCirculo(topoMaior.value + latDirMaior.value);
-  const diagInfDirMaior = criarCirculo(latDirMaior.value + baseMaior.value);
-  const diagInfEsqMaior = criarCirculo(baseMaior.value + latEsqMaior.value);
+  // ── EIXO CARDINAL: internos (menor = ponta+centro) e médios (ponta+menor) ──
+  const tMen = r(M + CC);      // top inner
+  const tInt = r(M + tMen);    // top middle
 
-  // 4. CÍRCULOS INTERMEDIÁRIOS
-  const topoMenor = criarCirculo(topoMaior.value + centralMaior.value);
-  const topoIntermediario = criarCirculo(topoMaior.value + topoMenor.value);
+  const bMen = r(B + CC);      // bottom inner
+  const bInt = r(B + bMen);    // bottom middle
 
-  const baseMenor = criarCirculo(baseMaior.value + centralMaior.value);
-  const baseIntermediario = criarCirculo(baseMaior.value + baseMenor.value);
+  const eMen = r(D + CC);      // left inner
+  const eInt = r(D + eMen);    // left middle
 
-  const latEsqMenor = criarCirculo(latEsqMaior.value + centralMaior.value);
-  const latEsqIntermediario = criarCirculo(latEsqMaior.value + latEsqMenor.value);
+  const dMen = r(A + CC);      // right inner
+  const dInt = r(A + dMen);    // right middle
 
-  const latDirMenor = criarCirculo(latDirMaior.value + centralMaior.value);
-  const latDirIntermediario = criarCirculo(latDirMaior.value + latDirMenor.value);
+  // ── 4 DIAGONAIS externas ──────────────────────────────────────────
+  const seM = r(D + M);   // sup-esq outer  (linhagem masculina)
+  const sdM = r(M + A);   // sup-dir outer  (linhagem feminina)
+  const idM = r(A + B);   // inf-dir outer
+  const ieM = r(B + D);   // inf-esq outer
 
-  // 5. LINHA PONTILHADA
-  const linhaPontMeio = criarCirculo(latDirMenor.value + baseMenor.value);
-  
+  // ── DIAGONAIS internas e médias ───────────────────────────────────
+  const seN = r(eMen + tMen);  // sup-esq inner
+  const seI = r(seM + seN);    // sup-esq middle
+
+  const sdN = r(tMen + dMen);  // sup-dir inner
+  const sdI = r(sdM + sdN);    // sup-dir middle
+
+  const idN = r(dMen + bMen);  // inf-dir inner
+  const idI = r(idM + idN);    // inf-dir middle
+
+  const ieN = r(bMen + eMen);  // inf-esq inner
+  const ieI = r(ieM + ieN);    // inf-esq middle
+
+  // ── CÍRCULOS VERDES CENTRAIS ──────────────────────────────────────
+  const vTopo = r(CC + tMen);
+  const vEsq  = r(CC + eMen);
+
+  // ── CENTRO: médio (à direita) e menor (abaixo) ───────────────────
+  const centroMedio = r(CC + tMen);  // mesmo que vTopo
+  const centroMenor = r(CC + bMen);
+
+  // ── LINHA PONTILHADA (dinheiro) ──────────────────────────────────
+  const lpMeio = r(dMen + bMen);
   const linhaPont = {
-    menorBase: baseMenor,
-    primeiroEsquerda: criarCirculo(baseMenor.value + linhaPontMeio.value),
-    meio: linhaPontMeio,
-    primeiroDireita: criarCirculo(latDirMenor.value + linhaPontMeio.value),
-    menorDireita: latDirMenor
+    menorBase:        c(bMen),
+    primeiroEsquerda: c(r(bMen + lpMeio)),
+    meio:             c(lpMeio),
+    primeiroDireita:  c(r(dMen + lpMeio)),
+    menorDireita:     c(dMen),
   };
 
-  // 6. PROPÓSITOS
-  const propCeu = reduzirParaArcano(topoMaior.value + baseMaior.value);
-  const propTerra = reduzirParaArcano(latEsqMaior.value + latDirMaior.value);
-  const propPessoalFinal = reduzirParaArcano(propCeu + propTerra);
-  
-  const propMasc = reduzirParaArcano(diagSupEsqMaior.value + diagInfDirMaior.value);
-  const propFem = reduzirParaArcano(diagSupDirMaior.value + diagInfEsqMaior.value);
-  const propSocialFinal = reduzirParaArcano(propMasc + propFem);
-  
-  const propEspiritual = reduzirParaArcano(propPessoalFinal + propSocialFinal);
-  const propGlobal = reduzirParaArcano(propEspiritual + propSocialFinal);
+  // ── PROPÓSITOS ─────────────────────────────────────────────────────
+  // Pessoal (até 40 anos): céu (M+B) + terra (D+A)
+  const propCeu   = r(M + B);
+  const propTerra = r(D + A);
+  const propPessoalFinal = r(propCeu + propTerra);
 
-  // 7. CÍRCULOS VERDES
-  const circuloVerdeCentralTopo = criarCirculo(centralMaior.value + topoMenor.value);
-  const circuloVerdeCentralEsquerda = criarCirculo(centralMaior.value + latEsqMenor.value);
+  // Social (40-60 anos): diagonal masc (seM+idM) + fem (sdM+ieM)
+  const propMasc = r(seM + idM);
+  const propFem  = r(sdM + ieM);
+  const propSocialFinal = r(propMasc + propFem);
 
-  // 8. CÁLCULO DAS DIAGONAIS COMPLETAS (AQUI ESTAVA O ERRO ANTES)
-  // Agora estamos declarando as variáveis 'Menor' e 'Meio' antes de usar no objeto final
+  // Espiritual (>60) e Global
+  const propEspiritual = r(propPessoalFinal + propSocialFinal);
+  const propGlobal     = r(propEspiritual + propSocialFinal);
 
-  // Diagonal Superior Esquerda
-  const diagSupEsqMenor = criarCirculo(latEsqMenor.value + topoMenor.value);
-  const diagSupEsqMeio = criarCirculo(diagSupEsqMaior.value + diagSupEsqMenor.value);
-  
-  // Diagonal Superior Direita
-  const diagSupDirMenor = criarCirculo(topoMenor.value + latDirMenor.value);
-  const diagSupDirMeio = criarCirculo(diagSupDirMaior.value + diagSupDirMenor.value);
-
-  // Diagonal Inferior Esquerda
-  const diagInfEsqMenor = criarCirculo(latEsqMenor.value + baseMenor.value);
-  const diagInfEsqMeio = criarCirculo(diagInfEsqMaior.value + diagInfEsqMenor.value);
-
-  // Diagonal Inferior Direita
-  const diagInfDirMenor = criarCirculo(baseMenor.value + latDirMenor.value);
-  const diagInfDirMeio = criarCirculo(diagInfDirMaior.value + diagInfDirMenor.value);
-
-  // 9. CÁLCULO DOS CHAKRAS
-  const sahashara = {
-      fisico: latEsqMaior.arcano,
-      energia: topoMaior.arcano,
-      emocoes: reduzirParaArcano(latEsqMaior.value + topoMaior.value)
+  // ── CHAKRAS ───────────────────────────────────────────────────────
+  // Eixo esquerda (físico) × eixo topo (energia) → emoções = soma reduzida
+  const chakras = {
+    sahashara:    { fisico: D,    energia: M,    emocoes: r(D + M)       },
+    ajna:         { fisico: eInt, energia: tInt, emocoes: r(eInt + tInt) },
+    vishuddha:    { fisico: eMen, energia: tMen, emocoes: r(eMen + tMen) },
+    anahata:      { fisico: vEsq, energia: vTopo,emocoes: r(vEsq + vTopo)},
+    manipura:     { fisico: CC,   energia: CC,   emocoes: r(CC + CC)     },
+    svadhishthana:{ fisico: dMen, energia: bMen, emocoes: r(dMen + bMen) },
+    muladhara:    { fisico: A,    energia: B,    emocoes: r(A + B)       },
   };
 
-  const ajna = {
-      fisico: latEsqIntermediario.arcano,
-      energia: topoIntermediario.arcano,
-      emocoes: reduzirParaArcano(latEsqIntermediario.value + topoIntermediario.value)
-  };
-
-  const vishuddha = {
-      fisico: latEsqMenor.arcano,
-      energia: topoMenor.arcano,
-      emocoes: reduzirParaArcano(latEsqMenor.value + topoMenor.value)
-  };
-
-  const anahata = {
-      fisico: circuloVerdeCentralEsquerda.arcano,
-      energia: circuloVerdeCentralTopo.arcano,
-      emocoes: reduzirParaArcano(circuloVerdeCentralEsquerda.value + circuloVerdeCentralTopo.value)
-  };
-
-  const manipura = {
-      fisico: centralMaior.arcano,
-      energia: centralMaior.arcano, // Na matriz, o centro costuma repetir na energia do Manipura
-      emocoes: reduzirParaArcano(centralMaior.value + centralMaior.value)
-  };
-
-  const svadhishthana = {
-      fisico: latDirMenor.arcano,
-      energia: baseMenor.arcano,
-      emocoes: reduzirParaArcano(latDirMenor.value + baseMenor.value)
-  };
-
-  const muladhara = {
-      fisico: latDirMaior.arcano,
-      energia: baseMaior.arcano,
-      emocoes: reduzirParaArcano(latDirMaior.value + baseMaior.value)
-  };
-
-  const chakras = { sahashara, ajna, vishuddha, anahata, manipura, svadhishthana, muladhara };
-  
   const resumoSaude = {
-    fisico: reduzirParaArcano(
-        sahashara.fisico + ajna.fisico + vishuddha.fisico + anahata.fisico + 
-        manipura.fisico + svadhishthana.fisico + muladhara.fisico
+    fisico: r(
+      chakras.sahashara.fisico + chakras.ajna.fisico + chakras.vishuddha.fisico +
+      chakras.anahata.fisico   + chakras.manipura.fisico + chakras.svadhishthana.fisico +
+      chakras.muladhara.fisico
     ),
-    energetico: reduzirParaArcano(
-        sahashara.energia + ajna.energia + vishuddha.energia + anahata.energia + 
-        manipura.energia + svadhishthana.energia + muladhara.energia
+    energetico: r(
+      chakras.sahashara.energia + chakras.ajna.energia + chakras.vishuddha.energia +
+      chakras.anahata.energia   + chakras.manipura.energia + chakras.svadhishthana.energia +
+      chakras.muladhara.energia
     ),
-    emocional: reduzirParaArcano(
-        sahashara.emocoes + ajna.emocoes + vishuddha.emocoes + anahata.emocoes + 
-        manipura.emocoes + svadhishthana.emocoes + muladhara.emocoes
-    )
+    emocional: r(
+      chakras.sahashara.emocoes + chakras.ajna.emocoes + chakras.vishuddha.emocoes +
+      chakras.anahata.emocoes   + chakras.manipura.emocoes + chakras.svadhishthana.emocoes +
+      chakras.muladhara.emocoes
+    ),
   };
 
-  // RETORNO FINAL
+  // ── RETORNO ───────────────────────────────────────────────────────
   return {
     birthDate,
+
     central: {
-      maior: centralMaior,
-      medio: criarCirculo(centralMaior.value + topoMenor.value),
-      menor: criarCirculo(centralMaior.value + baseMenor.value)
+      maior: c(CC),
+      medio: c(centroMedio),
+      menor: c(centroMenor),
     },
-    base: { maior: baseMaior, intermediario: baseIntermediario, menor: baseMenor },
-    topo: { maior: topoMaior, intermediario: topoIntermediario, menor: topoMenor },
-    lateralDireita: { maior: latDirMaior, intermediario: latDirIntermediario, menor: latDirMenor },
-    lateralEsquerda: { maior: latEsqMaior, intermediario: latEsqIntermediario, menor: latEsqMenor },
-    
-    circuloVerdeCentralTopo,
-    circuloVerdeCentralEsquerda,
-    
-    // Agora usando as variáveis que calculamos no passo 8
-    diagonalSuperiorEsquerda: { maior: diagSupEsqMaior, meio: diagSupEsqMeio, menor: diagSupEsqMenor },
-    diagonalSuperiorDireita: { maior: diagSupDirMaior, meio: diagSupDirMeio, menor: diagSupDirMenor },
-    diagonalInferiorEsquerda: { maior: diagInfEsqMaior, meio: diagInfEsqMeio, menor: diagInfEsqMenor },
-    diagonalInferiorDireita: { maior: diagInfDirMaior, meio: diagInfDirMeio, menor: diagInfDirMenor },
-    
+
+    topo:          { maior: c(M),    intermediario: c(tInt), menor: c(tMen) },
+    base:          { maior: c(B),    intermediario: c(bInt), menor: c(bMen) },
+    lateralEsquerda:{ maior: c(D),   intermediario: c(eInt), menor: c(eMen) },
+    lateralDireita: { maior: c(A),   intermediario: c(dInt), menor: c(dMen) },
+
+    circuloVerdeCentralTopo:     c(vTopo),
+    circuloVerdeCentralEsquerda: c(vEsq),
+
+    diagonalSuperiorEsquerda: { maior: c(seM), meio: c(seI), menor: c(seN) },
+    diagonalSuperiorDireita:  { maior: c(sdM), meio: c(sdI), menor: c(sdN) },
+    diagonalInferiorDireita:  { maior: c(idM), meio: c(idI), menor: c(idN) },
+    diagonalInferiorEsquerda: { maior: c(ieM), meio: c(ieI), menor: c(ieN) },
+
     linhaPontilhada: linhaPont,
-    
+
     chakras,
     resumoSaude,
-    
+
     propositos: {
-      pessoal: { ceu: propCeu, terra: propTerra, final: propPessoalFinal },
-      social: { masculino: propMasc, feminino: propFem, final: propSocialFinal },
+      pessoal:    { ceu: propCeu, terra: propTerra, final: propPessoalFinal },
+      social:     { masculino: propMasc, feminino: propFem, final: propSocialFinal },
       espiritual: propEspiritual,
-      global: propGlobal
-    }
+      global:     propGlobal,
+    },
   };
 };

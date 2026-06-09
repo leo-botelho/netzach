@@ -11,9 +11,9 @@ export const MatrizMandala = ({ matriz }: Props) => {
 
   // ── Raios ──────────────────────────────────────────────────────────
   const r1 = 270;   // pontas externas
-  const r2 = 178;   // círculos médios
-  const r3 = 108;   // círculos internos
-  const rC = 55;    // offset círculos de centro
+  const r2 = 192;   // círculos médios  (afastados do centro)
+  const r3 = 122;   // círculos internos (afastados do centro)
+  const rC = 64;    // offset círculos de centro (afastados do centro)
 
   // ── Pontas do LOSANGO (cardeais: topo/dir/base/esq) ────────────────
   const top    = { x: cx,       y: cy - r1 };
@@ -84,6 +84,13 @@ export const MatrizMandala = ({ matriz }: Props) => {
           LINHAS ESTRUTURAIS
           ══════════════════════════════════════════════════════════════ */}
 
+      {/* Octógono externo — conecta as 8 pontas em sequência */}
+      <polygon
+        points={[top, tR, right, bR, bottom, bL, left, tL]
+          .map(p => `${p.x},${p.y}`).join(' ')}
+        fill="none" stroke="#6d28d9" strokeWidth="1.5" opacity="0.5"
+      />
+
       {/* Losango: 4 lados conectando os cardeais */}
       <line x1={top.x}    y1={top.y}    x2={right.x}  y2={right.y}  stroke="#7c3aed" strokeWidth="2"   opacity="0.65"/>
       <line x1={right.x}  y1={right.y}  x2={bottom.x} y2={bottom.y} stroke="#7c3aed" strokeWidth="2"   opacity="0.65"/>
@@ -104,14 +111,14 @@ export const MatrizMandala = ({ matriz }: Props) => {
       <line x1={tL.x} y1={tL.y} x2={bR.x} y2={bR.y}
         stroke="#a78bfa" strokeWidth="2.5" opacity="0.7" markerEnd="url(#arrowM)"/>
       <text fontSize="11" fontStyle="italic" fill="#a78bfa" opacity="0.9">
-        <textPath href="#mPath" startOffset="8%">linha de geração masculina</textPath>
+        <textPath href="#mPath" startOffset="18%">linha de geração masculina</textPath>
       </text>
 
       {/* Linha de geração FEMININA (tR → bL) com seta e label no caminho */}
       <line x1={tR.x} y1={tR.y} x2={bL.x} y2={bL.y}
         stroke="#f87171" strokeWidth="2.5" opacity="0.7" markerEnd="url(#arrowF)"/>
       <text fontSize="11" fontStyle="italic" fill="#f87171" opacity="0.9">
-        <textPath href="#fPath" startOffset="8%">linha de geração feminina</textPath>
+        <textPath href="#fPath" startOffset="18%">linha de geração feminina</textPath>
       </text>
 
       {/* ── Símbolos decorativos ──────────────────────────────────────── */}

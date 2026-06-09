@@ -125,34 +125,34 @@ export default function Services() {
       {/* ── Modal de descrição ── */}
       {modalService && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
           style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
           onClick={() => setModalService(null)}
         >
           <div
-            className="bg-netzach-card border border-netzach-border rounded-2xl shadow-2xl w-full max-w-lg p-8 relative"
+            className="bg-netzach-card border border-netzach-border rounded-2xl shadow-2xl w-full max-w-lg relative my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Fechar */}
-            <button
-              onClick={() => setModalService(null)}
-              className="absolute top-4 right-4 text-netzach-muted hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-
-            {/* Ícone decorativo */}
-            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-              <ShoppingBag size={90} />
+            {/* Cabeçalho fixo com botão fechar */}
+            <div className="flex items-start justify-between p-6 pb-4 border-b border-netzach-border sticky top-0 bg-netzach-card rounded-t-2xl z-10">
+              <h2 className="text-xl font-mystic text-netzach-gold pr-8 leading-snug">{modalService.title}</h2>
+              <button
+                onClick={() => setModalService(null)}
+                className="flex-shrink-0 text-netzach-muted hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              >
+                <X size={22} />
+              </button>
             </div>
 
-            <h2 className="text-2xl font-mystic text-netzach-gold mb-4">{modalService.title}</h2>
+            {/* Corpo scrollável */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <p className="text-sm text-netzach-text leading-relaxed whitespace-pre-line">
+                {modalService.description}
+              </p>
+            </div>
 
-            <p className="text-sm text-netzach-text leading-relaxed mb-6 whitespace-pre-line">
-              {modalService.description}
-            </p>
-
-            <div className="flex items-center justify-between border-t border-netzach-border pt-4">
+            {/* Rodapé fixo */}
+            <div className="flex items-center justify-between p-6 pt-4 border-t border-netzach-border rounded-b-2xl">
               <span className="text-xl font-bold text-netzach-gold">
                 R$ {modalService.price.toFixed(2)}
               </span>

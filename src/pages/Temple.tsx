@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Moon, Droplet, Star, LogOut, Calendar as CalendarIcon,
-  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle, Bot, Bell, BellOff, Smartphone
+  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle, Bot, Bell, BellOff, Smartphone, UserCircle
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import NumerologySection from '../components/NumerologySection';
@@ -204,6 +204,9 @@ export default function Temple() {
                     <img src="/logo.svg" className="w-5 h-5 invert brightness-0" alt="Admin"/> {/* Ícone Shield ou Logo */}
                 </button>
             )}
+            <button onClick={() => setShowInstallModal(true)} className="text-netzach-muted hover:text-netzach-gold transition-colors">
+                <Smartphone size={20}/>
+            </button>
             <button onClick={handleLogout} className="text-netzach-muted hover:text-netzach-gold transition-colors">
                 <LogOut size={20}/>
             </button>
@@ -333,7 +336,7 @@ export default function Temple() {
         <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-gold"><Moon size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Templo</span></button>
         <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><MessageSquare size={20}/><span className="text-[10px] uppercase tracking-wider">Serviços</span></button>
         <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span></button>
-        <button onClick={() => setShowInstallModal(true)} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><Smartphone size={20}/><span className="text-[10px] uppercase tracking-wider">Baixar</span></button>
+        <button onClick={() => navigate('/perfil')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><UserCircle size={20}/><span className="text-[10px] uppercase tracking-wider">Perfil</span></button>
       </nav>
 
       {showInstallModal && <InstallPWAModal onClose={() => setShowInstallModal(false)} />}

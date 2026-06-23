@@ -10,6 +10,7 @@ import MatrizDestinoPage from './pages/MatrizDestinoPage';
 import Checkout from './pages/checkout'; // Importe a página nova
 import Sacerdotisa from './pages/Sacerdotisa';
 import DailyCheckin from './pages/DailyCheckin';
+import ProfilePage from './pages/Profile';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/matriz" element={<MatrizDestinoPage />} />
         <Route path="/sacerdotisa" element={<Sacerdotisa />} />
         <Route path="/checkin" element={<DailyCheckin />} />
+        <Route path="/perfil" element={<ProfilePage />} />
         
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />

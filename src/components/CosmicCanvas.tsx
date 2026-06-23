@@ -25,6 +25,7 @@ export default function CosmicCanvas({ particleCount = 350, className = '' }: Pr
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
+    renderer.domElement.style.pointerEvents = 'none';
     el.appendChild(renderer.domElement);
 
     // Scene & Camera

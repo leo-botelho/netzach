@@ -74,13 +74,12 @@ export default function AdminPanel() {
   };
 
   // --- SALVAR/EDITAR ENERGIA ---
+  const sendPushToAll = async (title: string, body: string, url = '/templo') => {
+    await supabase.functions.invoke('send-push', { body: { title, body, url } });
+  };
+
   const handleSaveInsight = async () => {
     setLoading(true);
-    // Remove o de hoje (se houver) para substituir pelo novo (Simulando Edição)
-    // Nota: Em um sistema ideal usaríamos UPDATE com ID, mas isso simplifica a lógica diária
-    
-    // 1. Tenta atualizar o último registro SE ele for de hoje (opcional, ou apenas cria um novo no topo)
-    // Vamos apenas inserir um novo que ficará no topo da lista (o Templo pega sempre o último)
     const { error } = await supabase.from('daily_insights').insert({
         date: new Date().toISOString(),
         tarot_card_id: insightForm.tarot_card_id,
@@ -89,9 +88,15 @@ export default function AdminPanel() {
         card_image_url: insightForm.card_image_url,
         card_meaning: insightForm.card_meaning
     });
-    
+    if (!error) {
+      await sendPushToAll(
+        `✦ Arcano da Semana: ${insightForm.tarot_card_id}`,
+        insightForm.card_meaning?.slice(0, 100) + '...' || 'A energia da semana foi atualizada.',
+        '/templo'
+      );
+    }
     setLoading(false);
-    if (!error) alert("Energia da semana salva/atualizada!");
+    if (!error) alert("Arcano da semana salvo e notificação enviada!");
     else alert("Erro ao salvar: " + error.message);
   };
 
@@ -122,7 +127,22 @@ export default function AdminPanel() {
   const fetchUsers = async () => { const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }); if(data) setUsers(data); };
   const toggleUserStatus = async (id: string, current: string) => { if(!confirm("Alterar status?")) return; const novo = current === 'active' ? 'inactive' : 'active'; await supabase.from('profiles').update({ subscription_status: novo }).eq('id', id); fetchUsers(); };
   
-  const handleSavePrediction = async () => { setLoading(true); const type = selectedSign === 'Geral' ? 'sky_weekly' : 'sign_weekly'; const signKey = selectedSign === 'Geral' ? 'ceu_semana' : selectedSign.toLowerCase(); await supabase.from('horoscopes').delete().match({ sign: signKey, type }); await supabase.from('horoscopes').insert({ sign: signKey, type, content: predictionText, valid_date: new Date().toISOString() }); setLoading(false); alert("Publicado!"); };
+  const handleSavePrediction = async () => {
+    setLoading(true);
+    const type = selectedSign === 'Geral' ? 'sky_weekly' : 'sign_weekly';
+    const signKey = selectedSign === 'Geral' ? 'ceu_semana' : selectedSign.toLowerCase();
+    await supabase.from('horoscopes').delete().match({ sign: signKey, type });
+    const { error } = await supabase.from('horoscopes').insert({ sign: signKey, type, content: predictionText, valid_date: new Date().toISOString() });
+    if (!error && selectedSign === 'Geral') {
+      await sendPushToAll(
+        '🌙 Céu da Semana atualizado',
+        predictionText.slice(0, 120) + '...',
+        '/templo'
+      );
+    }
+    setLoading(false);
+    alert(error ? 'Erro: ' + error.message : selectedSign === 'Geral' ? 'Publicado e notificação enviada!' : 'Publicado!');
+  };
   
   const handleCreateService = async () => { await supabase.from('services_catalog').insert({ ...newService, price: parseFloat(newService.price), payment_url: newService.payment_url || null }); setNewService({ title: '', description: '', price: '', payment_url: '' }); fetchCatalog(); alert("Criado!"); };
   const fetchCatalog = async () => { const { data } = await supabase.from('services_catalog').select('*').order('created_at'); if(data) setCatalog(data); };

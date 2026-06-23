@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=Lavishly+Yours&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -86,6 +86,17 @@ body::after {
 
 .fade-up {
   animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Input padrão Netzach ───────────────────────────────────── */
+.input-mystic {
+  @apply w-full bg-netzach-bg border border-netzach-border rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors;
+}
+.input-mystic:focus {
+  @apply border-netzach-gold;
+}
+.input-mystic::placeholder {
+  @apply text-netzach-muted;
 }
 
 /* Stagger helpers */

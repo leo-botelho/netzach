@@ -5,11 +5,12 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Moon, Droplet, Star, LogOut, Calendar as CalendarIcon,
-  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle, Bot, Bell, BellOff
+  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle, Bot, Bell, BellOff, Smartphone
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import NumerologySection from '../components/NumerologySection';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { InstallPWAModal } from '../components/InstallPWAModal';
 import type { Profile } from '../types';
 
 // ── Card de check-in para o Templo ──────────────────────────
@@ -84,6 +85,7 @@ export default function Temple() {
   const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{title: string, sign: string, text: string} | null>(null);
   
   const [newPeriodDate, setNewPeriodDate] = useState('');
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const { isSupported: pushSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
 
   useEffect(() => {
@@ -331,7 +333,10 @@ export default function Temple() {
         <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-gold"><Moon size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Templo</span></button>
         <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><MessageSquare size={20}/><span className="text-[10px] uppercase tracking-wider">Serviços</span></button>
         <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span></button>
+        <button onClick={() => setShowInstallModal(true)} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><Smartphone size={20}/><span className="text-[10px] uppercase tracking-wider">Baixar</span></button>
       </nav>
+
+      {showInstallModal && <InstallPWAModal onClose={() => setShowInstallModal(false)} />}
 
       {/* MODAL CÉU */}
       {isSkyModalOpen && (

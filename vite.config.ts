@@ -4,17 +4,24 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: { port: 5174 },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
+      },
       includeAssets: ['favicon.ico', 'logo.svg'],
       manifest: {
         name: 'Netzach - Desperte sua Deusa interior',
         short_name: 'Netzach',
         description: 'Desperte sua Deusa interior',
-        theme_color: '#700B97', // Roxo Vibrante (cor da barra do app)
-        background_color: '#0F0518', // Roxo Quase Preto (fundo do app)
+        theme_color: '#8B1FC8', // Violeta Vibrante (cor da barra do app)
+        background_color: '#1C0A38', // Violeta Escuro (fundo do app)
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -40,7 +47,6 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

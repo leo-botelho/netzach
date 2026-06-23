@@ -8,6 +8,8 @@ import Services from './pages/Services';
 import Rituals from './pages/Rituals';
 import MatrizDestinoPage from './pages/MatrizDestinoPage';
 import Checkout from './pages/checkout'; // Importe a página nova
+import Sacerdotisa from './pages/Sacerdotisa';
+import DailyCheckin from './pages/DailyCheckin';
 
 function App() {
   return (
@@ -28,11 +30,13 @@ function App() {
         <Route path="/servicos" element={<Services />} />
         <Route path="/rituais" element={<Rituals />} />
         <Route path="/matriz" element={<MatrizDestinoPage />} />
+        <Route path="/sacerdotisa" element={<Sacerdotisa />} />
+        <Route path="/checkin" element={<DailyCheckin />} />
         
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />
 
-        <Route path="*" element={<div className="min-h-screen bg-[#0F0518] flex items-center justify-center text-gray-500">Caminho desconhecido.</div>} />
+        <Route path="*" element={<div className="min-h-screen bg-netzach-bg flex items-center justify-center text-gray-500">Caminho desconhecido.</div>} />
       </Routes>
     </BrowserRouter>
   );

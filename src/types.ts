@@ -24,6 +24,11 @@ export interface Profile {
   last_period_date?: string;
   cycle_duration?: number;
   period_duration?: number;
+
+  // Perfil sagrado expandido
+  weight?: number;
+  height?: number;
+  main_intention?: string;
   
   // Integração WhatsApp
   whatsapp_status?: string;
@@ -207,6 +212,46 @@ export interface Client {
   nome: string;
   email: string;
   telefone: string;
+}
+
+// ==========================================
+// 5. CHECK-IN E HÁBITOS
+// ==========================================
+
+export interface DailyCheckin {
+  id: string;
+  user_id: string;
+  date: string;
+  period: 'morning' | 'evening';
+  // Manhã
+  energy?: number;
+  emotion?: number;
+  mind?: number;
+  sleep_quality?: number;
+  dream_notes?: string;
+  intention?: string;
+  // Noite
+  alignment?: string;
+  gratitude?: string;
+  mood?: number;
+  release_notes?: string;
+  created_at: string;
+}
+
+export interface HabitLog {
+  id: string;
+  user_id: string;
+  date: string;
+  habit: 'caminhada' | 'hidratacao' | 'cha_almoco' | 'cha_noite' | 'leitura' | 'silencio';
+  created_at: string;
+}
+
+export interface Gratitude {
+  id: string;
+  user_id: string;
+  date: string;
+  content: string;
+  created_at: string;
 }
 
 // Constante de Nomes dos Arcanos

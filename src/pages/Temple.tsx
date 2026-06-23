@@ -3,13 +3,58 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  Moon, Droplet, Star, LogOut, Calendar as CalendarIcon, 
-  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle 
+import {
+  Moon, Droplet, Star, LogOut, Calendar as CalendarIcon,
+  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle, Bot, Bell, BellOff
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import NumerologySection from '../components/NumerologySection';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import type { Profile } from '../types';
+
+// ── Card de check-in para o Templo ──────────────────────────
+function CheckinCard({ userId }: { userId?: string }) {
+  const navigate = useNavigate();
+  const [morning, setMorning] = useState(false);
+  const [evening, setEvening] = useState(false);
+  const [habits, setHabits] = useState(0);
+
+  useEffect(() => {
+    if (!userId) return;
+    const today = new Date().toISOString().split('T')[0];
+
+    supabase.from('daily_checkins').select('period').eq('user_id', userId).eq('date', today)
+      .then(({ data }) => {
+        setMorning(data?.some(c => c.period === 'morning') ?? false);
+        setEvening(data?.some(c => c.period === 'evening') ?? false);
+      });
+
+    supabase.from('habit_logs').select('habit', { count: 'exact', head: true }).eq('user_id', userId).eq('date', today)
+      .then(({ count }) => setHabits(count ?? 0));
+  }, [userId]);
+
+  const allDone = morning && evening && habits >= 6;
+
+  return (
+    <button
+      onClick={() => navigate('/checkin')}
+      className="w-full bg-gradient-to-r from-netzach-card to-netzach-bg border border-netzach-border rounded-2xl p-4 flex items-center justify-between hover:border-netzach-gold/40 transition-all group"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg transition-all ${allDone ? 'bg-netzach-gold border-netzach-gold' : 'border-netzach-border'}`}>
+          {allDone ? '✓' : '✦'}
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-medium text-white group-hover:text-netzach-gold transition-colors">Check-in Diário</p>
+          <p className="text-[11px] text-netzach-muted">
+            {allDone ? 'Dia completo — você cuidou de si.' : `Manhã ${morning ? '✓' : '○'} · Noite ${evening ? '✓' : '○'} · Hábitos ${habits}/6`}
+          </p>
+        </div>
+      </div>
+      <ArrowRight size={16} className="text-netzach-muted group-hover:text-netzach-gold transition-colors" />
+    </button>
+  );
+}
 
 export default function Temple() {
   const navigate = useNavigate();
@@ -39,6 +84,7 @@ export default function Temple() {
   const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{title: string, sign: string, text: string} | null>(null);
   
   const [newPeriodDate, setNewPeriodDate] = useState('');
+  const { isSupported: pushSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
 
   useEffect(() => {
     setMoon(getMoonPhase());
@@ -163,7 +209,10 @@ export default function Temple() {
       </header>
 
       <main className="p-6 max-w-lg mx-auto space-y-6 relative z-10">
-        
+
+        {/* 0. CHECK-IN DIÁRIO */}
+        <CheckinCard userId={profile?.user_id} />
+
         {/* 1. MANDALA (Lua + Ciclo) */}
         <section className="grid grid-cols-2 gap-4">
           <div className="bg-netzach-card border border-netzach-border p-4 rounded-2xl flex flex-col items-center text-center shadow-lg relative overflow-hidden group">
@@ -234,7 +283,42 @@ export default function Temple() {
         {/* 5. NUMEROLOGIA */}
         {profile && <NumerologySection fullName={profile.full_name} birthDate={profile.birth_date} />}
 
-        {/* 6. BOTÃO MATRIZ */}
+        {/* 6. BOTÃO SACERDOTISA */}
+        <button onClick={() => navigate('/sacerdotisa')} className="w-full bg-gradient-to-r from-[#1a0a2e] to-[#2a1245] border border-purple-800/50 p-6 rounded-xl flex items-center justify-between group hover:border-netzach-gold transition-all shadow-lg shadow-purple-900/20">
+            <div className="text-left">
+              <h3 className="font-mystic text-lg text-white group-hover:text-netzach-gold transition-colors flex items-center gap-2">
+                <Bot size={18} className="text-netzach-gold"/> Sacerdotisa Netzach
+              </h3>
+              <p className="text-xs text-netzach-muted mt-1">Sua guia espiritual com IA — banhos, cristais, florais e rituais.</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-netzach-bg border border-netzach-gold/30 flex items-center justify-center text-netzach-gold group-hover:bg-netzach-gold group-hover:text-netzach-bg transition-all text-base">✦</div>
+        </button>
+
+        {/* 8. NOTIFICAÇÕES */}
+        {pushSupported && permission !== 'denied' && (
+          <div className="w-full bg-netzach-card border border-netzach-border rounded-xl p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {isSubscribed ? <Bell size={18} className="text-netzach-gold shrink-0" /> : <BellOff size={18} className="text-netzach-muted shrink-0" />}
+              <div>
+                <p className="text-sm text-white font-medium">{isSubscribed ? 'Notificações ativas' : 'Ativar notificações'}</p>
+                <p className="text-[11px] text-netzach-muted">Check-in, fases lunares e tarô semanal</p>
+              </div>
+            </div>
+            <button
+              onClick={isSubscribed ? unsubscribe : subscribe}
+              disabled={pushLoading}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-all shrink-0 disabled:opacity-40 ${
+                isSubscribed
+                  ? 'border-netzach-border text-netzach-muted hover:text-red-400 hover:border-red-400/50'
+                  : 'border-netzach-gold/60 text-netzach-gold hover:bg-netzach-gold hover:text-netzach-bg'
+              }`}
+            >
+              {pushLoading ? '...' : isSubscribed ? 'Desativar' : 'Ativar'}
+            </button>
+          </div>
+        )}
+
+        {/* 7. BOTÃO MATRIZ */}
         <button onClick={() => navigate('/matriz')} className="w-full bg-gradient-to-r from-netzach-card to-[#2a1245] border border-netzach-border p-6 rounded-xl flex items-center justify-between group hover:border-netzach-gold transition-all shadow-lg">
             <div className="text-left"><h3 className="font-mystic text-lg text-white group-hover:text-netzach-gold transition-colors flex items-center gap-2"><Sparkles size={18} className="text-netzach-gold"/> Matriz da Alma</h3><p className="text-xs text-netzach-muted mt-1">Sua mandala pessoal de propósito e carma.</p></div>
             <div className="w-8 h-8 rounded-full bg-netzach-bg border border-netzach-gold/30 flex items-center justify-center text-netzach-gold group-hover:bg-netzach-gold group-hover:text-netzach-bg transition-all"><ArrowRight size={16}/></div>
@@ -243,7 +327,7 @@ export default function Temple() {
       </main>
 
       {/* FOOTER */}
-      <nav className="fixed bottom-0 w-full bg-[#0F0518]/95 backdrop-blur-md border-t border-netzach-border p-4 flex justify-around items-center z-30 pb-6 safe-area-pb">
+      <nav className="fixed bottom-0 w-full bg-netzach-bg/95 backdrop-blur-md border-t border-netzach-border p-4 flex justify-around items-center z-30 pb-6 safe-area-pb">
         <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-gold"><Moon size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Templo</span></button>
         <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><MessageSquare size={20}/><span className="text-[10px] uppercase tracking-wider">Serviços</span></button>
         <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span></button>

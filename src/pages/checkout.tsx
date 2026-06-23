@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, Calendar, User, Loader2, CheckCircle, QrCode, Copy, ShieldCheck, Smartphone, Mail, FileText, Globe } from 'lucide-react';
+import { CreditCard, Lock, User, Loader2, QrCode, Copy, ShieldCheck, Smartphone, Mail, FileText, Globe } from 'lucide-react';
 import cardValidator from 'card-validator';
 
 const N8N_PAYMENT_URL = 'https://webhook.smartskillshub.com.br/webhook/checkout-netzach';

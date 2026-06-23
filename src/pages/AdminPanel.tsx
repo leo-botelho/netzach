@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Save, Star, Moon, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2, 
-  Link as LinkIcon, Users, Search, Power, Ban
+import {
+  Star, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2,
+  Link as LinkIcon, Users, Search, Ban, Bot, Plus
 } from 'lucide-react';
 
 const SIGNOS = ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes'];
@@ -34,12 +34,18 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Base de Conhecimento
+  const [knowledgeList, setKnowledgeList] = useState<any[]>([]);
+  const [knowledgeForm, setKnowledgeForm] = useState({ title: '', content: '', category: 'banho' });
+  const [kbLoading, setKbLoading] = useState(false);
+
   useEffect(() => {
     checkAdmin();
     fetchRequests();
     fetchCatalog();
     fetchUsers();
-    loadTodayInsight(); // Carrega dados existentes para edição
+    loadTodayInsight();
+    fetchKnowledge();
   }, []);
 
   const checkAdmin = async () => {
@@ -123,6 +129,30 @@ export default function AdminPanel() {
   const handleDeleteService = async (id: string) => { if(confirm("Excluir?")) { await supabase.from('services_catalog').delete().eq('id', id); fetchCatalog(); } };
   
   const fetchRequests = async () => { const { data } = await supabase.from('service_requests').select('*, profiles(full_name, whatsapp)').order('created_at', { ascending: false }); if(data) setRequests(data); };
+
+  const fetchKnowledge = async () => { const { data } = await supabase.from('knowledge_base').select('id, title, category, created_at').order('created_at', { ascending: false }); if(data) setKnowledgeList(data); };
+
+  const handleAddKnowledge = async () => {
+    if (!knowledgeForm.title || !knowledgeForm.content) return alert('Título e conteúdo são obrigatórios.');
+    setKbLoading(true);
+    const { error } = await supabase.functions.invoke('ingest-knowledge', {
+      body: knowledgeForm,
+    });
+    setKbLoading(false);
+    if (!error) {
+      alert('Conhecimento adicionado e embedding gerado!');
+      setKnowledgeForm({ title: '', content: '', category: 'banho' });
+      fetchKnowledge();
+    } else {
+      alert('Erro: ' + (error.message || 'Verifique se a Edge Function está deployada.'));
+    }
+  };
+
+  const handleDeleteKnowledge = async (id: string) => {
+    if (!confirm('Excluir este conhecimento?')) return;
+    await supabase.from('knowledge_base').delete().eq('id', id);
+    fetchKnowledge();
+  };
   const handleCompleteRequest = async (id: string) => { await supabase.from('service_requests').update({ status: 'completed' }).eq('id', id); fetchRequests(); };
 
   const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -141,7 +171,8 @@ export default function AdminPanel() {
             { id: 'catalogo', icon: LayoutGrid, label: '3. Catálogo' },
             { id: 'rituais', icon: Star, label: '4. Rituais' },
             { id: 'servicos', icon: Feather, label: `5. Pedidos (${requests.filter(r => r.status === 'pending').length})` },
-            { id: 'iniciadas', icon: Users, label: '6. Alunas' }
+            { id: 'iniciadas', icon: Users, label: '6. Alunas' },
+            { id: 'conhecimento', icon: Bot, label: '7. Netzach IA' },
         ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-6 py-3 rounded-lg border whitespace-nowrap ${activeTab === tab.id ? 'bg-netzach-gold text-netzach-bg border-netzach-gold font-bold' : 'bg-netzach-card border-netzach-border text-netzach-muted'}`}>
                 <tab.icon size={18}/> {tab.label}
@@ -215,6 +246,71 @@ export default function AdminPanel() {
             ) : (
                 requests.map(req => (<div key={req.id} className="bg-netzach-card p-4 rounded-xl border border-netzach-border flex justify-between"><div><span className="text-netzach-gold font-bold">{req.service_type}</span><h4 className="text-white">{req.profiles?.full_name}</h4><p className="text-sm italic">"{req.user_notes}"</p></div>{req.status !== 'completed' && <button onClick={() => handleCompleteRequest(req.id)} className="text-green-400 bg-netzach-bg p-2 rounded-full border border-green-900"><CheckCircle size={24}/></button>}</div>))
             )}
+        </div>
+      )}
+
+      {/* 7. BASE DE CONHECIMENTO */}
+      {activeTab === 'conhecimento' && (
+        <div className="space-y-6 max-w-3xl">
+          <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border space-y-4">
+            <h2 className="text-xl font-mystic text-white flex items-center gap-2"><Bot size={20} className="text-netzach-gold"/> Adicionar Conhecimento</h2>
+            <p className="text-xs text-netzach-muted">O texto será convertido em embedding (gte-small) e indexado para busca semântica.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                placeholder="Título (ex: Banho de Arruda)"
+                className="col-span-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-white"
+                value={knowledgeForm.title}
+                onChange={e => setKnowledgeForm({...knowledgeForm, title: e.target.value})}
+              />
+              <select
+                className="p-3 bg-[#0F0518] border border-netzach-border rounded text-white"
+                value={knowledgeForm.category}
+                onChange={e => setKnowledgeForm({...knowledgeForm, category: e.target.value})}
+              >
+                <option value="banho">Banho</option>
+                <option value="oleo">Óleo Essencial</option>
+                <option value="floral">Floral de Bach</option>
+                <option value="cristal">Cristal</option>
+                <option value="ritual">Ritual</option>
+                <option value="geral">Geral</option>
+              </select>
+              <div className="flex items-center text-xs text-netzach-muted bg-[#0F0518] border border-netzach-border rounded px-3">
+                {knowledgeList.length} itens na base
+              </div>
+            </div>
+            <textarea
+              rows={6}
+              placeholder="Conteúdo detalhado (até ~500 palavras por chunk)..."
+              className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm"
+              value={knowledgeForm.content}
+              onChange={e => setKnowledgeForm({...knowledgeForm, content: e.target.value})}
+            />
+            <button
+              onClick={handleAddKnowledge}
+              disabled={kbLoading}
+              className="w-full bg-netzach-gold text-netzach-bg py-3 rounded font-bold hover:bg-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Plus size={16}/> {kbLoading ? 'Gerando embedding...' : 'Adicionar à Base'}
+            </button>
+          </div>
+
+          {/* Lista */}
+          <div className="space-y-2">
+            {knowledgeList.map(item => (
+              <div key={item.id} className="bg-[#0F0518] border border-netzach-border rounded-xl p-4 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold mr-2">{item.category}</span>
+                  <span className="text-sm text-white">{item.title}</span>
+                </div>
+                <button onClick={() => handleDeleteKnowledge(item.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={16}/></button>
+              </div>
+            ))}
+            {knowledgeList.length === 0 && (
+              <div className="text-center py-8 text-netzach-muted text-sm border border-dashed border-netzach-border rounded-xl">
+                Nenhum conhecimento cadastrado ainda.
+              </div>
+            )}
+          </div>
         </div>
       )}
 

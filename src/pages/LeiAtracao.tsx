@@ -40,11 +40,11 @@ export default function LeiAtracao() {
 
 Crie um guia de lei da atração personalizado com:
 
-1. **Afirmação poderosa** — em 1ª pessoa, tempo presente, máximo 2 frases
-2. **Script de visualização** — guia de 3-4 parágrafos para 5 minutos de visualização (viva, sensorial, presente)
-3. **Ação de ancoragem** — uma ação concreta e simbólica para fazer hoje
-4. **Frequência recomendada** — quando e quantas vezes praticar
-5. **Sinal de alinhamento** — como reconhecer que está no caminho certo
+1. **Afirmação poderosa**, em 1ª pessoa, tempo presente, máximo 2 frases
+2. **Script de visualização**, guia de 3-4 parágrafos para 5 minutos de visualização (viva, sensorial, presente)
+3. **Ação de ancoragem**, uma ação concreta e simbólica para fazer hoje
+4. **Frequência recomendada**, quando e quantas vezes praticar
+5. **Sinal de alinhamento**, como reconhecer que está no caminho certo
 
 Signo solar: ${profile?.sign_sun || 'não informado'}.
 

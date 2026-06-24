@@ -54,11 +54,11 @@ export function InstallPWAModal({ onClose }: Props) {
 
         <div className="px-5 py-4 space-y-4">
 
-          {/* Android — prompt nativo disponível */}
+          {/* Android, prompt nativo disponível */}
           {platform === 'android' && isInstallable && (
             <>
               <p className="text-sm text-netzach-muted text-center">
-                Instale o Netzach como app no seu celular — sem precisar da Play Store.
+                Instale o Netzach como app no seu celular, sem precisar da Play Store.
               </p>
               <button
                 onClick={handleInstall}
@@ -71,7 +71,7 @@ export function InstallPWAModal({ onClose }: Props) {
             </>
           )}
 
-          {/* Android — sem prompt (já foi dispensado ou não suportado) */}
+          {/* Android, sem prompt (já foi dispensado ou não suportado) */}
           {platform === 'android' && !isInstallable && (
             <div className="space-y-3">
               <p className="text-sm text-netzach-muted text-center">Siga os passos para adicionar à tela inicial:</p>
@@ -89,7 +89,7 @@ export function InstallPWAModal({ onClose }: Props) {
               <Step number={2} icon={<Plus size={16} />} text='"Adicionar à Tela de Início"' />
               <Step number={3} text='Toque em "Adicionar" no canto superior direito' />
               <div className="bg-amber-900/20 border border-amber-700/30 rounded-xl px-3 py-2 text-[11px] text-amber-400">
-                ⚠️ Use o Safari — outros browsers no iOS não suportam instalação de PWA.
+                ⚠️ Use o Safari, outros browsers no iOS não suportam instalação de PWA.
               </div>
             </div>
           )}

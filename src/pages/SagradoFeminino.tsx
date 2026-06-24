@@ -12,25 +12,25 @@ const CYCLE_ARCHETYPES: Record<string, {
   Menstrual: {
     archetype: 'A Sábia / A Bruxa', goddess: 'Hécate · Lilith · Kali',
     emoji: '🌑',
-    energy: 'Introspecção profunda, clareza oracular, morte e renascimento. Esta é a fase mais poderosa do seu ciclo — um portal para insights que só chegam no silêncio.',
+    energy: 'Introspecção profunda, clareza oracular, morte e renascimento. Esta é a fase mais poderosa do seu ciclo, um portal para insights que só chegam no silêncio.',
     gifts: ['Clareza intuitiva', 'Capacidade de soltar', 'Visão profética', 'Descanso restaurador'],
     shadow: 'Irritabilidade, isolamento excessivo, julgamento crítico. Honre sua necessidade de recolhimento sem se punir por ela.',
-    ritual: 'Reserve um tempo para si. Journaling profundo, banho quente com sal e ervas, meditação guiada. Evite grandes decisões e compromissos sociais — este é seu templo interno.',
+    ritual: 'Reserve um tempo para si. Journaling profundo, banho quente com sal e ervas, meditação guiada. Evite grandes decisões e compromissos sociais, este é seu templo interno.',
     affirmation: 'Honro meu sangue sagrado. Minha necessidade de descanso é sagrada. Sou a Sábia que conhece os mistérios.',
   },
   Folicular: {
     archetype: 'A Virgem / A Donzela', goddess: 'Ártemis · Perséfone · Afrodite',
     emoji: '🌒',
-    energy: 'Renovação, curiosidade, expansão e possibilidades. Você está renascendo — mais leve, mais esperançosa, com energia crescente e criatividade em ebulição.',
+    energy: 'Renovação, curiosidade, expansão e possibilidades. Você está renascendo, mais leve, mais esperançosa, com energia crescente e criatividade em ebulição.',
     gifts: ['Energia renovada', 'Abertura para o novo', 'Otimismo natural', 'Foco e clareza mental'],
     shadow: 'Dispersão por excesso de projetos, comprometer-se demais antes de ter certeza. Canalize a energia com discernimento.',
-    ritual: 'Inicie novos projetos, pratique exercícios energizantes, explore novas ideias. É tempo de plantar sementes — físicas, emocionais e criativas.',
+    ritual: 'Inicie novos projetos, pratique exercícios energizantes, explore novas ideias. É tempo de plantar sementes, físicas, emocionais e criativas.',
     affirmation: 'Estou renascendo. Sou possibilidade pura. Minha energia criativa floresce a cada dia.',
   },
   Ovulatória: {
     archetype: 'A Mãe / A Rainha', goddess: 'Ísis · Afrodite · Deméter',
     emoji: '🌕',
-    energy: 'Plenitude, magnetismo, carisma e conexão. Você está no ápice do seu poder — magnética, comunicativa, fértil (em todos os sentidos) e irresistível.',
+    energy: 'Plenitude, magnetismo, carisma e conexão. Você está no ápice do seu poder, magnética, comunicativa, fértil (em todos os sentidos) e irresistível.',
     gifts: ['Magnetismo pessoal', 'Comunicação fluida', 'Amor e generosidade', 'Liderança natural'],
     shadow: 'Perfeccionismo, querer agradar a todos, perda de limites. Fique atenta ao que você diz sim nesta fase de abertura.',
     ritual: 'Conecte-se com outras mulheres, expresse-se criativamente, cuide da sua aparência com amor. Ótimo período para conversas importantes, apresentações e projetos de amor.',
@@ -39,10 +39,10 @@ const CYCLE_ARCHETYPES: Record<string, {
   Lútea: {
     archetype: 'A Encantadora / A Feiticeira', goddess: 'Circe · Medéia · Morgana',
     emoji: '🌘',
-    energy: 'Profundidade emocional, poder de conclusão, purificação e verdade. Sua sensibilidade está amplificada — você vê através das máscaras e sente tudo mais intensamente.',
+    energy: 'Profundidade emocional, poder de conclusão, purificação e verdade. Sua sensibilidade está amplificada, você vê através das máscaras e sente tudo mais intensamente.',
     gifts: ['Percepção aguçada', 'Poder de finalização', 'Honestidade radical', 'Limpeza energética'],
     shadow: 'Ansiedade, autocrítica severa, impaciência com o que não está funcionando. O que incomoda nesta fase é o que precisa ser transformado.',
-    ritual: 'Finalize projetos, organize o ambiente, limpe o que não serve. Pratique a escrita terapêutica sobre o que te incomoda — a fase lútea diz a verdade.',
+    ritual: 'Finalize projetos, organize o ambiente, limpe o que não serve. Pratique a escrita terapêutica sobre o que te incomoda, a fase lútea diz a verdade.',
     affirmation: 'Minha sensibilidade é um dom. O que incomoda revela o que precisa ser transformado. Sou a Feiticeira que dissolve ilusões.',
   },
 };
@@ -51,10 +51,10 @@ const CYCLE_ARCHETYPES: Record<string, {
 const MOON_ARCHETYPES: Record<string, {
   lunar: string; element: string; message: string;
 }> = {
-  Nova:       { lunar: 'Lua Nova — Útero Sagrado',   element: 'Terra',       message: 'Silêncio e gestação. Plante suas intenções no escuro fértil do começo.' },
-  Crescente:  { lunar: 'Lua Crescente — Deusa Jovem', element: 'Fogo',       message: 'Movimento e coragem. Dê os primeiros passos com fé no que ainda não vê.' },
-  Cheia:      { lunar: 'Lua Cheia — Deusa Plena',     element: 'Água',       message: 'Celebração e manifestação. O que foi plantado agora floresce à luz.' },
-  Minguante:  { lunar: 'Lua Minguante — Crone Sábia', element: 'Ar',        message: 'Gratidão e desapego. Libere com amor o que cumpriu seu ciclo.' },
+  Nova:       { lunar: 'Lua Nova, Útero Sagrado',   element: 'Terra',       message: 'Silêncio e gestação. Plante suas intenções no escuro fértil do começo.' },
+  Crescente:  { lunar: 'Lua Crescente, Deusa Jovem', element: 'Fogo',       message: 'Movimento e coragem. Dê os primeiros passos com fé no que ainda não vê.' },
+  Cheia:      { lunar: 'Lua Cheia, Deusa Plena',     element: 'Água',       message: 'Celebração e manifestação. O que foi plantado agora floresce à luz.' },
+  Minguante:  { lunar: 'Lua Minguante, Crone Sábia', element: 'Ar',        message: 'Gratidão e desapego. Libere com amor o que cumpriu seu ciclo.' },
 };
 
 export default function SagradoFeminino() {

@@ -15,14 +15,14 @@ interface NumberCard {
 const DESTINY_MEANINGS: Record<number, { keyword: string; meaning: string }> = {
   1:  { keyword: 'Liderança', meaning: 'Você veio para liderar, iniciar e ser pioneira. Tem força de vontade, independência e coragem para abrir caminhos.' },
   2:  { keyword: 'Cooperação', meaning: 'Sua missão é mediar, harmonizar e criar pontes entre pessoas. Você possui sensibilidade, diplomacia e intuição profunda.' },
-  3:  { keyword: 'Expressão', meaning: 'Nasceu para se expressar — pela arte, palavra, beleza. Alegria, criatividade e comunicação são seus presentes.' },
+  3:  { keyword: 'Expressão', meaning: 'Nasceu para se expressar, pela arte, palavra, beleza. Alegria, criatividade e comunicação são seus presentes.' },
   4:  { keyword: 'Construção', meaning: 'Sua energia é de solidez, método e construção. Você está aqui para criar bases duradouras com disciplina e dedicação.' },
-  5:  { keyword: 'Liberdade', meaning: 'Veio para expandir, explorar e transformar. A liberdade é sua necessidade essencial — você é agente de mudança.' },
+  5:  { keyword: 'Liberdade', meaning: 'Veio para expandir, explorar e transformar. A liberdade é sua necessidade essencial, você é agente de mudança.' },
   6:  { keyword: 'Amor & Cura', meaning: 'Sua missão é cuidar, nutrir e embelezar. Tem um dom natural para o lar, a família e a cura das relações.' },
   7:  { keyword: 'Sabedoria', meaning: 'Nasceu para buscar a verdade nas profundezas. Intuição, espiritualidade e análise são seus instrumentos de evolução.' },
   8:  { keyword: 'Poder', meaning: 'Sua jornada é de conquista material e autoridade com propósito. Abundância, liderança executiva e legado são seus temas.' },
   9:  { keyword: 'Compaixão', meaning: 'Veio para servir a um ideal maior e ajudar a humanidade a se elevar. Generosidade, sabedoria universal e desapego.' },
-  11: { keyword: 'Iluminação', meaning: 'Número Mestre. Você é uma portadora de luz — inspiração, espiritualidade e sensibilidade extrema são seus dons e desafios.' },
+  11: { keyword: 'Iluminação', meaning: 'Número Mestre. Você é uma portadora de luz, inspiração, espiritualidade e sensibilidade extrema são seus dons e desafios.' },
   22: { keyword: 'Arquiteta', meaning: 'Número Mestre. Veio para construir algo de impacto coletivo. Grande potencial para transformar visões em realidade concreta.' },
   33: { keyword: 'Mestre Cura', meaning: 'Número Mestre. A mais elevada expressão do amor e da cura. Sua vida é dedicada ao serviço e à elevação espiritual.' },
 };
@@ -43,17 +43,17 @@ const SOUL_MEANINGS: Record<number, { keyword: string; meaning: string }> = {
 };
 
 const YEAR_MEANINGS: Record<number, { keyword: string; meaning: string }> = {
-  1:  { keyword: 'Novo começo', meaning: 'Ano de plantio e novos inícios. Plante suas sementes com intenção — o que você iniciar agora moldará os próximos 9 anos.' },
+  1:  { keyword: 'Novo começo', meaning: 'Ano de plantio e novos inícios. Plante suas sementes com intenção, o que você iniciar agora moldará os próximos 9 anos.' },
   2:  { keyword: 'Paciência', meaning: 'Ano de espera criativa e construção de relacionamentos. Cuide dos laços, pratique a paciência e confie no processo.' },
   3:  { keyword: 'Expansão', meaning: 'Ano de alegria, expressão e abundância. Expanda sua criatividade, socialize e deixe sua luz brilhar sem medo.' },
   4:  { keyword: 'Trabalho', meaning: 'Ano de consolidação e construção de bases. Discipline-se, organize sua vida e construa com solidez.' },
-  5:  { keyword: 'Mudança', meaning: 'Ano de transformações e liberdade. Esteja aberta às mudanças — elas estão te levando para um nível superior.' },
+  5:  { keyword: 'Mudança', meaning: 'Ano de transformações e liberdade. Esteja aberta às mudanças, elas estão te levando para um nível superior.' },
   6:  { keyword: 'Cuidado', meaning: 'Ano de família, relacionamentos e responsabilidades. Cuide de quem você ama e harmonize seu ambiente.' },
   7:  { keyword: 'Reflexão', meaning: 'Ano de espiritualidade, introspecção e cura. Desacelere, estude, medite e reconecte-se com sua essência.' },
   8:  { keyword: 'Colheita', meaning: 'Ano de manifestação e recompensas. O que você plantou começa a florescer. Assuma seu poder e sua abundância.' },
-  9:  { keyword: 'Conclusão', meaning: 'Ano de fechamentos e liberações. Solte o que não serve mais com gratidão — prepare-se para um novo ciclo.' },
-  11: { keyword: 'Iluminação', meaning: 'Ano Mestre de despertar espiritual. Sua intuição está amplificada — confie nas visões e sincronicidades.' },
-  22: { keyword: 'Manifestação', meaning: 'Ano Mestre de construção de legados. Suas ações têm potencial de impacto coletivo — aja com consciência.' },
+  9:  { keyword: 'Conclusão', meaning: 'Ano de fechamentos e liberações. Solte o que não serve mais com gratidão, prepare-se para um novo ciclo.' },
+  11: { keyword: 'Iluminação', meaning: 'Ano Mestre de despertar espiritual. Sua intuição está amplificada, confie nas visões e sincronicidades.' },
+  22: { keyword: 'Manifestação', meaning: 'Ano Mestre de construção de legados. Suas ações têm potencial de impacto coletivo, aja com consciência.' },
 };
 
 function calcPersonalYear(birthDate: string): number {
@@ -129,28 +129,28 @@ export default function Numerologia() {
     {
       number: destinyNum,
       title: DESTINY_MEANINGS[destinyNum]?.keyword ?? '',
-      subtitle: 'Número de Destino — Data de Nascimento',
+      subtitle: 'Número de Destino, Data de Nascimento',
       keyword: 'Sua missão de vida',
       meaning: DESTINY_MEANINGS[destinyNum]?.meaning ?? '',
     },
     {
       number: nameNums.soul,
       title: SOUL_MEANINGS[nameNums.soul]?.keyword ?? '',
-      subtitle: 'Número da Alma — Vogais do Nome',
+      subtitle: 'Número da Alma, Vogais do Nome',
       keyword: 'O que sua alma deseja',
       meaning: SOUL_MEANINGS[nameNums.soul]?.meaning ?? '',
     },
     {
       number: nameNums.expression,
       title: 'Expressão',
-      subtitle: 'Número de Expressão — Nome Completo',
+      subtitle: 'Número de Expressão, Nome Completo',
       keyword: 'Como você se manifesta',
       meaning: DESTINY_MEANINGS[nameNums.expression]?.meaning ?? '',
     },
     {
       number: nameNums.personality,
       title: 'Personalidade',
-      subtitle: 'Número da Personalidade — Consoantes',
+      subtitle: 'Número da Personalidade, Consoantes',
       keyword: 'Sua máscara para o mundo',
       meaning: SOUL_MEANINGS[nameNums.personality]?.meaning ?? '',
     },

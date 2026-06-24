@@ -15,7 +15,7 @@ interface Module {
 
 const CATEGORIES: { title: string; modules: Module[] }[] = [
   {
-    title: 'Sacerdotisa IA',
+    title: 'Sacerdotisa',
     modules: [
       { emoji: '🌟', title: 'Sacerdotisa Netzach', description: 'Sua guia espiritual sagrada. Banhos, cristais, rituais e orientações personalizadas para seu momento.', path: '/sacerdotisa', moduleKey: 'sacerdotisa' },
     ],
@@ -88,7 +88,7 @@ export default function Services() {
       <header className="sticky top-0 z-20 bg-netzach-bg/90 backdrop-blur-md border-b border-netzach-border px-5 py-4">
         <h1 className="font-mystic text-xl text-netzach-gold">Práticas ✦</h1>
         <p className="text-[11px] text-netzach-muted mt-0.5">
-          {isFree ? 'Plano Gratuito — faça upgrade para acessar todos os módulos' : 'Ferramentas para sua jornada espiritual'}
+          {isFree ? 'Plano Gratuito. Faça upgrade para acessar todos os módulos.' : 'Ferramentas para sua jornada espiritual'}
         </p>
       </header>
 
@@ -134,7 +134,7 @@ export default function Services() {
           <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-gold/30 rounded-2xl p-5 text-center space-y-3">
             <p className="text-2xl">✦</p>
             <p className="font-mystic text-lg text-white">Desbloqueie sua jornada completa</p>
-            <p className="text-sm text-netzach-muted">A partir de R$29,90/mês. Acesse todos os módulos, Sacerdotisa IA e rituais personalizados.</p>
+            <p className="text-sm text-netzach-muted">A partir de R$29,90/mês. Acesse todos os módulos, Sacerdotisa e rituais personalizados.</p>
             <button onClick={() => navigate('/assinar')} className="w-full bg-netzach-gold text-netzach-bg font-bold font-mystic py-3 rounded-xl hover:bg-white transition-colors">
               Ver planos
             </button>

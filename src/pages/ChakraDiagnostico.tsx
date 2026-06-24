@@ -21,7 +21,7 @@ const CHAKRAS: Record<string, {
   description: string;
 }> = {
   root: {
-    name: 'Muladhara — Raiz', color: '#C0392B', glyph: '🔴',
+    name: 'Muladhara, Raiz', color: '#C0392B', glyph: '🔴',
     element: 'Terra',
     description: 'Seu chakra raiz pede atenção. Você pode estar se sentindo insegura, ansiosa ou desconectada do seu corpo.',
     affirmation: 'Eu estou segura. Eu pertenço à Terra. Meu corpo é meu lar.',
@@ -31,7 +31,7 @@ const CHAKRAS: Record<string, {
     mantra: 'LAM',
   },
   sacral: {
-    name: 'Svadhisthana — Sacral', color: '#E67E22', glyph: '🟠',
+    name: 'Svadhisthana, Sacral', color: '#E67E22', glyph: '🟠',
     element: 'Água',
     description: 'Seu centro criativo e emocional está pedindo fluidez. Pode haver bloqueios em prazer, sexualidade ou emoções represadas.',
     affirmation: 'Eu mereço prazer. Minhas emoções são sagradas e fluem com leveza.',
@@ -41,7 +41,7 @@ const CHAKRAS: Record<string, {
     mantra: 'VAM',
   },
   solar: {
-    name: 'Manipura — Plexo Solar', color: '#F1C40F', glyph: '🟡',
+    name: 'Manipura, Plexo Solar', color: '#F1C40F', glyph: '🟡',
     element: 'Fogo',
     description: 'Seu poder pessoal está em desequilíbrio. Pode haver dificuldade com autoconfiança, limites ou excesso de controle.',
     affirmation: 'Eu sou poderosa. Confio em mim mesma. Meu fogo interior me guia.',
@@ -51,7 +51,7 @@ const CHAKRAS: Record<string, {
     mantra: 'RAM',
   },
   heart: {
-    name: 'Anahata — Coração', color: '#27AE60', glyph: '💚',
+    name: 'Anahata, Coração', color: '#27AE60', glyph: '💚',
     element: 'Ar',
     description: 'Seu coração precisa de abertura e cura. Pode haver mágoas não processadas, dificuldade de amar a si mesma ou de confiar.',
     affirmation: 'Eu me amo incondicionalmente. Meu coração está aberto para dar e receber amor.',
@@ -61,7 +61,7 @@ const CHAKRAS: Record<string, {
     mantra: 'YAM',
   },
   throat: {
-    name: 'Vishuddha — Garganta', color: '#2980B9', glyph: '🔵',
+    name: 'Vishuddha, Garganta', color: '#2980B9', glyph: '🔵',
     element: 'Éter',
     description: 'Sua expressão está bloqueada. Pode ser difícil dizer sua verdade, pedir o que precisa ou ser ouvida.',
     affirmation: 'Minha voz é sagrada. Falo minha verdade com amor e clareza.',
@@ -71,7 +71,7 @@ const CHAKRAS: Record<string, {
     mantra: 'HAM',
   },
   third: {
-    name: 'Ajna — Terceiro Olho', color: '#8E44AD', glyph: '🟣',
+    name: 'Ajna, Terceiro Olho', color: '#8E44AD', glyph: '🟣',
     element: 'Luz',
     description: 'Sua intuição e clareza mental precisam de ativação. Pode haver confusão, dificuldade de tomar decisões ou desconexão da intuição.',
     affirmation: 'Confio na minha intuição. Vejo com clareza o caminho que é para mim.',
@@ -81,7 +81,7 @@ const CHAKRAS: Record<string, {
     mantra: 'OM',
   },
   crown: {
-    name: 'Sahasrara — Coroa', color: '#9B59B6', glyph: '⚪',
+    name: 'Sahasrara, Coroa', color: '#9B59B6', glyph: '⚪',
     element: 'Consciência',
     description: 'Sua conexão espiritual está pedindo atenção. Pode haver sensação de vazio, falta de propósito ou desconexão do sagrado.',
     affirmation: 'Eu sou uma com o universo. Estou aberta à orientação divina.',

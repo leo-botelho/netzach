@@ -7,12 +7,12 @@ import { getMoonPhase } from '../utils/mysticMath';
 const MOON_PHASES_DATA: { phase: string; emoji: string; energy: string; ritual: string }[] = [
   { phase: 'Lua Nova', emoji: '🌑', energy: 'Plantio de intenções, silêncio fértil, início de ciclos', ritual: 'Escreva 3 intenções para o mês em papel e coloque sob uma pedra ou cristal' },
   { phase: 'Lua Crescente', emoji: '🌒', energy: 'Ação, crescimento, momentum, coragem', ritual: 'Dê um primeiro passo em direção ao seu objetivo mais importante do mês' },
-  { phase: 'Lua Cheia', emoji: '🌕', energy: 'Manifestação, celebração, plenitude, clareza', ritual: 'Faça um banho de lua cheia — agua com sal e flores sob o luar' },
+  { phase: 'Lua Cheia', emoji: '🌕', energy: 'Manifestação, celebração, plenitude, clareza', ritual: 'Faça um banho de lua cheia, agua com sal e flores sob o luar' },
   { phase: 'Lua Minguante', emoji: '🌘', energy: 'Gratidão, desapego, liberação, conclusão', ritual: 'Liste 3 coisas que você quer liberar e queime o papel com gratidão' },
 ];
 
 const TAROT_MONTHS: Record<number, { name: string; number: number; meaning: string }> = {
-  1: { number: 1, name: 'O Mago', meaning: 'Mês de iniciar com intenção. Você tem todos os recursos — use-os.' },
+  1: { number: 1, name: 'O Mago', meaning: 'Mês de iniciar com intenção. Você tem todos os recursos, use-os.' },
   2: { number: 2, name: 'A Sacerdotisa', meaning: 'Mês de escuta interior. Confie na sua intuição acima de tudo.' },
   3: { number: 3, name: 'A Imperatriz', meaning: 'Mês de criatividade e abundância. Floresça sem pedir permissão.' },
   4: { number: 4, name: 'O Imperador', meaning: 'Mês de estrutura e bases. Construa com disciplina e propósito.' },

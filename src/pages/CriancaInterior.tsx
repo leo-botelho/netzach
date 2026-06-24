@@ -40,12 +40,12 @@ export default function CriancaInterior() {
 
 Escreva uma sessão de cura com:
 
-1. **Acolhimento da criança interior** — fale diretamente com a criança que ela foi, com amor e gentileza (1 parágrafo na 2ª pessoa, como se falasse com uma criança pequena)
-2. **Reconhecimento do padrão** — nomeie de onde veio essa ferida sem julgamento (1-2 frases empáticas)
-3. **Validação emocional** — o que ela sente faz todo sentido, por quê
-4. **Afirmação de cura** — uma frase poderosa para repetir, dirigida à criança interior
-5. **Prática simbólica** — um gesto ou ritual gentil para fazer agora (concreto e poético)
-6. **Convite suave** — se o padrão envolve outras pessoas, um convite gentil ao Ho'oponopono
+1. **Acolhimento da criança interior**, fale diretamente com a criança que ela foi, com amor e gentileza (1 parágrafo na 2ª pessoa, como se falasse com uma criança pequena)
+2. **Reconhecimento do padrão**, nomeie de onde veio essa ferida sem julgamento (1-2 frases empáticas)
+3. **Validação emocional**, o que ela sente faz todo sentido, por quê
+4. **Afirmação de cura**, uma frase poderosa para repetir, dirigida à criança interior
+5. **Prática simbólica**, um gesto ou ritual gentil para fazer agora (concreto e poético)
+6. **Convite suave**, se o padrão envolve outras pessoas, um convite gentil ao Ho'oponopono
 
 Use voz amorosa, segura e profunda. Seja a sacerdotisa que acolhe.`;
 
@@ -96,7 +96,7 @@ Use voz amorosa, segura e profunda. Seja a sacerdotisa que acolhe.`;
 
         <div className="bg-gradient-to-br from-netzach-card to-[#1a0b2e] border border-netzach-border rounded-2xl p-4 text-center space-y-1">
           <p className="text-2xl">🌸</p>
-          <p className="text-sm text-netzach-text/80 leading-relaxed italic">"A criança que você foi ainda vive dentro de você — esperando ser vista, ouvida e amada."</p>
+          <p className="text-sm text-netzach-text/80 leading-relaxed italic">"A criança que você foi ainda vive dentro de você, esperando ser vista, ouvida e amada."</p>
         </div>
 
         <div>

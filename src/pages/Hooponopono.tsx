@@ -42,15 +42,15 @@ export default function Hooponopono() {
 
 Guie-a com:
 
-1. **Acolhimento compassivo** — valide o que ela sente sem minimizar (2-3 frases)
-2. **As 4 frases adaptadas** — reescreva cada uma aplicada especificamente ao contexto dela:
+1. **Acolhimento compassivo**, valide o que ela sente sem minimizar (2-3 frases)
+2. **As 4 frases adaptadas**, reescreva cada uma aplicada especificamente ao contexto dela:
    - "Sinto muito" (reconhecimento)
    - "Me perdoa" (libertação)
    - "Eu te amo" (amor incondicional)
    - "Sou grata" (gratidão)
-3. **Como praticar** — instruções de recitação (postura, respiração, repetições)
-4. **Duração recomendada** — por quantos dias e quando do dia
-5. **Sinal de liberação** — como ela vai perceber que o processo está acontecendo
+3. **Como praticar**, instruções de recitação (postura, respiração, repetições)
+4. **Duração recomendada**, por quantos dias e quando do dia
+5. **Sinal de liberação**, como ela vai perceber que o processo está acontecendo
 
 Use linguagem sagrada, profunda e gentil. Honre a coragem dela de abrir este processo.`;
 

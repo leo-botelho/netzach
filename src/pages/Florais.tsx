@@ -40,10 +40,10 @@ export default function Florais() {
 
 Recomende com sabedoria e amor:
 
-1. **Floral de Bach** — nome do floral, para que serve, como usar (gotas, frequência, duração)
-2. **Óleo Essencial** — nome, propriedades emocionais, modo de aplicação (inalação, diffusor, pele)
-3. **Como combinar** — floral + óleo juntos em uma rotina simples
-4. **Afirmação de suporte** — uma frase para repetir durante o uso
+1. **Floral de Bach**, nome do floral, para que serve, como usar (gotas, frequência, duração)
+2. **Óleo Essencial**, nome, propriedades emocionais, modo de aplicação (inalação, diffusor, pele)
+3. **Como combinar**, floral + óleo juntos em uma rotina simples
+4. **Afirmação de suporte**, uma frase para repetir durante o uso
 
 Contexto: signo solar ${profile?.sign_sun || 'não informado'}.
 

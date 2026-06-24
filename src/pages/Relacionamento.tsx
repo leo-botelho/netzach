@@ -40,11 +40,11 @@ export default function Relacionamento() {
 
 Escreva uma orientação sagrada de relacionamento com:
 
-1. **Carta do amor** — uma mensagem direta ao coração dela sobre este tema (1-2 parágrafos, voz amorosa)
-2. **Padrão a reconhecer** — um padrão sutil que pode estar presente (sem julgamento)
-3. **Afirmação de amor próprio** — para repetir diariamente
-4. **Ritual simbólico** — uma prática simples para esta semana (algo concreto e poético)
-5. **Orientação desta fase** — baseada no signo solar ${profile?.sign_sun || 'não informado'}
+1. **Carta do amor**, uma mensagem direta ao coração dela sobre este tema (1-2 parágrafos, voz amorosa)
+2. **Padrão a reconhecer**, um padrão sutil que pode estar presente (sem julgamento)
+3. **Afirmação de amor próprio**, para repetir diariamente
+4. **Ritual simbólico**, uma prática simples para esta semana (algo concreto e poético)
+5. **Orientação desta fase**, baseada no signo solar ${profile?.sign_sun || 'não informado'}
 
 Use linguagem profunda, acolhedora e empoderada. Honre a soberania dela.`;
 

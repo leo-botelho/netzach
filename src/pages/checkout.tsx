@@ -176,7 +176,7 @@ export default function Checkout() {
             <Copy size={15} /> Copiar código PIX
           </button>
           <button onClick={() => navigate('/templo')} className="w-full bg-netzach-gold text-netzach-bg py-3 rounded-xl font-bold">
-            Já paguei — entrar no Templo
+            Já paguei, entrar no Templo
           </button>
           <button onClick={() => setPixData(null)} className="text-xs text-netzach-muted hover:text-white">
             Voltar
@@ -292,7 +292,7 @@ export default function Checkout() {
         <div className="flex-1">
           <h1 className="font-mystic text-netzach-gold text-lg leading-none">Finalizar assinatura</h1>
           <p className="text-[11px] text-netzach-muted mt-0.5">
-            {selectedPlan.symbol} {selectedPlan.label} {selectedPlan.cycle} — R$ {selectedPlan.price.toFixed(2).replace('.', ',')}
+            {selectedPlan.symbol} {selectedPlan.label} {selectedPlan.cycle}, R$ {selectedPlan.price.toFixed(2).replace('.', ',')}
           </p>
         </div>
       </header>
@@ -414,7 +414,7 @@ export default function Checkout() {
               ? <Loader2 size={18} className="animate-spin" />
               : <><ShieldCheck size={18} />
                 {paymentMethod === 'pix'
-                  ? `Gerar PIX — R$ ${selectedPlan.price.toFixed(2).replace('.', ',')}`
+                  ? `Gerar PIX, R$ ${selectedPlan.price.toFixed(2).replace('.', ',')}`
                   : `Pagar R$ ${selectedPlan.price.toFixed(2).replace('.', ',')}`
                 }
               </>

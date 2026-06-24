@@ -307,7 +307,7 @@ export default function Sacerdotisa() {
               onClick={() => navigate('/assinar')}
               className="bg-netzach-gold text-netzach-bg px-6 py-3 rounded-xl font-mystic font-bold hover:bg-white transition-colors text-sm"
             >
-              Aprofundar com Lilith — Ilimitado
+              Aprofundar com Lilith, ilimitado
             </button>
           </div>
         )}

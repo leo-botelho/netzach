@@ -41,7 +41,7 @@ export default function BanhoPersonalizado() {
 Crie um banho completo e específico incluindo:
 1. **Nome ritualístico do banho**
 2. **Ervas e plantas** (3-5 ingredientes com quantidades aproximadas)
-3. **Complementos** (sal, flores, óleos, cristais — escolha o que faz sentido para a intenção)
+3. **Complementos** (sal, flores, óleos, cristais, escolha o que faz sentido para a intenção)
 4. **Modo de preparo** (passo a passo)
 5. **Como usar** (temperatura, momento do dia, duração)
 6. **Intenção a segurar** durante o banho

@@ -327,7 +327,7 @@ export default function DailyCheckin() {
                     { key: 'mind'    as const, label: 'Clareza mental' },
                   ].map(({ key, label }) => (
                     <div key={key} className="mb-4">
-                      <p className="text-xs text-netzach-muted mb-2">{label} — {SCALE_LABELS[morning[key]] || '—'}</p>
+                      <p className="text-xs text-netzach-muted mb-2">{label}, {SCALE_LABELS[morning[key]] || '—'}</p>
                       <div className="flex gap-2">
                         {[1, 2, 3, 4, 5].map(v => (
                           <ScaleButton key={v} value={v} selected={morning[key] === v} onSelect={() => setMorning(p => ({ ...p, [key]: v }))} />
@@ -397,7 +397,7 @@ export default function DailyCheckin() {
                   <p className="text-sm text-netzach-gold font-mystic mb-2">O que se alinhou com sua intenção hoje?</p>
                   <textarea
                     rows={3}
-                    placeholder="Pode ser algo pequeno — tudo conta..."
+                    placeholder="Pode ser algo pequeno, tudo conta..."
                     className="w-full p-3 bg-netzach-card border border-netzach-border rounded-xl text-sm text-white placeholder:text-netzach-muted outline-none focus:border-netzach-gold/50 resize-none"
                     value={evening.alignment}
                     onChange={e => setEvening(p => ({ ...p, alignment: e.target.value }))}
@@ -428,7 +428,7 @@ export default function DailyCheckin() {
                   <p className="text-sm text-netzach-gold font-mystic mb-2">Algo que quer liberar antes de dormir?</p>
                   <textarea
                     rows={2}
-                    placeholder="Opcional — pode ser um pensamento, uma emoção, um nome..."
+                    placeholder="Opcional, pode ser um pensamento, uma emoção, um nome..."
                     className="w-full p-3 bg-netzach-card border border-netzach-border rounded-xl text-sm text-white placeholder:text-netzach-muted outline-none focus:border-netzach-gold/50 resize-none"
                     value={evening.release_notes}
                     onChange={e => setEvening(p => ({ ...p, release_notes: e.target.value }))}

@@ -50,7 +50,7 @@ const FEATURES = [
   {
     glyph: '✦',
     title: 'Sacerdotisa Netzach',
-    desc: 'Sua guia espiritual com IA. Pergunte sobre banhos, cristais, florais de Bach e rituais — respostas personalizadas.',
+    desc: 'Sua guia espiritual sagrada. Pergunte sobre banhos, cristais, florais de Bach e rituais, com respostas personalizadas.',
   },
 ];
 
@@ -324,7 +324,7 @@ export default function Home() {
               Sacerdotisa Netzach
             </h2>
             <p className="text-sm text-netzach-muted leading-relaxed mb-6 max-w-md">
-              Sua guia espiritual sagrada e personalizada. Consulte sobre banhos energéticos, óleos essenciais, cristais, florais de Bach e rituais — tudo alinhado ao seu momento.
+              Sua guia espiritual sagrada e personalizada. Consulte sobre banhos energéticos, óleos essenciais, cristais, florais de Bach e rituais, tudo alinhado ao seu momento.
             </p>
             <Link
               to="/assinar"

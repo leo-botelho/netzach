@@ -231,14 +231,14 @@ export default function Temple() {
             {profile?.sign_sun && (
               <button onClick={() => setActiveHoroscopeModal({ title: 'Seu Sol', sign: profile.sign_sun!, text: horoscope.sun })} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
                 <Sun size={16} className="text-netzach-gold mb-2 opacity-70"/>
-                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Sol — Essência</p>
+                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Sol, Essência</p>
                 <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">{profile.sign_sun}</p>
               </button>
             )}
             {profile?.sign_moon && (
               <button onClick={() => setActiveHoroscopeModal({ title: 'Sua Lua', sign: profile.sign_moon!, text: horoscope.moon })} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
                 <Moon size={16} className="text-netzach-gold mb-2 opacity-70"/>
-                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Lua — Emoção</p>
+                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Lua, Emoção</p>
                 <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">{profile.sign_moon}</p>
               </button>
             )}

@@ -253,7 +253,8 @@ export default function ProfilePage() {
                 type="text"
                 value={form.birth_city}
                 onChange={e => set('birth_city', e.target.value)}
-                className="input-mystic pl-8"
+                className="input-mystic"
+                style={{ paddingLeft: '2.25rem' }}
                 placeholder="Ex: São Paulo, SP"
               />
             </div>

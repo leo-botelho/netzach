@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
   Star, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2,
-  Link as LinkIcon, Users, Search, Ban, Bot, Plus
+  Link as LinkIcon, Users, Search, Ban, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
 const SIGNOS = ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes'];
@@ -39,6 +39,10 @@ export default function AdminPanel() {
   const [knowledgeForm, setKnowledgeForm] = useState({ title: '', content: '', category: 'banho' });
   const [kbLoading, setKbLoading] = useState(false);
 
+  // Planos
+  const [plans, setPlans] = useState<any[]>([]);
+  const [planSaving, setPlanSaving] = useState<string | null>(null);
+
   useEffect(() => {
     checkAdmin();
     fetchRequests();
@@ -46,7 +50,26 @@ export default function AdminPanel() {
     fetchUsers();
     loadTodayInsight();
     fetchKnowledge();
+    fetchPlans();
   }, []);
+
+  const fetchPlans = async () => {
+    const { data } = await supabase.from('plan_configs').select('*').order('id');
+    if (data) setPlans(data.map(p => ({ ...p, _price: String(p.price) })));
+  };
+
+  const savePlan = async (plan: any) => {
+    setPlanSaving(plan.id);
+    const price = parseFloat(plan._price.replace(',', '.'));
+    if (isNaN(price) || price <= 0) { alert('Preço inválido'); setPlanSaving(null); return; }
+    await supabase.from('plan_configs').update({ price, active: plan.active, updated_at: new Date().toISOString() }).eq('id', plan.id);
+    setPlanSaving(null);
+    await fetchPlans();
+  };
+
+  const updatePlanField = (id: string, field: string, value: any) => {
+    setPlans(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
 
   const checkAdmin = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -193,6 +216,7 @@ export default function AdminPanel() {
             { id: 'servicos', icon: Feather, label: `5. Pedidos (${requests.filter(r => r.status === 'pending').length})` },
             { id: 'iniciadas', icon: Users, label: '6. Alunas' },
             { id: 'conhecimento', icon: Bot, label: '7. Netzach IA' },
+            { id: 'planos', icon: CreditCard, label: '8. Planos' },
         ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-6 py-3 rounded-lg border whitespace-nowrap ${activeTab === tab.id ? 'bg-netzach-gold text-netzach-bg border-netzach-gold font-bold' : 'bg-netzach-card border-netzach-border text-netzach-muted'}`}>
                 <tab.icon size={18}/> {tab.label}
@@ -339,6 +363,70 @@ export default function AdminPanel() {
         <div>
             <div className="bg-netzach-card p-4 rounded-xl mb-4 flex gap-2"><Search className="text-netzach-muted"/><input placeholder="Buscar aluna..." className="bg-transparent w-full outline-none text-white" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/></div>
             <div className="bg-netzach-card rounded-xl overflow-hidden">{filteredUsers.map(user => (<div key={user.id} className="p-4 border-b border-netzach-border flex justify-between items-center"><div><p className="font-bold">{user.full_name}</p><p className="text-xs text-netzach-muted">{user.whatsapp} • {user.sign_sun}</p></div>{user.role !== 'admin' && (<button onClick={() => toggleUserStatus(user.id, user.subscription_status)} className={user.subscription_status === 'active' ? 'text-green-400' : 'text-red-400'}>{user.subscription_status === 'active' ? <CheckCircle/> : <Ban/>}</button>)}</div>))}</div>
+        </div>
+      )}
+
+      {/* 8. PLANOS */}
+      {activeTab === 'planos' && (
+        <div className="space-y-4 max-w-2xl">
+          <h2 className="text-xl font-mystic text-white">Gerenciar Planos</h2>
+          <p className="text-sm text-netzach-muted">Edite os preços cobrados no checkout. Alterações entram em vigor imediatamente para novas assinaturas.</p>
+
+          <div className="bg-netzach-card border border-netzach-border rounded-2xl overflow-hidden">
+            {/* Cabeçalho */}
+            <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-netzach-bg/50 border-b border-netzach-border text-[11px] uppercase tracking-wider text-netzach-muted font-bold">
+              <span>Plano</span>
+              <span>Ciclo</span>
+              <span>Preço (R$)</span>
+              <span>Ativo</span>
+            </div>
+
+            {plans.map(plan => (
+              <div key={plan.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 items-center px-5 py-4 border-b border-netzach-border last:border-0">
+                {/* Nome */}
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{plan.symbol}</span>
+                  <div>
+                    <p className="font-mystic text-white text-sm">{plan.name}</p>
+                    <p className="text-[10px] text-netzach-muted">{plan.id}</p>
+                  </div>
+                </div>
+
+                {/* Ciclo */}
+                <span className="text-sm text-netzach-muted capitalize">{plan.cycle}</span>
+
+                {/* Preço editável */}
+                <input
+                  type="text"
+                  value={plan._price}
+                  onChange={e => updatePlanField(plan.id, '_price', e.target.value)}
+                  className="bg-netzach-bg border border-netzach-border rounded-lg px-3 py-1.5 text-sm text-white w-24 text-right"
+                  placeholder="0,00"
+                />
+
+                {/* Ativo toggle + Salvar */}
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updatePlanField(plan.id, 'active', !plan.active)} className={plan.active ? 'text-green-400' : 'text-netzach-muted'}>
+                    {plan.active ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                  </button>
+                  <button
+                    onClick={() => savePlan(plan)}
+                    disabled={planSaving === plan.id}
+                    className="p-1.5 bg-netzach-gold text-netzach-bg rounded-lg hover:bg-white transition-colors disabled:opacity-50"
+                    title="Salvar"
+                  >
+                    {planSaving === plan.id ? '...' : <Save size={14} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-netzach-card border border-amber-700/30 rounded-xl p-4 text-sm text-amber-400/80 space-y-1">
+            <p className="font-bold text-amber-400">Importante</p>
+            <p>Alterar preço NÃO altera assinaturas existentes no Asaas. Apenas novas cobranças usarão o novo valor.</p>
+            <p>Para desativar um plano sem cancelar assinantes, use o toggle Ativo (plano não aparece no checkout).</p>
+          </div>
         </div>
       )}
     </div>

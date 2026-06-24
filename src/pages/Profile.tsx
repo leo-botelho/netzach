@@ -413,27 +413,52 @@ export default function ProfilePage() {
           </div>
         </Section>
 
-        {/* Plano */}
-        <div className="bg-netzach-card border border-netzach-border rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-netzach-muted uppercase tracking-wider">Plano atual</p>
-            <p className="font-mystic text-netzach-gold text-base mt-0.5 capitalize">
-              {profile?.plan_type === 'hecate' ? 'Sacerdotisa Hécate' :
-               profile?.plan_type === 'isis' ? 'Sacerdotisa Ísis' :
-               profile?.plan_type === 'lilith' ? 'Sacerdotisa Lilith' : 'Gratuito'}
-            </p>
-            <p className="text-[11px] text-netzach-muted mt-0.5">
-              Status: <span className={profile?.subscription_status === 'active' ? 'text-green-400' : 'text-red-400'}>
-                {profile?.subscription_status === 'active' ? 'Ativo' : 'Inativo'}
-              </span>
-            </p>
+        {/* Assinatura */}
+        <div className="bg-netzach-card border border-netzach-border rounded-2xl p-5 space-y-3">
+          <p className="text-[10px] uppercase tracking-widest text-netzach-muted font-bold">Minha Assinatura</p>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-mystic text-netzach-gold text-base">
+                {profile?.plan_type === 'hecate' ? 'Hécate' :
+                 profile?.plan_type === 'isis' ? 'Ísis' :
+                 profile?.plan_type === 'lilith' ? 'Lilith' : 'Gratuito'}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${profile?.subscription_status === 'active' ? 'bg-green-400' : profile?.subscription_status === 'overdue' ? 'bg-yellow-400' : 'bg-red-400'}`} />
+                <p className="text-xs text-netzach-muted">
+                  {profile?.subscription_status === 'active' ? 'Ativo' :
+                   profile?.subscription_status === 'overdue' ? 'Pagamento pendente' : 'Inativo'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/assinar')}
+              className="text-xs px-3 py-2 border border-netzach-gold/60 text-netzach-gold rounded-xl hover:bg-netzach-gold hover:text-netzach-bg transition-all"
+            >
+              {profile?.plan_type === 'free' || !profile?.plan_type ? 'Assinar' : 'Gerenciar'}
+            </button>
           </div>
-          <button
-            onClick={() => navigate('/assinar')}
-            className="text-xs px-3 py-2 border border-netzach-gold/60 text-netzach-gold rounded-xl hover:bg-netzach-gold hover:text-netzach-bg transition-all"
-          >
-            Alterar
-          </button>
+
+          {profile?.subscription_end_date && profile?.plan_type !== 'free' && (
+            <div className="pt-2 border-t border-netzach-border/50">
+              <p className="text-xs text-netzach-muted">
+                {profile?.subscription_status === 'active' ? 'Próxima cobrança' : 'Vencimento'}:{' '}
+                <span className="text-white">
+                  {new Date(profile.subscription_end_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                </span>
+              </p>
+            </div>
+          )}
+
+          {(profile?.subscription_status === 'overdue' || profile?.subscription_status === 'inactive') && profile?.plan_type !== 'free' && (
+            <button
+              onClick={() => navigate('/assinar')}
+              className="w-full bg-netzach-gold text-netzach-bg font-bold py-2.5 rounded-xl text-sm hover:bg-white transition-colors"
+            >
+              Renovar agora
+            </button>
+          )}
         </div>
 
         <button

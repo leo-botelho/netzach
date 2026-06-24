@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     const { event, payment, subscription } = payload;
 
-    // Eventos que confirmam pagamento
+    // Eventos que ativam assinatura
     const CONFIRM_EVENTS = [
       'PAYMENT_CONFIRMED',
       'PAYMENT_RECEIVED',
@@ -38,7 +38,20 @@ Deno.serve(async (req) => {
       'SUBSCRIPTION_RENEWED',
     ];
 
-    if (!CONFIRM_EVENTS.includes(event)) {
+    // Eventos que bloqueiam acesso
+    const BLOCK_EVENTS = [
+      'PAYMENT_OVERDUE',
+      'PAYMENT_DELETED',
+      'PAYMENT_REFUNDED',
+      'PAYMENT_CHARGEBACK',
+      'SUBSCRIPTION_DELETED',
+      'SUBSCRIPTION_DEACTIVATED',
+    ];
+
+    const isConfirm = CONFIRM_EVENTS.includes(event);
+    const isBlock = BLOCK_EVENTS.includes(event);
+
+    if (!isConfirm && !isBlock) {
       return new Response(JSON.stringify({ ignored: event }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -54,6 +67,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Bloquear acesso (inadimplência / cancelamento) ────────────
+    if (isBlock) {
+      await supabase.from('profiles').update({
+        subscription_status: event === 'PAYMENT_OVERDUE' ? 'overdue' : 'inactive',
+      }).eq('user_id', userId);
+
+      await supabase.functions.invoke('send-push', {
+        body: {
+          user_id: userId,
+          title: '⚠️ Pagamento pendente',
+          body: 'Renove sua assinatura para continuar acessando o Netzach.',
+          url: '/assinar',
+        },
+      });
+
+      return new Response(JSON.stringify({ ok: true, action: 'blocked', userId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── Ativar assinatura ─────────────────────────────────────────
     const planType = planId.startsWith('hecate') ? 'hecate'
       : planId.startsWith('isis') ? 'isis'
       : planId.startsWith('lilith') ? 'lilith'
@@ -63,7 +97,6 @@ Deno.serve(async (req) => {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + (isAnual ? 12 : 1));
 
-    // Ativa assinatura no perfil
     await supabase.from('profiles').update({
       subscription_status: 'active',
       plan_type: planType,
@@ -71,20 +104,25 @@ Deno.serve(async (req) => {
       last_payment_method: payment?.billingType?.toLowerCase() || 'pix',
     }).eq('user_id', userId);
 
-    // Notificação push de boas-vindas
     const planLabels: Record<string, string> = {
       hecate: 'Hécate', isis: 'Ísis', lilith: 'Lilith',
     };
-    await supabase.functions.invoke('send-push', {
-      body: {
-        user_id: userId,
-        title: `✦ Bem-vinda ao plano ${planLabels[planType]}`,
-        body: 'Sua jornada começa agora. O Templo está aberto para você.',
-        url: '/templo',
-      },
-    });
 
-    return new Response(JSON.stringify({ ok: true, userId, planType }), {
+    // Notifica apenas na ativação inicial ou renovação
+    if (['SUBSCRIPTION_ACTIVATED', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(event)) {
+      await supabase.functions.invoke('send-push', {
+        body: {
+          user_id: userId,
+          title: `✦ ${event.includes('RENEW') ? 'Assinatura renovada' : 'Bem-vinda ao plano'} ${planLabels[planType]}`,
+          body: event.includes('RENEW')
+            ? 'Sua jornada continua. O Templo está aberto para você.'
+            : 'Sua jornada começa agora. O Templo está aberto para você.',
+          url: '/templo',
+        },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true, action: 'activated', userId, planType }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

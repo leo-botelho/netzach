@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CreditCard, Lock, User, Loader2, QrCode, Copy,
@@ -6,42 +6,24 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-// ── Planos conforme documento Netzach ────────────────────────────
-const PLANS = [
-  {
-    id: 'hecate_mensal', sacerdotisa: 'hecate', label: 'Hécate',
-    cycle: 'Mensal', price: 29.90, quota: '1 consulta/semana por módulo',
-    symbol: '🌑', color: 'from-slate-800 to-purple-950',
-  },
-  {
-    id: 'hecate_anual', sacerdotisa: 'hecate', label: 'Hécate',
-    cycle: 'Anual', price: 249, quota: '1 consulta/semana por módulo',
-    symbol: '🌑', color: 'from-slate-800 to-purple-950',
-    save: 'Economize R$109',
-  },
-  {
-    id: 'isis_mensal', sacerdotisa: 'isis', label: 'Ísis',
-    cycle: 'Mensal', price: 44.90, quota: '3 consultas/semana por módulo',
-    symbol: '☽', color: 'from-purple-900 to-indigo-950',
-    popular: true,
-  },
-  {
-    id: 'isis_anual', sacerdotisa: 'isis', label: 'Ísis',
-    cycle: 'Anual', price: 389, quota: '3 consultas/semana por módulo',
-    symbol: '☽', color: 'from-purple-900 to-indigo-950',
-    save: 'Economize R$149', popular: true,
-  },
-  {
-    id: 'lilith_mensal', sacerdotisa: 'lilith', label: 'Lilith',
-    cycle: 'Mensal', price: 59.90, quota: 'Ilimitado em todos os módulos',
-    symbol: '✦', color: 'from-rose-950 to-purple-950',
-  },
-  {
-    id: 'lilith_anual', sacerdotisa: 'lilith', label: 'Lilith',
-    cycle: 'Anual', price: 529, quota: 'Ilimitado em todos os módulos',
-    symbol: '✦', color: 'from-rose-950 to-purple-950',
-    save: 'Economize R$190',
-  },
+// Metadados estáticos por plan_type (não vêm do banco)
+const PLAN_META: Record<string, { color: string; quota: string; popular?: boolean }> = {
+  hecate_mensal: { color: 'from-slate-800 to-purple-950', quota: '1 consulta/semana por módulo' },
+  hecate_anual:  { color: 'from-slate-800 to-purple-950', quota: '1 consulta/semana por módulo' },
+  isis_mensal:   { color: 'from-purple-900 to-indigo-950', quota: '3 consultas/semana por módulo', popular: true },
+  isis_anual:    { color: 'from-purple-900 to-indigo-950', quota: '3 consultas/semana por módulo', popular: true },
+  lilith_mensal: { color: 'from-rose-950 to-purple-950', quota: 'Ilimitado em todos os módulos' },
+  lilith_anual:  { color: 'from-rose-950 to-purple-950', quota: 'Ilimitado em todos os módulos' },
+};
+
+// Plano fallback usado antes do banco carregar
+const PLANS_FALLBACK = [
+  { id: 'hecate_mensal', sacerdotisa: 'hecate', label: 'Hécate', cycle: 'Mensal', price: 29.90, symbol: '🌑' },
+  { id: 'hecate_anual',  sacerdotisa: 'hecate', label: 'Hécate', cycle: 'Anual',  price: 249,   symbol: '🌑', save: 'Economize R$109' },
+  { id: 'isis_mensal',   sacerdotisa: 'isis',   label: 'Ísis',   cycle: 'Mensal', price: 44.90, symbol: '☽' },
+  { id: 'isis_anual',    sacerdotisa: 'isis',   label: 'Ísis',   cycle: 'Anual',  price: 389,   symbol: '☽', save: 'Economize R$149' },
+  { id: 'lilith_mensal', sacerdotisa: 'lilith', label: 'Lilith', cycle: 'Mensal', price: 59.90, symbol: '✦' },
+  { id: 'lilith_anual',  sacerdotisa: 'lilith', label: 'Lilith', cycle: 'Anual',  price: 529,   symbol: '✦', save: 'Economize R$190' },
 ];
 
 const FEATURES = [
@@ -76,11 +58,44 @@ type PayMethod = 'credit_card' | 'pix';
 export default function Checkout() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const defaultPlan = PLANS.find(p => p.id === searchParams.get('plano')) ?? PLANS[2];
+
+  const [plans, setPlans] = useState(PLANS_FALLBACK);
+  const [plansLoading, setPlansLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from('plan_configs').select('*').eq('active', true).order('id')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setPlans(data.map(p => ({
+            id: p.id,
+            sacerdotisa: p.plan_type,
+            label: p.name,
+            cycle: p.cycle === 'mensal' ? 'Mensal' : 'Anual',
+            price: Number(p.price),
+            symbol: p.symbol ?? '✦',
+            save: p.id === 'hecate_anual' ? 'Economize R$109'
+                : p.id === 'isis_anual' ? 'Economize R$149'
+                : p.id === 'lilith_anual' ? 'Economize R$190'
+                : undefined,
+          })));
+        }
+        setPlansLoading(false);
+      });
+  }, []);
+
+  const defaultPlan = plans.find(p => p.id === searchParams.get('plano')) ?? plans[2] ?? plans[0];
 
   const [step, setStep] = useState<'plan' | 'form'>('plan');
   const [selectedPlan, setSelectedPlan] = useState(defaultPlan);
   const [paymentMethod, setPaymentMethod] = useState<PayMethod>('credit_card');
+
+  // Sync selectedPlan when plans load from DB
+  useEffect(() => {
+    if (!plansLoading) {
+      const match = plans.find(p => p.id === selectedPlan?.id) ?? plans.find(p => p.id === 'isis_mensal') ?? plans[0];
+      if (match) setSelectedPlan(match);
+    }
+  }, [plansLoading]);
   const [loading, setLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qr_code_base64: string; copy_paste: string } | null>(null);
   const [error, setError] = useState('');
@@ -225,13 +240,15 @@ export default function Checkout() {
             ))}
           </div>
 
-          {PLANS.filter(p => p.id.endsWith(selectedPlan.id.endsWith('anual') ? 'anual' : 'mensal')).map(plan => (
+          {plans.filter(p => p.id.endsWith(selectedPlan.id.endsWith('anual') ? 'anual' : 'mensal')).map(plan => {
+            const meta = PLAN_META[plan.id] ?? { color: 'from-slate-800 to-purple-950', quota: '' };
+            return (
             <button
               key={plan.id}
               onClick={() => setSelectedPlan(plan)}
               className={`w-full text-left rounded-2xl border p-5 transition-all ${
                 selectedPlan.id === plan.id
-                  ? 'border-netzach-gold bg-gradient-to-br ' + plan.color
+                  ? 'border-netzach-gold bg-gradient-to-br ' + meta.color
                   : 'border-netzach-border bg-netzach-card hover:border-netzach-gold/50'
               }`}
             >
@@ -239,7 +256,7 @@ export default function Checkout() {
                 <div>
                   <span className="text-2xl mr-2">{plan.symbol}</span>
                   <span className="font-mystic text-lg text-white">{plan.label}</span>
-                  {plan.popular && (
+                  {meta.popular && (
                     <span className="ml-2 text-[10px] bg-netzach-gold text-netzach-bg px-2 py-0.5 rounded-full font-bold">POPULAR</span>
                   )}
                 </div>
@@ -253,7 +270,7 @@ export default function Checkout() {
                   )}
                 </div>
               </div>
-              <p className="text-xs text-netzach-muted">{plan.quota}</p>
+              <p className="text-xs text-netzach-muted">{meta.quota}</p>
               {selectedPlan.id === plan.id && (
                 <div className="mt-3 pt-3 border-t border-netzach-border/50 space-y-1.5">
                   {FEATURES.map(f => (
@@ -264,7 +281,7 @@ export default function Checkout() {
                 </div>
               )}
             </button>
-          ))}
+          );})}
 
           <button
             onClick={() => setStep('form')}

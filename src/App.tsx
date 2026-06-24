@@ -7,7 +7,7 @@ import AdminPanel from './pages/AdminPanel';
 import Services from './pages/Services';
 import Rituals from './pages/Rituals';
 import MatrizDestinoPage from './pages/MatrizDestinoPage';
-import Checkout from './pages/checkout'; // Importe a página nova
+import Checkout from './pages/checkout';
 import Sacerdotisa from './pages/Sacerdotisa';
 import DailyCheckin from './pages/DailyCheckin';
 import ProfilePage from './pages/Profile';
@@ -25,6 +25,7 @@ import Hooponopono from './pages/Hooponopono';
 import CriancaInterior from './pages/CriancaInterior';
 import MandalaDoMes from './pages/MandalaDoMes';
 import MandalaLunar from './pages/MandalaLunar';
+import SubscriptionGuard from './components/SubscriptionGuard';
 
 function App() {
   return (
@@ -32,36 +33,34 @@ function App() {
       <Routes>
         {/* PÚBLICO */}
         <Route path="/" element={<Home />} />
-        
-        {/* NOVA ROTA DE PAGAMENTO */}
         <Route path="/assinar" element={<Checkout />} />
-
-        {/* Autenticação */}
         <Route path="/portal" element={<Login />} />
         <Route path="/iniciacao" element={<Register />} />
-        
-        {/* LOGADO (ALUNA) */}
-        <Route path="/templo" element={<Temple />} />
-        <Route path="/servicos" element={<Services />} />
-        <Route path="/rituais" element={<Rituals />} />
-        <Route path="/matriz" element={<MatrizDestinoPage />} />
-        <Route path="/sacerdotisa" element={<Sacerdotisa />} />
-        <Route path="/checkin" element={<DailyCheckin />} />
-        <Route path="/perfil" element={<ProfilePage />} />
-        <Route path="/banho" element={<BanhoPersonalizado />} />
-        <Route path="/chakras" element={<ChakraDiagnostico />} />
-        <Route path="/lua" element={<MagiaLunar />} />
-        <Route path="/roda-da-vida" element={<RodaDaVida />} />
-        <Route path="/retrospectiva" element={<Retrospectiva />} />
-        <Route path="/numerologia" element={<Numerologia />} />
-        <Route path="/sagrado-feminino" element={<SagradoFeminino />} />
-        <Route path="/florais" element={<Florais />} />
-        <Route path="/lei-atracao" element={<LeiAtracao />} />
-        <Route path="/relacionamento" element={<Relacionamento />} />
-        <Route path="/hooponopono" element={<Hooponopono />} />
-        <Route path="/crianca-interior" element={<CriancaInterior />} />
-        <Route path="/mandala-mes" element={<MandalaDoMes />} />
-        <Route path="/mandala-lunar" element={<MandalaLunar />} />
+
+        {/* PRIVADO — bloqueado se assinatura expirou */}
+        <Route element={<SubscriptionGuard />}>
+          <Route path="/templo" element={<Temple />} />
+          <Route path="/servicos" element={<Services />} />
+          <Route path="/rituais" element={<Rituals />} />
+          <Route path="/matriz" element={<MatrizDestinoPage />} />
+          <Route path="/sacerdotisa" element={<Sacerdotisa />} />
+          <Route path="/checkin" element={<DailyCheckin />} />
+          <Route path="/perfil" element={<ProfilePage />} />
+          <Route path="/banho" element={<BanhoPersonalizado />} />
+          <Route path="/chakras" element={<ChakraDiagnostico />} />
+          <Route path="/lua" element={<MagiaLunar />} />
+          <Route path="/roda-da-vida" element={<RodaDaVida />} />
+          <Route path="/retrospectiva" element={<Retrospectiva />} />
+          <Route path="/numerologia" element={<Numerologia />} />
+          <Route path="/sagrado-feminino" element={<SagradoFeminino />} />
+          <Route path="/florais" element={<Florais />} />
+          <Route path="/lei-atracao" element={<LeiAtracao />} />
+          <Route path="/relacionamento" element={<Relacionamento />} />
+          <Route path="/hooponopono" element={<Hooponopono />} />
+          <Route path="/crianca-interior" element={<CriancaInterior />} />
+          <Route path="/mandala-mes" element={<MandalaDoMes />} />
+          <Route path="/mandala-lunar" element={<MandalaLunar />} />
+        </Route>
 
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />

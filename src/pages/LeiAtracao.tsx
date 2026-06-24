@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { usePlanCredit } from '../hooks/usePlanCredit';
 
 const INTENCOES = [
   'Amor e relacionamento',
@@ -21,6 +22,7 @@ export default function LeiAtracao() {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
+  const credit = usePlanCredit('lei_atracao');
   const responseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,6 +81,7 @@ Use linguagem mística e inspiradora. Trate-a pelo nome se disponível.`;
           }
         }
       }
+      if (full) await credit.increment();
     } catch { setResponse('Algo inesperado aconteceu. Tente novamente.'); }
     finally { setLoading(false); }
   };
@@ -113,7 +116,7 @@ Use linguagem mística e inspiradora. Trate-a pelo nome se disponível.`;
             rows={3} className="input-mystic resize-none" />
         </div>
 
-        {locked ? (
+        {locked || !credit.canUse ? (
           <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 text-center space-y-3">
             <div className="text-3xl">🔒</div>
             <p className="font-mystic text-netzach-gold">Limite semanal atingido</p>

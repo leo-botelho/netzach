@@ -53,6 +53,7 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
       { emoji: '🌸', title: 'Sagrado Feminino', description: 'Arquétipo do seu momento: integração de fase do ciclo + fase lunar + deusa regente.', path: '/sagrado-feminino', moduleKey: 'sagrado_feminino' },
       { emoji: '📊', title: 'Retrospectiva', description: 'Calendário de humor, gratidões e hábitos do mês. Sua jornada em visualização.', path: '/retrospectiva', moduleKey: 'retrospectiva' },
       { emoji: '🌀', title: 'Mandala do Mês', description: 'Panorama energético do mês: arcano, fases lunares, número pessoal e sua intenção.', path: '/mandala-mes', moduleKey: 'mandala_mes' },
+      { emoji: '🌙', title: 'Mandala Lunar', description: 'Visualização circular do seu ciclo lunar: sono, humor, energia e hábitos dia a dia.', path: '/mandala-lunar', moduleKey: 'mandala_lunar' },
     ],
   },
   {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { usePlanCredit } from '../hooks/usePlanCredit';
 
 const ESTADOS = [
   'Ansiedade e agitação',
@@ -21,6 +22,7 @@ export default function Florais() {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
+  const credit = usePlanCredit('florais');
   const responseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,6 +82,7 @@ Use linguagem acolhedora e mística.`;
           }
         }
       }
+      if (full) await credit.increment();
     } catch { setResponse('Algo inesperado aconteceu. Tente novamente.'); }
     finally { setLoading(false); }
   };
@@ -114,7 +117,7 @@ Use linguagem acolhedora e mística.`;
             rows={3} className="input-mystic resize-none" />
         </div>
 
-        {locked ? (
+        {locked || !credit.canUse ? (
           <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 text-center space-y-3">
             <div className="text-3xl">🔒</div>
             <p className="font-mystic text-netzach-gold">Limite semanal atingido</p>

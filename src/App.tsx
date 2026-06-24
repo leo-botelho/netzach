@@ -24,6 +24,7 @@ import Relacionamento from './pages/Relacionamento';
 import Hooponopono from './pages/Hooponopono';
 import CriancaInterior from './pages/CriancaInterior';
 import MandalaDoMes from './pages/MandalaDoMes';
+import MandalaLunar from './pages/MandalaLunar';
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
         <Route path="/hooponopono" element={<Hooponopono />} />
         <Route path="/crianca-interior" element={<CriancaInterior />} />
         <Route path="/mandala-mes" element={<MandalaDoMes />} />
+        <Route path="/mandala-lunar" element={<MandalaLunar />} />
 
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />

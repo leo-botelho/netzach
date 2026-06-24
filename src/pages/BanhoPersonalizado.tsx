@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Send, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { usePlanCredit } from '../hooks/usePlanCredit';
 
 const INTENTIONS = [
   'Limpeza energética e proteção',
@@ -21,6 +22,7 @@ export default function BanhoPersonalizado() {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
+  const credit = usePlanCredit('banho_personalizado');
   const responseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,6 +102,7 @@ Use linguagem amorosa e mística. Seja específica e prática.`;
           }
         }
       }
+      if (full) await credit.increment();
     } catch (err) {
       console.error(err);
       setResponse('Algo inesperado aconteceu. Tente novamente.');
@@ -154,7 +157,7 @@ Use linguagem amorosa e mística. Seja específica e prática.`;
           />
         </div>
 
-        {locked ? (
+        {locked || !credit.canUse ? (
           <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 text-center space-y-3">
             <div className="text-3xl">🔒</div>
             <p className="font-mystic text-netzach-gold">Limite semanal atingido</p>

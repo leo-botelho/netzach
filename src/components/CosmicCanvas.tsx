@@ -160,5 +160,5 @@ export default function CosmicCanvas({ particleCount = 350, className = '' }: Pr
     };
   }, [particleCount]);
 
-  return <div ref={mountRef} className={`absolute inset-0 ${className}`} />;
+  return <div ref={mountRef} className={`absolute inset-0 pointer-events-none ${className}`} />;
 }

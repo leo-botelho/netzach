@@ -11,6 +11,9 @@ import Checkout from './pages/checkout'; // Importe a página nova
 import Sacerdotisa from './pages/Sacerdotisa';
 import DailyCheckin from './pages/DailyCheckin';
 import ProfilePage from './pages/Profile';
+import BanhoPersonalizado from './pages/BanhoPersonalizado';
+import ChakraDiagnostico from './pages/ChakraDiagnostico';
+import MagiaLunar from './pages/MagiaLunar';
 
 function App() {
   return (
@@ -34,6 +37,9 @@ function App() {
         <Route path="/sacerdotisa" element={<Sacerdotisa />} />
         <Route path="/checkin" element={<DailyCheckin />} />
         <Route path="/perfil" element={<ProfilePage />} />
+        <Route path="/banho" element={<BanhoPersonalizado />} />
+        <Route path="/chakras" element={<ChakraDiagnostico />} />
+        <Route path="/lua" element={<MagiaLunar />} />
         
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />

@@ -5,15 +5,15 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Moon, Droplet, Star, LogOut, Calendar as CalendarIcon,
-  Sparkles, BookOpen, Sun, MessageSquare, X, ArrowRight, Flower, Lock, CloudMoon, ArrowUpCircle, Bot, Bell, BellOff, Smartphone, UserCircle
+  Sparkles, BookOpen, Sun, MessageSquare, X, CloudMoon,
+  ArrowUpCircle, Bell, BellOff, Smartphone, UserCircle
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
-import NumerologySection from '../components/NumerologySection';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { InstallPWAModal } from '../components/InstallPWAModal';
 import type { Profile } from '../types';
 
-// ── Card de check-in para o Templo ──────────────────────────
+// ── Check-in card ──────────────────────────────────────────────
 function CheckinCard({ userId }: { userId?: string }) {
   const navigate = useNavigate();
   const [morning, setMorning] = useState(false);
@@ -23,36 +23,39 @@ function CheckinCard({ userId }: { userId?: string }) {
   useEffect(() => {
     if (!userId) return;
     const today = new Date().toISOString().split('T')[0];
-
     supabase.from('daily_checkins').select('period').eq('user_id', userId).eq('date', today)
       .then(({ data }) => {
         setMorning(data?.some(c => c.period === 'morning') ?? false);
         setEvening(data?.some(c => c.period === 'evening') ?? false);
       });
-
     supabase.from('habit_logs').select('habit', { count: 'exact', head: true }).eq('user_id', userId).eq('date', today)
       .then(({ count }) => setHabits(count ?? 0));
   }, [userId]);
 
   const allDone = morning && evening && habits >= 6;
+  const doneParts = [morning, evening, habits >= 3].filter(Boolean).length;
 
   return (
     <button
       onClick={() => navigate('/checkin')}
-      className="w-full bg-gradient-to-r from-netzach-card to-netzach-bg border border-netzach-border rounded-2xl p-4 flex items-center justify-between hover:border-netzach-gold/40 transition-all group"
+      className="w-full bg-netzach-card border border-netzach-border rounded-2xl p-4 flex items-center justify-between hover:border-netzach-gold/50 transition-all group"
     >
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg transition-all ${allDone ? 'bg-netzach-gold border-netzach-gold' : 'border-netzach-border'}`}>
+        <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg transition-all ${allDone ? 'bg-netzach-gold border-netzach-gold text-netzach-bg' : 'border-netzach-border text-netzach-gold'}`}>
           {allDone ? '✓' : '✦'}
         </div>
         <div className="text-left">
-          <p className="text-sm font-medium text-white group-hover:text-netzach-gold transition-colors">Check-in Diário</p>
+          <p className="text-sm font-semibold text-white group-hover:text-netzach-gold transition-colors">Check-in Diário</p>
           <p className="text-[11px] text-netzach-muted">
-            {allDone ? 'Dia completo — você cuidou de si.' : `Manhã ${morning ? '✓' : '○'} · Noite ${evening ? '✓' : '○'} · Hábitos ${habits}/6`}
+            {allDone ? 'Tudo completo hoje ✦' : `${doneParts}/3 etapas concluídas`}
           </p>
         </div>
       </div>
-      <ArrowRight size={16} className="text-netzach-muted group-hover:text-netzach-gold transition-colors" />
+      <div className="flex gap-1">
+        {[morning, evening, habits >= 3].map((done, i) => (
+          <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${done ? 'bg-netzach-gold' : 'bg-netzach-border'}`} />
+        ))}
+      </div>
     </button>
   );
 }
@@ -61,29 +64,14 @@ export default function Temple() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Estados Místicos
   const [moon, setMoon] = useState<any>(null);
   const [cycle, setCycle] = useState<any>(null);
-  
-  // Conteúdos - AGORA COM LUA E ASCENDENTE
-  const [horoscope, setHoroscope] = useState<{ 
-    sky: string, 
-    sun: string, 
-    moon: string, 
-    rising: string 
-  }>({ sky: '', sun: '', moon: '', rising: '' });
-  
-  const [dailyInsight, setDailyInsight] = useState<{ tarot: string, bath: string, image: string, meaning: string }>({ tarot: '', bath: '', image: '', meaning: '' });
-
-  // Modais
-  const [isModalOpen, setIsModalOpen] = useState(false);        
-  const [isArcanoModalOpen, setIsArcanoModalOpen] = useState(false); 
-  const [isSkyModalOpen, setIsSkyModalOpen] = useState(false);  
-  
-  // Modais de Horóscopo (Um estado para controlar qual texto mostrar)
-  const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{title: string, sign: string, text: string} | null>(null);
-  
+  const [horoscope, setHoroscope] = useState<{ sky: string; sun: string; moon: string; rising: string }>({ sky: '', sun: '', moon: '', rising: '' });
+  const [dailyInsight, setDailyInsight] = useState<{ tarot: string; bath: string; image: string; meaning: string }>({ tarot: '', bath: '', image: '', meaning: '' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isArcanoModalOpen, setIsArcanoModalOpen] = useState(false);
+  const [isSkyModalOpen, setIsSkyModalOpen] = useState(false);
+  const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{ title: string; sign: string; text: string } | null>(null);
   const [newPeriodDate, setNewPeriodDate] = useState('');
   const [showInstallModal, setShowInstallModal] = useState(false);
   const { isSupported: pushSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
@@ -98,49 +86,33 @@ export default function Temple() {
     if (!session) return navigate('/portal');
 
     const { data: profileData } = await supabase.from('profiles').select('*').eq('user_id', session.user.id).single();
-
     if (profileData) {
       setProfile(profileData as Profile);
-      
       if (profileData.last_period_date) {
         setCycle(calculateCycleStatus(profileData.last_period_date, profileData.cycle_duration || 28));
       }
 
-      // Conteúdos
       const newHoroscopes = { sky: '', sun: '', moon: '', rising: '' };
-
-      // 1. Céu da Semana
       const { data: skyData } = await supabase.from('horoscopes').select('content').or('sign.eq.Geral,sign.eq.geral,sign.eq.ceu_semana').order('created_at', { ascending: false }).limit(1).single();
       if (skyData) newHoroscopes.sky = skyData.content;
 
-      // 2. Solar
       if (profileData.sign_sun) {
         const { data } = await supabase.from('horoscopes').select('content').eq('sign', profileData.sign_sun.toLowerCase()).order('created_at', { ascending: false }).limit(1).single();
         if (data) newHoroscopes.sun = data.content;
       }
-
-      // 3. Lunar (NOVO)
       if (profileData.sign_moon) {
         const { data } = await supabase.from('horoscopes').select('content').eq('sign', profileData.sign_moon.toLowerCase()).order('created_at', { ascending: false }).limit(1).single();
         if (data) newHoroscopes.moon = data.content;
       }
-
-      // 4. Ascendente (NOVO)
       if (profileData.sign_rising) {
         const { data } = await supabase.from('horoscopes').select('content').eq('sign', profileData.sign_rising.toLowerCase()).order('created_at', { ascending: false }).limit(1).single();
         if (data) newHoroscopes.rising = data.content;
       }
-
       setHoroscope(newHoroscopes);
 
       const { data: insightData } = await supabase.from('daily_insights').select('*').order('created_at', { ascending: false }).limit(1).single();
       if (insightData) {
-        setDailyInsight({ 
-            tarot: insightData.tarot_card_id || 'O Mistério', 
-            bath: insightData.recommended_bath || 'Banho de Ervas',
-            image: insightData.card_image_url || '',
-            meaning: insightData.card_meaning || '...'
-        });
+        setDailyInsight({ tarot: insightData.tarot_card_id || 'O Mistério', bath: insightData.recommended_bath || '', image: insightData.card_image_url || '', meaning: insightData.card_meaning || '' });
       }
     }
     setLoading(false);
@@ -157,233 +129,217 @@ export default function Temple() {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/portal'); };
 
-  if (loading) return <div className="min-h-screen bg-netzach-bg flex items-center justify-center text-netzach-gold animate-pulse font-mystic">Sintonizando...</div>;
+  if (loading) return <div className="min-h-screen bg-netzach-bg flex items-center justify-center text-netzach-gold animate-pulse font-mystic text-xl">Sintonizando...</div>;
 
-  // TELA DE BLOQUEIO
   if (profile?.subscription_status === 'inactive' && profile.role !== 'admin') {
     return (
-        <div className="min-h-screen bg-netzach-bg flex flex-col items-center justify-center text-center p-6 font-sans">
-            <div className="bg-netzach-card border border-netzach-border p-8 rounded-2xl shadow-2xl max-w-sm">
-                <Lock size={48} className="text-netzach-muted mb-6 mx-auto"/>
-                <h1 className="text-2xl font-mystic text-netzach-gold mb-4">Acesso Pausado</h1>
-                <p className="text-netzach-text/80 text-sm mb-8 leading-relaxed">Renove sua assinatura para continuar.</p>
-                <div className="space-y-3">
-                    <button className="w-full bg-netzach-gold text-netzach-bg font-bold py-3 rounded-lg hover:bg-white transition-colors">Renovar Agora</button>
-                    <button onClick={handleLogout} className="w-full border border-netzach-border text-netzach-muted py-3 rounded-lg hover:text-white transition-colors">Sair</button>
-                </div>
-            </div>
+      <div className="min-h-screen bg-netzach-bg flex flex-col items-center justify-center text-center p-6 font-sans">
+        <div className="bg-netzach-card border border-netzach-border p-8 rounded-2xl shadow-2xl max-w-sm space-y-4">
+          <div className="text-4xl">🔒</div>
+          <h1 className="text-2xl font-mystic text-netzach-gold">Acesso Pausado</h1>
+          <p className="text-netzach-text/80 text-sm leading-relaxed">Renove sua assinatura para continuar sua jornada.</p>
+          <button onClick={() => navigate('/assinar')} className="w-full bg-netzach-gold text-netzach-bg font-bold py-3 rounded-xl hover:bg-white transition-colors">Renovar Agora</button>
+          <button onClick={handleLogout} className="w-full border border-netzach-border text-netzach-muted py-3 rounded-xl hover:text-white transition-colors">Sair</button>
         </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-netzach-bg text-netzach-text pb-24 relative overflow-hidden font-sans">
-      <div className="absolute inset-0 bg-stars opacity-50 pointer-events-none"></div>
+    <div className="min-h-screen bg-netzach-bg text-netzach-text font-sans pb-28">
 
       {/* HEADER */}
-      <header className="p-6 flex justify-between items-center border-b border-netzach-border bg-netzach-bg/80 backdrop-blur-md sticky top-0 z-20">
+      <header className="sticky top-0 z-20 bg-netzach-bg/90 backdrop-blur-md border-b border-netzach-border px-5 py-4 flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-mystic text-netzach-gold">Olá, {profile?.full_name?.split(' ')[0]}</h2>
-          <div className="flex items-center gap-2 text-xs text-netzach-muted tracking-widest uppercase mt-1">
-            <span>{format(new Date(), "d 'de' MMMM", { locale: ptBR })}</span>
-            {profile?.sign_sun && (
-                <>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 text-netzach-gold"><Sun size={10}/> {profile.sign_sun}</span>
-                </>
-            )}
+          <h2 className="font-mystic text-xl text-netzach-gold leading-none">
+            Olá, {profile?.full_name?.split(' ')[0]} ✦
+          </h2>
+          <div className="flex items-center gap-2 text-[11px] text-netzach-muted mt-0.5">
+            <span>{format(new Date(), "EEEE',' d 'de' MMMM", { locale: ptBR })}</span>
+            {profile?.sign_sun && <><span>·</span><span className="text-netzach-gold flex items-center gap-1"><Sun size={9}/> {profile.sign_sun}</span></>}
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-            {profile?.role === 'admin' && (
-                <button 
-                    onClick={() => navigate('/admin')}
-                    className="bg-netzach-gold/10 border border-netzach-gold text-netzach-gold p-2 rounded-lg hover:bg-netzach-gold hover:text-netzach-bg transition-colors"
-                >
-                    <img src="/logo.svg" className="w-5 h-5 invert brightness-0" alt="Admin"/> {/* Ícone Shield ou Logo */}
-                </button>
-            )}
-            <button onClick={() => setShowInstallModal(true)} className="text-netzach-muted hover:text-netzach-gold transition-colors">
-                <Smartphone size={20}/>
-            </button>
-            <button onClick={handleLogout} className="text-netzach-muted hover:text-netzach-gold transition-colors">
-                <LogOut size={20}/>
-            </button>
+        <div className="flex items-center gap-2">
+          {profile?.role === 'admin' && (
+            <button onClick={() => navigate('/admin')} className="text-[10px] border border-netzach-gold/40 text-netzach-gold px-2 py-1 rounded-lg hover:bg-netzach-gold hover:text-netzach-bg transition-colors uppercase tracking-wider">Admin</button>
+          )}
+          <button onClick={() => setShowInstallModal(true)} className="text-netzach-muted hover:text-netzach-gold transition-colors p-1"><Smartphone size={18}/></button>
+          <button onClick={handleLogout} className="text-netzach-muted hover:text-netzach-gold transition-colors p-1"><LogOut size={18}/></button>
         </div>
       </header>
 
-      <main className="p-6 max-w-lg mx-auto space-y-6 relative z-10">
+      <main className="max-w-lg mx-auto px-4 py-5 space-y-4">
 
-        {/* 0. CHECK-IN DIÁRIO */}
+        {/* CHECK-IN */}
         <CheckinCard userId={profile?.user_id} />
 
-        {/* 1. MANDALA (Lua + Ciclo) */}
-        <section className="grid grid-cols-2 gap-4">
-          <div className="bg-netzach-card border border-netzach-border p-4 rounded-2xl flex flex-col items-center text-center shadow-lg relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-2 opacity-20"><Sparkles size={16}/></div>
-            <Moon size={28} className="text-netzach-gold mb-2" strokeWidth={1.5} />
-            <h3 className="font-mystic text-base text-white">Lua {moon?.phase}</h3>
-            <p className="text-[10px] text-netzach-muted mt-1 uppercase tracking-wider">{moon?.label}</p>
-          </div>
+        {/* LUA + CICLO */}
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => navigate('/lua')} className="bg-netzach-card border border-netzach-border rounded-2xl p-4 flex flex-col items-center text-center hover:border-netzach-gold/50 transition-all group">
+            <div className="text-3xl mb-1">{moon?.phase === 'Cheia' ? '🌕' : moon?.phase === 'Nova' ? '🌑' : moon?.phase === 'Crescente' ? '🌒' : '🌘'}</div>
+            <p className="font-mystic text-sm text-white group-hover:text-netzach-gold transition-colors">Lua {moon?.phase}</p>
+            <p className="text-[10px] text-netzach-muted mt-0.5">{moon?.label}</p>
+            <p className="text-[9px] text-netzach-gold/60 mt-1 uppercase tracking-wider">Ver ritual →</p>
+          </button>
+
           {profile?.last_period_date ? (
-              <button onClick={() => setIsModalOpen(true)} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl flex flex-col items-center text-center shadow-lg hover:border-netzach-gold transition-colors relative">
-                {cycle ? (<><div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${cycle.isLate ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div><Droplet size={28} className="text-rose-400 mb-2" strokeWidth={1.5} /><h3 className="font-mystic text-base text-white">{cycle.phaseName}</h3><p className="text-[10px] text-netzach-muted mt-1 uppercase tracking-wider">Dia {cycle.dayOfCycle}</p></>) : (<><CalendarIcon size={28} className="text-netzach-muted mb-2" strokeWidth={1.5} /><h3 className="font-mystic text-base text-netzach-muted">Ciclo</h3><p className="text-[10px] text-netzach-gold mt-1 underline uppercase tracking-wider">Configurar</p></>)}
-              </button>
+            <button onClick={() => setIsModalOpen(true)} className="bg-netzach-card border border-netzach-border rounded-2xl p-4 flex flex-col items-center text-center hover:border-netzach-gold/50 transition-all relative">
+              {cycle?.isLate && <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+              <Droplet size={28} className="text-rose-400 mb-1" strokeWidth={1.5} />
+              <p className="font-mystic text-sm text-white">{cycle?.phaseName || 'Ciclo'}</p>
+              <p className="text-[10px] text-netzach-muted mt-0.5">Dia {cycle?.dayOfCycle}</p>
+              <p className="text-[9px] text-netzach-gold/60 mt-1 uppercase tracking-wider">Atualizar →</p>
+            </button>
           ) : (
-              <div className="bg-netzach-card border border-netzach-border p-4 rounded-2xl flex flex-col items-center text-center"><Flower size={28} className="text-purple-400 mb-2" strokeWidth={1.5} /><h3 className="font-mystic text-base text-white">Sabedoria</h3><p className="text-[10px] text-netzach-muted mt-1 uppercase tracking-wider">Conexão Universal</p></div>
+            <button onClick={() => setIsModalOpen(true)} className="bg-netzach-card border border-netzach-border rounded-2xl p-4 flex flex-col items-center text-center hover:border-netzach-gold/50 transition-all">
+              <CalendarIcon size={28} className="text-netzach-muted mb-1" strokeWidth={1.5} />
+              <p className="font-mystic text-sm text-netzach-muted">Ciclo</p>
+              <p className="text-[10px] text-netzach-gold mt-1 underline">Configurar</p>
+            </button>
           )}
-        </section>
-
-        {/* 2. ASTROLOGIA (Céu + Solar + Lunar + Ascendente) - ATUALIZADO */}
-        <div>
-            <h3 className="text-xs text-netzach-gold uppercase font-bold mb-3 tracking-widest pl-1">Mapa Celeste</h3>
-            <div className="grid grid-cols-2 gap-4">
-                
-                {/* Céu da Semana */}
-                <button onClick={() => setIsSkyModalOpen(true)} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
-                    <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><CloudMoon size={16}/></div><p className="text-[10px] text-netzach-gold uppercase tracking-widest mb-1">Coletivo</p><h3 className="font-mystic text-lg text-white">Céu da Semana</h3></div>
-                    <p className="text-xs text-netzach-muted underline mt-2">Ler orientações &rarr;</p>
-                </button>
-
-                {/* Signo Solar */}
-                <button onClick={() => setActiveHoroscopeModal({title: 'Seu Sol', sign: profile?.sign_sun || '', text: horoscope.sun})} className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
-                    <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><Sun size={16} className="text-netzach-gold"/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Sol (Essência)</p><h3 className="font-mystic text-lg text-white">{profile?.sign_sun || "..."}</h3></div>
-                    <p className="text-xs text-netzach-muted underline mt-2">Ler previsões &rarr;</p>
-                </button>
-
-                {/* Signo Lunar (Se existir) */}
-                {profile?.sign_moon && (
-                     <button onClick={() => setActiveHoroscopeModal({title: 'Sua Lua', sign: profile.sign_moon || '', text: horoscope.moon})} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
-                        <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><Moon size={16}/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Lua (Emoção)</p><h3 className="font-mystic text-lg text-white">{profile.sign_moon}</h3></div>
-                        <p className="text-xs text-netzach-muted underline mt-2">Ler previsões &rarr;</p>
-                    </button>
-                )}
-
-                {/* Ascendente (Se existir) */}
-                {profile?.sign_rising && (
-                     <button onClick={() => setActiveHoroscopeModal({title: 'Seu Ascendente', sign: profile.sign_rising || '', text: horoscope.rising})} className="bg-netzach-card border border-netzach-border p-4 rounded-2xl relative shadow-lg text-left hover:border-netzach-gold transition-colors group flex flex-col justify-between min-h-[120px]">
-                        <div><div className="absolute top-2 right-2 opacity-20 group-hover:text-netzach-gold transition-colors"><ArrowUpCircle size={16}/></div><p className="text-[10px] text-netzach-muted uppercase tracking-widest mb-1">Ascendente</p><h3 className="font-mystic text-lg text-white">{profile.sign_rising}</h3></div>
-                        <p className="text-xs text-netzach-muted underline mt-2">Ler previsões &rarr;</p>
-                    </button>
-                )}
-            </div>
         </div>
 
-        {/* 3. ARCANO */}
-        <section className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-6 relative overflow-hidden shadow-lg mt-6">
-          <div className="flex justify-between mb-4"><div><span className="text-[10px] uppercase tracking-[0.2em] text-netzach-gold font-bold">Arcano da Semana</span><h3 className="font-mystic text-2xl text-white mt-1">{dailyInsight.tarot}</h3></div><button onClick={() => setIsArcanoModalOpen(true)} className="text-netzach-gold hover:text-white transition-colors"><Star size={24}/></button></div>
-          <div className="flex gap-4">
-            {dailyInsight.image ? (<img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-24 h-36 object-cover rounded border border-netzach-border shadow-md cursor-pointer hover:scale-105 transition-transform" onClick={() => setIsArcanoModalOpen(true)}/>) : (<div className="w-24 h-36 bg-black/30 rounded border border-netzach-border shrink-0 flex items-center justify-center"><span className="text-xs text-netzach-muted">Carta</span></div>)}
-            <div className="text-sm text-netzach-text/80 font-light flex flex-col justify-between"><p className="line-clamp-4">{dailyInsight.meaning}</p><button onClick={() => setIsArcanoModalOpen(true)} className="mt-2 flex items-center gap-2 text-netzach-gold text-xs font-bold uppercase tracking-wider cursor-pointer hover:underline"><BookOpen size={12}/> Ler interpretação</button></div>
-          </div>
-        </section>
-
-        {/* 4. RITUAL */}
-        <section className="bg-netzach-card border border-netzach-border rounded-xl p-5 flex items-center gap-4 cursor-pointer hover:border-netzach-gold/50 transition-colors" onClick={() => navigate('/rituais')}>
-            <div className="w-12 h-12 rounded-full bg-netzach-bg border border-netzach-border flex items-center justify-center text-2xl">🌿</div>
-            <div><h4 className="font-mystic text-netzach-gold">Ritual Sugerido</h4><p className="text-sm text-netzach-muted">{dailyInsight.bath || "Banho de Limpeza Energética"}</p></div>
-        </section>
-
-        {/* 5. NUMEROLOGIA */}
-        {profile && <NumerologySection fullName={profile.full_name} birthDate={profile.birth_date} />}
-
-        {/* 6. BOTÃO SACERDOTISA */}
-        <button onClick={() => navigate('/sacerdotisa')} className="w-full bg-gradient-to-r from-[#1a0a2e] to-[#2a1245] border border-purple-800/50 p-6 rounded-xl flex items-center justify-between group hover:border-netzach-gold transition-all shadow-lg shadow-purple-900/20">
-            <div className="text-left">
-              <h3 className="font-mystic text-lg text-white group-hover:text-netzach-gold transition-colors flex items-center gap-2">
-                <Bot size={18} className="text-netzach-gold"/> Sacerdotisa Netzach
-              </h3>
-              <p className="text-xs text-netzach-muted mt-1">Sua guia espiritual com IA — banhos, cristais, florais e rituais.</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-netzach-bg border border-netzach-gold/30 flex items-center justify-center text-netzach-gold group-hover:bg-netzach-gold group-hover:text-netzach-bg transition-all text-base">✦</div>
-        </button>
-
-        {/* 8. NOTIFICAÇÕES */}
-        {pushSupported && permission !== 'denied' && (
-          <div className="w-full bg-netzach-card border border-netzach-border rounded-xl p-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {isSubscribed ? <Bell size={18} className="text-netzach-gold shrink-0" /> : <BellOff size={18} className="text-netzach-muted shrink-0" />}
+        {/* ARCANO DA SEMANA */}
+        {dailyInsight.tarot && (
+          <section className="bg-netzach-card border border-netzach-border rounded-2xl p-5 flex gap-4">
+            {dailyInsight.image
+              ? <img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-16 h-24 object-cover rounded-lg border border-netzach-border shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={() => setIsArcanoModalOpen(true)} />
+              : <div className="w-16 h-24 bg-netzach-bg rounded-lg border border-netzach-border shrink-0 flex items-center justify-center text-2xl">✦</div>
+            }
+            <div className="flex flex-col justify-between min-w-0">
               <div>
-                <p className="text-sm text-white font-medium">{isSubscribed ? 'Notificações ativas' : 'Ativar notificações'}</p>
-                <p className="text-[11px] text-netzach-muted">Check-in, fases lunares e tarô semanal</p>
+                <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">Arcano da Semana</p>
+                <h3 className="font-mystic text-lg text-white mt-0.5">{dailyInsight.tarot}</h3>
+                <p className="text-xs text-netzach-text/70 mt-1 line-clamp-3">{dailyInsight.meaning}</p>
+              </div>
+              <button onClick={() => setIsArcanoModalOpen(true)} className="flex items-center gap-1 text-netzach-gold text-xs font-bold uppercase tracking-wider hover:underline mt-2 w-fit">
+                <BookOpen size={11}/> Ler completo
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* CÉU DA SEMANA + SIGNOS */}
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-netzach-muted font-bold mb-3 pl-1">Mapa Celeste</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setIsSkyModalOpen(true)} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
+              <CloudMoon size={16} className="text-netzach-gold mb-2 opacity-70"/>
+              <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Coletivo</p>
+              <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">Céu da Semana</p>
+            </button>
+            {profile?.sign_sun && (
+              <button onClick={() => setActiveHoroscopeModal({ title: 'Seu Sol', sign: profile.sign_sun!, text: horoscope.sun })} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
+                <Sun size={16} className="text-netzach-gold mb-2 opacity-70"/>
+                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Sol — Essência</p>
+                <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">{profile.sign_sun}</p>
+              </button>
+            )}
+            {profile?.sign_moon && (
+              <button onClick={() => setActiveHoroscopeModal({ title: 'Sua Lua', sign: profile.sign_moon!, text: horoscope.moon })} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
+                <Moon size={16} className="text-netzach-gold mb-2 opacity-70"/>
+                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Lua — Emoção</p>
+                <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">{profile.sign_moon}</p>
+              </button>
+            )}
+            {profile?.sign_rising && (
+              <button onClick={() => setActiveHoroscopeModal({ title: 'Seu Ascendente', sign: profile.sign_rising!, text: horoscope.rising })} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
+                <ArrowUpCircle size={16} className="text-netzach-gold mb-2 opacity-70"/>
+                <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Ascendente</p>
+                <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">{profile.sign_rising}</p>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* PUSH NOTIFICATION */}
+        {pushSupported && permission !== 'denied' && (
+          <div className="bg-netzach-card border border-netzach-border rounded-xl p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {isSubscribed ? <Bell size={16} className="text-netzach-gold shrink-0"/> : <BellOff size={16} className="text-netzach-muted shrink-0"/>}
+              <div>
+                <p className="text-sm text-white">{isSubscribed ? 'Notificações ativas' : 'Ativar notificações'}</p>
+                <p className="text-[10px] text-netzach-muted">Rituais, fases lunares e check-in</p>
               </div>
             </div>
-            <button
-              onClick={isSubscribed ? unsubscribe : subscribe}
-              disabled={pushLoading}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-all shrink-0 disabled:opacity-40 ${
-                isSubscribed
-                  ? 'border-netzach-border text-netzach-muted hover:text-red-400 hover:border-red-400/50'
-                  : 'border-netzach-gold/60 text-netzach-gold hover:bg-netzach-gold hover:text-netzach-bg'
-              }`}
-            >
+            <button onClick={isSubscribed ? unsubscribe : subscribe} disabled={pushLoading}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-all shrink-0 disabled:opacity-40 ${isSubscribed ? 'border-netzach-border text-netzach-muted hover:border-red-400/50 hover:text-red-400' : 'border-netzach-gold/60 text-netzach-gold hover:bg-netzach-gold hover:text-netzach-bg'}`}>
               {pushLoading ? '...' : isSubscribed ? 'Desativar' : 'Ativar'}
             </button>
           </div>
         )}
 
-        {/* 7. BOTÃO MATRIZ */}
-        <button onClick={() => navigate('/matriz')} className="w-full bg-gradient-to-r from-netzach-card to-[#2a1245] border border-netzach-border p-6 rounded-xl flex items-center justify-between group hover:border-netzach-gold transition-all shadow-lg">
-            <div className="text-left"><h3 className="font-mystic text-lg text-white group-hover:text-netzach-gold transition-colors flex items-center gap-2"><Sparkles size={18} className="text-netzach-gold"/> Matriz da Alma</h3><p className="text-xs text-netzach-muted mt-1">Sua mandala pessoal de propósito e carma.</p></div>
-            <div className="w-8 h-8 rounded-full bg-netzach-bg border border-netzach-gold/30 flex items-center justify-center text-netzach-gold group-hover:bg-netzach-gold group-hover:text-netzach-bg transition-all"><ArrowRight size={16}/></div>
-        </button>
-
       </main>
 
-      {/* FOOTER */}
-      <nav className="fixed bottom-0 w-full bg-netzach-bg/95 backdrop-blur-md border-t border-netzach-border p-4 flex justify-around items-center z-30 pb-6 safe-area-pb">
-        <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-gold"><Moon size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Templo</span></button>
-        <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><MessageSquare size={20}/><span className="text-[10px] uppercase tracking-wider">Serviços</span></button>
-        <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span></button>
-        <button onClick={() => navigate('/perfil')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors"><UserCircle size={20}/><span className="text-[10px] uppercase tracking-wider">Perfil</span></button>
+      {/* BOTTOM NAV */}
+      <nav className="fixed bottom-0 w-full bg-netzach-bg/95 backdrop-blur-md border-t border-netzach-border flex justify-around items-center z-30 pt-3 pb-6">
+        <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-gold">
+          <Moon size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Templo</span>
+        </button>
+        <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors">
+          <Sparkles size={20}/><span className="text-[10px] uppercase tracking-wider">Práticas</span>
+        </button>
+        <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors">
+          <BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span>
+        </button>
+        <button onClick={() => navigate('/perfil')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors">
+          <UserCircle size={20}/><span className="text-[10px] uppercase tracking-wider">Perfil</span>
+        </button>
       </nav>
 
       {showInstallModal && <InstallPWAModal onClose={() => setShowInstallModal(false)} />}
 
-      {/* MODAL CÉU */}
-      {isSkyModalOpen && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-netzach-card border border-netzach-gold/30 p-8 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="absolute top-0 right-0 p-6 opacity-10"><CloudMoon size={100}/></div>
-                <button onClick={() => setIsSkyModalOpen(false)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black transition-colors z-10"><X size={20}/></button>
-                <div className="relative z-10 overflow-y-auto custom-scrollbar"><span className="text-xs font-bold text-netzach-gold uppercase tracking-widest mb-2 block">Energia Coletiva</span><h2 className="text-3xl font-mystic text-white mb-6">Céu da Semana</h2><div className="prose prose-invert prose-p:text-netzach-text/90 prose-p:font-light prose-p:leading-loose text-sm"><p className="whitespace-pre-wrap">{horoscope.sky || "Os astros estão silenciosos. Aguarde as previsões da Sacerdotisa."}</p></div></div>
-                <button onClick={() => setIsSkyModalOpen(false)} className="w-full mt-8 border border-netzach-border text-netzach-muted py-3 rounded-lg hover:text-white hover:border-white transition-colors uppercase text-xs tracking-widest">Fechar Céu</button>
+      {/* MODAL CICLO */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end justify-center backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-netzach-card border border-netzach-border rounded-t-3xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-mystic text-netzach-gold text-xl">Registrar Menstruação</h3>
+            <p className="text-sm text-netzach-muted">Quando foi o primeiro dia da sua última menstruação?</p>
+            <input type="date" value={newPeriodDate} onChange={e => setNewPeriodDate(e.target.value)} className="input-mystic w-full" />
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setIsModalOpen(false)} className="py-3 border border-netzach-border rounded-xl text-netzach-muted hover:text-white transition-colors text-sm">Cancelar</button>
+              <button onClick={handleUpdateCycle} className="py-3 bg-netzach-gold text-netzach-bg rounded-xl font-bold text-sm hover:bg-white transition-colors">Salvar</button>
             </div>
-        </div>
-      )}
-
-      {/* MODAL HORÓSCOPO PESSOAL (Solar/Lunar/Asc) - NOVO */}
-      {activeHoroscopeModal && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-netzach-card border border-netzach-gold/30 p-8 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
-                <button onClick={() => setActiveHoroscopeModal(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black transition-colors z-10"><X size={20}/></button>
-                <div className="relative z-10 overflow-y-auto custom-scrollbar">
-                    <span className="text-xs font-bold text-netzach-gold uppercase tracking-widest mb-2 block">{activeHoroscopeModal.title}</span>
-                    <h2 className="text-3xl font-mystic text-white mb-6">{activeHoroscopeModal.sign}</h2>
-                    <div className="prose prose-invert prose-p:text-netzach-text/90 prose-p:font-light prose-p:leading-loose text-sm">
-                        <p className="whitespace-pre-wrap">{activeHoroscopeModal.text || `Aguardando a previsão para ${activeHoroscopeModal.sign}...`}</p>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
       )}
 
       {/* MODAL ARCANO */}
-      {isArcanoModalOpen && dailyInsight.meaning && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-netzach-card border border-netzach-gold/30 p-0 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col max-h-[90vh]">
-                {dailyInsight.image && <div className="h-64 w-full relative shrink-0"><img src={dailyInsight.image} alt="Arcano" className="w-full h-full object-cover opacity-80" /><div className="absolute inset-0 bg-gradient-to-t from-netzach-card to-transparent"></div></div>}
-                <button onClick={() => setIsArcanoModalOpen(false)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black transition-colors z-10"><X size={20}/></button>
-                <div className="p-8 pt-4 overflow-y-auto"><span className="text-xs font-bold text-netzach-gold uppercase tracking-widest mb-2 block">Interpretação</span><h2 className="text-3xl font-mystic text-white mb-6">{dailyInsight.tarot}</h2><div className="prose prose-invert prose-p:text-netzach-text/90 prose-p:font-light prose-p:leading-loose"><p className="whitespace-pre-wrap">{dailyInsight.meaning}</p></div></div>
+      {isArcanoModalOpen && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setIsArcanoModalOpen(false)}>
+          <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 w-full max-w-md space-y-4 relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsArcanoModalOpen(false)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><X size={20}/></button>
+            <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">Arcano da Semana</p>
+            <div className="flex gap-4">
+              {dailyInsight.image && <img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-20 h-32 object-cover rounded-lg border border-netzach-border shrink-0"/>}
+              <div><h3 className="font-mystic text-2xl text-white mb-2">{dailyInsight.tarot}</h3></div>
             </div>
+            <p className="text-sm text-netzach-text/90 leading-relaxed">{dailyInsight.meaning}</p>
+          </div>
         </div>
       )}
 
-      {/* MODAL CICLO */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-netzach-card border border-netzach-gold/30 p-6 rounded-2xl w-full max-w-sm relative"><button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><LogOut className="rotate-180" size={20}/></button><h3 className="font-mystic text-xl text-netzach-gold mb-2 text-center">Sintonizar Ciclo</h3><input type="date" className="w-full p-4 bg-netzach-bg border border-netzach-border rounded-xl text-white text-center text-lg outline-none focus:border-netzach-gold mb-6" value={newPeriodDate} onChange={(e) => setNewPeriodDate(e.target.value)} /><button onClick={handleUpdateCycle} className="w-full bg-netzach-gold text-netzach-bg font-bold font-mystic py-3 rounded-xl hover:bg-white transition-colors">Confirmar</button></div>
+      {/* MODAL CÉU */}
+      {isSkyModalOpen && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto" onClick={() => setIsSkyModalOpen(false)}>
+          <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 w-full max-w-md relative my-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsSkyModalOpen(false)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><X size={20}/></button>
+            <CloudMoon size={20} className="text-netzach-gold mb-3"/>
+            <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold mb-1">Céu da Semana</p>
+            <p className="text-sm text-netzach-text/90 leading-relaxed whitespace-pre-wrap">{horoscope.sky || 'Sem previsão disponível.'}</p>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HORÓSCOPO */}
+      {activeHoroscopeModal && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto" onClick={() => setActiveHoroscopeModal(null)}>
+          <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 w-full max-w-md relative my-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setActiveHoroscopeModal(null)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><X size={20}/></button>
+            <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold mb-1">{activeHoroscopeModal.title}</p>
+            <h3 className="font-mystic text-2xl text-white mb-4">{activeHoroscopeModal.sign}</h3>
+            <p className="text-sm text-netzach-text/90 leading-relaxed whitespace-pre-wrap">{activeHoroscopeModal.text || 'Sem previsão disponível para este signo.'}</p>
+          </div>
         </div>
       )}
     </div>

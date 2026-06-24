@@ -1,174 +1,114 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowLeft, ArrowRight, ShoppingBag, X, ChevronDown } from 'lucide-react';
-import type { ServiceCatalog } from '../types';
+import { Moon, BookOpen, UserCircle, Sparkles } from 'lucide-react';
 
-const MAX_DESC_LENGTH = 120;
+interface Module {
+  emoji: string;
+  title: string;
+  description: string;
+  path: string;
+  badge?: string;
+}
+
+const CATEGORIES: { title: string; modules: Module[] }[] = [
+  {
+    title: 'Sacerdotisa IA',
+    modules: [
+      {
+        emoji: '🌟',
+        title: 'Sacerdotisa Netzach',
+        description: 'Sua guia espiritual com inteligência artificial. Banhos, cristais, rituais e orientações personalizadas.',
+        path: '/sacerdotisa',
+        badge: 'IA',
+      },
+    ],
+  },
+  {
+    title: 'Rituais & Magia',
+    modules: [
+      { emoji: '🛁', title: 'Banho Personalizado', description: 'Receba a receita de um banho criado especialmente para sua intenção do momento.', path: '/banho' },
+      { emoji: '🌕', title: 'Magia Lunar', description: 'Rituais, ervas, cristais e afirmações alinhados à fase atual da lua.', path: '/lua' },
+      { emoji: '🌀', title: 'Diagnóstico de Chakras', description: '10 perguntas revelam qual centro energético precisa de equilíbrio agora.', path: '/chakras' },
+    ],
+  },
+  {
+    title: 'Autoconhecimento',
+    modules: [
+      { emoji: '🔮', title: 'Matriz da Alma', description: 'Sua mandala de propósito, karma e talentos baseada na numerologia cabalística.', path: '/matriz' },
+      { emoji: '🌿', title: 'Grimório Sagrado', description: 'Rituais, simpatias e receitas ancestrais para todas as intenções.', path: '/rituais' },
+    ],
+  },
+  {
+    title: 'Astrologia',
+    modules: [
+      { emoji: '☀️', title: 'Mapa Astral', description: 'Descubra seu signo solar, lunar e ascendente. Calcule via data de nascimento.', path: '/perfil' },
+    ],
+  },
+  {
+    title: 'Corpo & Ciclo',
+    modules: [
+      { emoji: '📅', title: 'Check-in Diário', description: 'Registre sua energia, humor, sono e intenções. Manhã e noite.', path: '/checkin' },
+    ],
+  },
+];
 
 export default function Services() {
   const navigate = useNavigate();
-  const [services, setServices] = useState<ServiceCatalog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalService, setModalService] = useState<ServiceCatalog | null>(null);
-
-  useEffect(() => {
-    const fetchServices = async () => {
-      const { data } = await supabase
-        .from('services_catalog')
-        .select('*')
-        .eq('active', true)
-        .order('created_at');
-      if (data) setServices(data);
-      setLoading(false);
-    };
-    fetchServices();
-  }, []);
-
-  const handleAcquire = async (service: ServiceCatalog) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return navigate('/portal');
-
-    if (service.payment_url) {
-      const finalUrl = service.payment_url.includes('?')
-        ? `${service.payment_url}&client_id=${session.user.id}`
-        : `${service.payment_url}?client_id=${session.user.id}`;
-      window.open(finalUrl, '_blank');
-    } else {
-      alert(`Para adquirir ${service.title}, entre em contato com o suporte ou aguarde a liberação.`);
-    }
-  };
-
-  if (loading)
-    return (
-      <div className="min-h-screen bg-netzach-bg flex items-center justify-center text-netzach-gold font-mystic">
-        Carregando catálogo...
-      </div>
-    );
 
   return (
-    <div className="min-h-screen bg-netzach-bg text-netzach-text font-sans p-6 pb-24 flex flex-col items-center">
+    <div className="min-h-screen bg-netzach-bg text-netzach-text font-sans pb-28">
 
-      <div className="w-full max-w-4xl mb-6 flex justify-between items-center">
-        <button
-          onClick={() => navigate('/templo')}
-          className="text-netzach-muted hover:text-white flex items-center gap-2 text-sm uppercase tracking-widest transition-colors"
-        >
-          <ArrowLeft size={16} /> Voltar
-        </button>
-      </div>
+      {/* HEADER */}
+      <header className="sticky top-0 z-20 bg-netzach-bg/90 backdrop-blur-md border-b border-netzach-border px-5 py-4">
+        <h1 className="font-mystic text-xl text-netzach-gold">Práticas ✦</h1>
+        <p className="text-[11px] text-netzach-muted mt-0.5">Ferramentas para sua jornada espiritual</p>
+      </header>
 
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-mystic text-netzach-gold mb-2 flex items-center justify-center gap-2">
-          <Sparkles size={28} /> Serviços Sagrados
-        </h1>
-        <p className="text-netzach-muted text-sm uppercase tracking-widest">
-          Ferramentas para sua evolução
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
-        {services.length === 0 && (
-          <div className="col-span-full text-center p-10 border border-dashed border-netzach-border rounded-xl text-netzach-muted">
-            Nenhum serviço disponível no momento.
-          </div>
-        )}
-
-        {services.map((service) => {
-          const isLong = (service.description?.length ?? 0) > MAX_DESC_LENGTH;
-          const preview = isLong
-            ? service.description.slice(0, MAX_DESC_LENGTH).trimEnd() + '…'
-            : service.description;
-
-          return (
-            <div
-              key={service.id}
-              className="bg-netzach-card border border-netzach-border rounded-xl p-6 flex flex-col justify-between hover:border-netzach-gold/50 transition-all shadow-lg group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <ShoppingBag size={80} />
-              </div>
-
-              <div>
-                <h3 className="text-xl font-mystic text-white mb-3">{service.title}</h3>
-
-                <p className="text-sm text-netzach-muted leading-relaxed mb-1">
-                  {preview}
-                </p>
-
-                {isLong && (
-                  <button
-                    onClick={() => setModalService(service)}
-                    className="flex items-center gap-1 text-xs text-netzach-gold hover:text-white transition-colors mt-1 mb-4"
-                  >
-                    <ChevronDown size={13} /> Ver descrição completa
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between border-t border-netzach-border pt-4 mt-4">
-                <span className="text-lg font-bold text-netzach-gold">
-                  R$ {service.price.toFixed(2)}
-                </span>
+      <main className="max-w-lg mx-auto px-4 py-5 space-y-7">
+        {CATEGORIES.map(cat => (
+          <section key={cat.title}>
+            <p className="text-[10px] uppercase tracking-widest text-netzach-muted font-bold mb-3 pl-1">{cat.title}</p>
+            <div className="space-y-3">
+              {cat.modules.map(mod => (
                 <button
-                  onClick={() => handleAcquire(service)}
-                  className="bg-netzach-accent text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-purple-600 transition-colors shadow-lg"
+                  key={mod.path}
+                  onClick={() => navigate(mod.path)}
+                  className="w-full bg-netzach-card border border-netzach-border rounded-2xl p-4 flex items-center gap-4 text-left hover:border-netzach-gold/50 transition-all group active:scale-[0.99]"
                 >
-                  Adquirir <ArrowRight size={16} />
+                  <div className="w-12 h-12 rounded-xl bg-netzach-bg border border-netzach-border flex items-center justify-center text-2xl shrink-0 group-hover:border-netzach-gold/40 transition-colors">
+                    {mod.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">{mod.title}</p>
+                      {mod.badge && (
+                        <span className="text-[9px] bg-netzach-gold/20 border border-netzach-gold/40 text-netzach-gold px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold">{mod.badge}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-netzach-muted mt-0.5 leading-relaxed line-clamp-2">{mod.description}</p>
+                  </div>
+                  <span className="text-netzach-muted group-hover:text-netzach-gold transition-colors text-lg shrink-0">›</span>
                 </button>
-              </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
+          </section>
+        ))}
+      </main>
 
-      {/* ── Modal de descrição ── */}
-      {modalService && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setModalService(null)}
-        >
-          <div
-            className="bg-netzach-card border border-netzach-border rounded-2xl shadow-2xl w-full max-w-lg relative my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Cabeçalho fixo com botão fechar */}
-            <div className="flex items-start justify-between p-6 pb-4 border-b border-netzach-border sticky top-0 bg-netzach-card rounded-t-2xl z-10">
-              <h2 className="text-xl font-mystic text-netzach-gold pr-8 leading-snug">{modalService.title}</h2>
-              <button
-                onClick={() => setModalService(null)}
-                className="flex-shrink-0 text-netzach-muted hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
-              >
-                <X size={22} />
-              </button>
-            </div>
-
-            {/* Corpo scrollável */}
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
-              <p className="text-sm text-netzach-text leading-relaxed whitespace-pre-line">
-                {modalService.description}
-              </p>
-            </div>
-
-            {/* Rodapé fixo */}
-            <div className="flex items-center justify-between p-6 pt-4 border-t border-netzach-border rounded-b-2xl">
-              <span className="text-xl font-bold text-netzach-gold">
-                R$ {modalService.price.toFixed(2)}
-              </span>
-              <button
-                onClick={() => {
-                  setModalService(null);
-                  handleAcquire(modalService);
-                }}
-                className="bg-netzach-accent text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-600 transition-colors shadow-lg"
-              >
-                Adquirir <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* BOTTOM NAV */}
+      <nav className="fixed bottom-0 w-full bg-netzach-bg/95 backdrop-blur-md border-t border-netzach-border flex justify-around items-center z-30 pt-3 pb-6">
+        <button onClick={() => navigate('/templo')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors">
+          <Moon size={20}/><span className="text-[10px] uppercase tracking-wider">Templo</span>
+        </button>
+        <button onClick={() => navigate('/servicos')} className="flex flex-col items-center gap-1 text-netzach-gold">
+          <Sparkles size={20}/><span className="text-[10px] uppercase tracking-wider font-bold">Práticas</span>
+        </button>
+        <button onClick={() => navigate('/rituais')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors">
+          <BookOpen size={20}/><span className="text-[10px] uppercase tracking-wider">Grimório</span>
+        </button>
+        <button onClick={() => navigate('/perfil')} className="flex flex-col items-center gap-1 text-netzach-muted hover:text-white transition-colors">
+          <UserCircle size={20}/><span className="text-[10px] uppercase tracking-wider">Perfil</span>
+        </button>
+      </nav>
     </div>
   );
 }

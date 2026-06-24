@@ -16,7 +16,7 @@ select cron.schedule(
   'netzach-morning-checkin',
   '0 10 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"morning_checkin"}'
   )$$
@@ -27,7 +27,7 @@ select cron.schedule(
   'netzach-hydration-1',
   '0 13 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"hydration"}'
   )$$
@@ -38,7 +38,7 @@ select cron.schedule(
   'netzach-lunch-tea',
   '0 16 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"lunch_tea"}'
   )$$
@@ -49,7 +49,7 @@ select cron.schedule(
   'netzach-hydration-2',
   '0 17 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"hydration"}'
   )$$
@@ -60,7 +60,7 @@ select cron.schedule(
   'netzach-hydration-3',
   '0 19 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"hydration"}'
   )$$
@@ -71,7 +71,7 @@ select cron.schedule(
   'netzach-evening-checkin',
   '0 0 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"evening_checkin"}'
   )$$
@@ -82,7 +82,7 @@ select cron.schedule(
   'netzach-night-tea',
   '30 0 * * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"night_tea"}'
   )$$
@@ -95,7 +95,7 @@ select cron.schedule(
   'netzach-weekly-tarot',
   '0 12 * * 6',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"weekly_tarot"}'
   )$$
@@ -106,7 +106,7 @@ select cron.schedule(
   'netzach-credits-unused',
   '0 21 * * 4',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"credits_unused"}'
   )$$
@@ -117,7 +117,7 @@ select cron.schedule(
   'netzach-credits-renewed',
   '0 11 * * 5',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"credits_renewed"}'
   )$$
@@ -130,7 +130,7 @@ select cron.schedule(
   'netzach-monthly-retro',
   '0 12 1 * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"monthly_retro"}'
   )$$
@@ -141,7 +141,7 @@ select cron.schedule(
   'netzach-monthly-wheel',
   '0 12 2 * *',
   $$select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/scheduled-notifications',
+    url := 'https://njevwglmpmqdaezlnbdc.supabase.co/functions/v1/scheduled-notifications',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_KEY>"}',
     body := '{"type":"monthly_wheel"}'
   )$$

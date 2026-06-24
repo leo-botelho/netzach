@@ -34,7 +34,7 @@ export default function UpgradeModal({ onClose, moduleName }: Props) {
 
         <ul className="space-y-2 text-sm text-netzach-text/80">
           <li className="flex items-center gap-2"><Sparkles size={14} className="text-netzach-gold shrink-0" /> Acesso a todos os módulos de práticas</li>
-          <li className="flex items-center gap-2"><Sparkles size={14} className="text-netzach-gold shrink-0" /> Sacerdotisa IA ilimitada (plano Lilith)</li>
+          <li className="flex items-center gap-2"><Sparkles size={14} className="text-netzach-gold shrink-0" /> Sacerdotisa ilimitada (plano Lilith)</li>
           <li className="flex items-center gap-2"><Sparkles size={14} className="text-netzach-gold shrink-0" /> Rituais, numerologia, mapa astral e mais</li>
         </ul>
 

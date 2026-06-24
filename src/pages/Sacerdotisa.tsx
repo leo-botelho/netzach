@@ -241,8 +241,8 @@ export default function Sacerdotisa() {
             {plan.symbol}
           </div>
           <div>
-            <h1 className="font-mystic text-netzach-gold text-base leading-none">{plan.name}</h1>
-            <p className="text-[10px] text-netzach-muted uppercase tracking-widest">{plan.title}</p>
+            <h1 className="font-mystic text-netzach-gold text-base leading-none">Sacerdotisa</h1>
+            <p className="text-[10px] text-netzach-muted uppercase tracking-widest">Netzach</p>
           </div>
         </div>
 
@@ -272,7 +272,7 @@ export default function Sacerdotisa() {
               Olá, {firstName}
             </h2>
             <p className="text-sm text-netzach-muted max-w-xs mx-auto leading-relaxed">
-              Sou <strong className="text-netzach-gold">{plan.name}</strong>, sua sacerdotisa pessoal. Pergunte-me sobre banhos, óleos, florais, cristais ou qualquer orientação espiritual.
+              Sua sacerdotisa pessoal está aqui. Pergunte sobre banhos, óleos, florais, cristais ou qualquer orientação espiritual.
             </p>
             {plan.weeklyLimit !== -1 && (
               <p className="text-[11px] text-netzach-muted mt-3">
@@ -299,7 +299,7 @@ export default function Sacerdotisa() {
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-netzach-card border border-netzach-border flex items-center justify-center">
               <Lock size={24} className="text-netzach-muted" />
             </div>
-            <h2 className="font-mystic text-lg text-white mb-2">{plan.name} descansa</h2>
+            <h2 className="font-mystic text-lg text-white mb-2">Sacerdotisa descansa</h2>
             <p className="text-sm text-netzach-muted max-w-xs mx-auto leading-relaxed mb-6">
               Você já usou suas {plan.weeklyLimit} consultas desta semana. Os créditos renovam na próxima segunda-feira.
             </p>
@@ -367,7 +367,7 @@ export default function Sacerdotisa() {
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
               }}
-              placeholder={`Pergunte à ${plan.name}...`}
+              placeholder="Pergunte à Sacerdotisa..."
               className="flex-1 bg-netzach-card border border-netzach-border rounded-xl px-4 py-3 text-sm text-white placeholder:text-netzach-muted outline-none focus:border-netzach-gold/50 resize-none transition-colors"
             />
             <button

@@ -17,7 +17,7 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
   {
     title: 'Sacerdotisa IA',
     modules: [
-      { emoji: '🌟', title: 'Sacerdotisa Netzach', description: 'Sua guia espiritual com inteligência artificial. Banhos, cristais, rituais e orientações personalizadas.', path: '/sacerdotisa', badge: 'IA', moduleKey: 'sacerdotisa' },
+      { emoji: '🌟', title: 'Sacerdotisa Netzach', description: 'Sua guia espiritual sagrada. Banhos, cristais, rituais e orientações personalizadas para seu momento.', path: '/sacerdotisa', moduleKey: 'sacerdotisa' },
     ],
   },
   {

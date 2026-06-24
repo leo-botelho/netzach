@@ -324,7 +324,7 @@ export default function Home() {
               Sacerdotisa Netzach
             </h2>
             <p className="text-sm text-netzach-muted leading-relaxed mb-6 max-w-md">
-              Sua própria guia espiritual com inteligência artificial. Consulte sobre banhos energéticos, óleos essenciais, cristais, florais de Bach e rituais — tudo personalizado para seu momento.
+              Sua guia espiritual sagrada e personalizada. Consulte sobre banhos energéticos, óleos essenciais, cristais, florais de Bach e rituais — tudo alinhado ao seu momento.
             </p>
             <Link
               to="/assinar"

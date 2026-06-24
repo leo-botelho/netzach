@@ -34,7 +34,16 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
     title: 'Autoconhecimento',
     modules: [
       { emoji: '🔮', title: 'Matriz da Alma', description: 'Sua mandala de propósito, karma e talentos baseada na numerologia cabalística.', path: '/matriz' },
+      { emoji: '🔢', title: 'Numerologia Pessoal', description: 'Destino, Alma, Expressão, Personalidade e Ano Pessoal calculados pelo seu nome e data.', path: '/numerologia' },
+      { emoji: '⭕', title: 'Roda da Vida', description: 'Avalie 10 áreas da sua vida em um gráfico radar. Identifique onde focar sua energia.', path: '/roda-da-vida' },
       { emoji: '🌿', title: 'Grimório Sagrado', description: 'Rituais, simpatias e receitas ancestrais para todas as intenções.', path: '/rituais' },
+    ],
+  },
+  {
+    title: 'Sagrado Feminino',
+    modules: [
+      { emoji: '🌸', title: 'Sagrado Feminino', description: 'Arquétipo do seu momento: integração de fase do ciclo + fase lunar + deusa regente.', path: '/sagrado-feminino' },
+      { emoji: '📊', title: 'Retrospectiva', description: 'Calendário de humor, gratidões e hábitos do mês. Sua jornada em visualização.', path: '/retrospectiva' },
     ],
   },
   {

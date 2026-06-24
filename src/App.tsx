@@ -14,6 +14,10 @@ import ProfilePage from './pages/Profile';
 import BanhoPersonalizado from './pages/BanhoPersonalizado';
 import ChakraDiagnostico from './pages/ChakraDiagnostico';
 import MagiaLunar from './pages/MagiaLunar';
+import RodaDaVida from './pages/RodaDaVida';
+import Retrospectiva from './pages/Retrospectiva';
+import Numerologia from './pages/Numerologia';
+import SagradoFeminino from './pages/SagradoFeminino';
 
 function App() {
   return (
@@ -40,6 +44,10 @@ function App() {
         <Route path="/banho" element={<BanhoPersonalizado />} />
         <Route path="/chakras" element={<ChakraDiagnostico />} />
         <Route path="/lua" element={<MagiaLunar />} />
+        <Route path="/roda-da-vida" element={<RodaDaVida />} />
+        <Route path="/retrospectiva" element={<Retrospectiva />} />
+        <Route path="/numerologia" element={<Numerologia />} />
+        <Route path="/sagrado-feminino" element={<SagradoFeminino />} />
         
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />

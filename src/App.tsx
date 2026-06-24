@@ -18,6 +18,12 @@ import RodaDaVida from './pages/RodaDaVida';
 import Retrospectiva from './pages/Retrospectiva';
 import Numerologia from './pages/Numerologia';
 import SagradoFeminino from './pages/SagradoFeminino';
+import Florais from './pages/Florais';
+import LeiAtracao from './pages/LeiAtracao';
+import Relacionamento from './pages/Relacionamento';
+import Hooponopono from './pages/Hooponopono';
+import CriancaInterior from './pages/CriancaInterior';
+import MandalaDoMes from './pages/MandalaDoMes';
 
 function App() {
   return (
@@ -48,7 +54,13 @@ function App() {
         <Route path="/retrospectiva" element={<Retrospectiva />} />
         <Route path="/numerologia" element={<Numerologia />} />
         <Route path="/sagrado-feminino" element={<SagradoFeminino />} />
-        
+        <Route path="/florais" element={<Florais />} />
+        <Route path="/lei-atracao" element={<LeiAtracao />} />
+        <Route path="/relacionamento" element={<Relacionamento />} />
+        <Route path="/hooponopono" element={<Hooponopono />} />
+        <Route path="/crianca-interior" element={<CriancaInterior />} />
+        <Route path="/mandala-mes" element={<MandalaDoMes />} />
+
         {/* ADMIN */}
         <Route path="/admin" element={<AdminPanel />} />
 

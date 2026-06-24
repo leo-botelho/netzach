@@ -106,6 +106,11 @@ export default function ProfilePage() {
     if (!profile) return;
     setSaving(true);
 
+    const birthDataChanged =
+      form.birth_date !== (profile.birth_date ?? '') ||
+      form.birth_time !== (profile.birth_time ?? '') ||
+      form.birth_city !== (profile.birth_city ?? '');
+
     const payload: Partial<Profile> = {
       full_name: form.full_name,
       whatsapp: form.whatsapp || undefined,
@@ -121,6 +126,27 @@ export default function ProfilePage() {
     };
 
     await supabase.from('profiles').update(payload).eq('id', profile.id);
+
+    // Recalcula mapa astral se dados de nascimento mudaram
+    if (birthDataChanged && form.birth_date && form.birth_city) {
+      supabase.functions.invoke('calculate-astral-chart', {
+        body: {
+          user_id: profile.user_id,
+          birth_date: form.birth_date,
+          birth_time: form.birth_time || null,
+          birth_city: form.birth_city,
+        },
+      }).then(({ data }) => {
+        if (data?.sign_sun) {
+          setProfile(p => p ? {
+            ...p,
+            sign_sun: data.sign_sun,
+            sign_moon: data.sign_moon,
+            sign_rising: data.sign_rising,
+          } : p);
+        }
+      });
+    }
 
     // Salva preferências de notificação (upsert por user_id)
     if (notifPrefsId) {

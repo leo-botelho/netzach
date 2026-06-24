@@ -27,7 +27,7 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
     modules: [
       { emoji: '🛁', title: 'Banho Personalizado', description: 'Receba a receita de um banho criado especialmente para sua intenção do momento.', path: '/banho' },
       { emoji: '🌕', title: 'Magia Lunar', description: 'Rituais, ervas, cristais e afirmações alinhados à fase atual da lua.', path: '/lua' },
-      { emoji: '🌀', title: 'Diagnóstico de Chakras', description: '10 perguntas revelam qual centro energético precisa de equilíbrio agora.', path: '/chakras' },
+      { emoji: '🌀', title: 'Diagnóstico de Chakras', description: 'Veja qual centro energético precisa de equilíbrio agora.', path: '/chakras' },
     ],
   },
   {

@@ -306,15 +306,19 @@ export default function Temple() {
 
       {/* MODAL ARCANO */}
       {isArcanoModalOpen && (
-        <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setIsArcanoModalOpen(false)}>
-          <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 w-full max-w-md space-y-4 relative" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setIsArcanoModalOpen(false)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><X size={20}/></button>
-            <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">Arcano da Semana</p>
-            <div className="flex gap-4">
-              {dailyInsight.image && <img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-20 h-32 object-cover rounded-lg border border-netzach-border shrink-0"/>}
-              <div><h3 className="font-mystic text-2xl text-white mb-2">{dailyInsight.tarot}</h3></div>
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-start justify-center p-4 backdrop-blur-md overflow-y-auto" onClick={() => setIsArcanoModalOpen(false)}>
+          <div className="bg-netzach-card border border-netzach-border rounded-2xl w-full max-w-md relative my-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 flex items-center justify-between px-6 pt-5 pb-3 bg-netzach-card rounded-t-2xl border-b border-netzach-border/50">
+              <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">Arcano da Semana</p>
+              <button onClick={() => setIsArcanoModalOpen(false)} className="text-netzach-muted hover:text-white"><X size={20}/></button>
             </div>
-            <p className="text-sm text-netzach-text/90 leading-relaxed">{dailyInsight.meaning}</p>
+            <div className="p-6 space-y-4">
+              <div className="flex gap-4">
+                {dailyInsight.image && <img src={dailyInsight.image} alt={dailyInsight.tarot} className="w-20 h-32 object-cover rounded-lg border border-netzach-border shrink-0"/>}
+                <div><h3 className="font-mystic text-2xl text-white mb-2">{dailyInsight.tarot}</h3></div>
+              </div>
+              <p className="text-sm text-netzach-text/90 leading-relaxed">{dailyInsight.meaning}</p>
+            </div>
           </div>
         </div>
       )}

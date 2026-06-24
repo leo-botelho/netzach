@@ -122,7 +122,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-netzach-bg text-netzach-text font-sans overflow-x-hidden select-none">
+    <div className="has-custom-cursor min-h-screen bg-netzach-bg text-netzach-text font-sans overflow-x-hidden select-none">
 
       {/* Custom cursor — hidden on touch devices via CSS */}
       <div

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader2, RefreshCw, BookMarked, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePlanCredit } from '../hooks/usePlanCredit';
+import { useSaveToGrimorio } from '../hooks/useSaveToGrimorio';
 
 const ESTADOS = [
   'Ansiedade e agitação',
@@ -23,6 +24,7 @@ export default function Florais() {
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
   const credit = usePlanCredit('florais');
+  const { saved, saveToGrimorio, reset } = useSaveToGrimorio('florais');
   const responseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function Florais() {
 
   const handleGenerate = async () => {
     if (!estado.trim() || loading) return;
+    reset();
     setLoading(true);
     setResponse('');
 
@@ -144,6 +147,18 @@ Use linguagem acolhedora e mística.`;
                   .replace(/^(\d+\.\s)/gm, '<br/>$1')
                   .replace(/^#+ (.*)/gm, '<h3 class="font-mystic text-netzach-gold mt-4 mb-1">$1</h3>'),
               }} />
+            <button
+              onClick={() => saveToGrimorio(response, estado)}
+              disabled={saved}
+              className={`self-start flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                saved
+                  ? 'border-netzach-gold/40 text-netzach-gold bg-netzach-gold/10 cursor-default'
+                  : 'border-netzach-border text-netzach-muted hover:border-netzach-gold/50 hover:text-netzach-gold'
+              }`}
+            >
+              {saved ? <Check size={11} /> : <BookMarked size={11} />}
+              {saved ? 'Salvo no Grimório' : 'Salvar no Grimório'}
+            </button>
           </div>
         )}
       </main>

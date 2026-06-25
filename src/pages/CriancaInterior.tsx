@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader2, RefreshCw, BookMarked, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePlanCredit } from '../hooks/usePlanCredit';
+import { useSaveToGrimorio } from '../hooks/useSaveToGrimorio';
 
 const PADROES = [
   'Medo de não ser suficiente',
@@ -23,6 +24,7 @@ export default function CriancaInterior() {
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
   const credit = usePlanCredit('crianca_interior');
+  const { saved, saveToGrimorio, reset } = useSaveToGrimorio('crianca_interior');
   const responseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function CriancaInterior() {
 
   const handleGenerate = async () => {
     if (!padrao.trim() || loading) return;
+    reset();
     setLoading(true);
     setResponse('');
 
@@ -148,6 +151,18 @@ Use voz amorosa, segura e profunda. Seja a sacerdotisa que acolhe.`;
                   .replace(/^(\d+\.\s)/gm, '<br/>$1')
                   .replace(/^#+ (.*)/gm, '<h3 class="font-mystic text-netzach-gold mt-4 mb-1">$1</h3>'),
               }} />
+            <button
+              onClick={() => saveToGrimorio(response, padrao)}
+              disabled={saved}
+              className={`self-start flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                saved
+                  ? 'border-netzach-gold/40 text-netzach-gold bg-netzach-gold/10 cursor-default'
+                  : 'border-netzach-border text-netzach-muted hover:border-netzach-gold/50 hover:text-netzach-gold'
+              }`}
+            >
+              {saved ? <Check size={11} /> : <BookMarked size={11} />}
+              {saved ? 'Salvo no Grimório' : 'Salvar no Grimório'}
+            </button>
           </div>
         )}
       </main>

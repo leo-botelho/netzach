@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
     const validCategories = [
       'banho', 'oleo', 'floral', 'cristal', 'ritual',
       'numerologia', 'astrologia', 'ciclo_feminino', 'chakra', 'tarot',
-      'ervas', 'hooponopono', 'relacionamento', 'lei_atracao', 'geral',
+      'ervas', 'hooponopono', 'relacionamento', 'lei_atracao', 'crianca_interior', 'geral',
     ];
     if (!validCategories.includes(category)) {
       return new Response(

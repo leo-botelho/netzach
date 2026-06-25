@@ -23,6 +23,7 @@ ALTER TABLE knowledge_base
     'hooponopono',
     'relacionamento',
     'lei_atracao',
+    'crianca_interior',
     'geral'
   ));
 

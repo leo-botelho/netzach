@@ -19,7 +19,16 @@ export function usePushNotifications() {
   useEffect(() => {
     const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
     setIsSupported(supported);
-    if (supported) setPermission(Notification.permission);
+    if (!supported) return;
+
+    setPermission(Notification.permission);
+
+    // Verifica se já existe inscrição ativa no browser
+    navigator.serviceWorker.ready.then(reg =>
+      reg.pushManager.getSubscription()
+    ).then(sub => {
+      setIsSubscribed(!!sub);
+    }).catch(() => {});
   }, []);
 
   const subscribe = async (): Promise<boolean> => {

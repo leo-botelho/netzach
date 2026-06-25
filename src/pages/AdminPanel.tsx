@@ -370,6 +370,7 @@ export default function AdminPanel() {
                 <option value="hooponopono">Ho'oponopono</option>
                 <option value="relacionamento">Relacionamento</option>
                 <option value="lei_atracao">Lei da Atração</option>
+                <option value="crianca_interior">Criança Interior</option>
                 <option value="geral">Geral</option>
               </select>
               <label className="flex items-center gap-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-netzach-muted text-sm cursor-pointer hover:border-netzach-gold transition-colors">
@@ -444,6 +445,7 @@ export default function AdminPanel() {
                 <option value="hooponopono">Ho'oponopono</option>
                 <option value="relacionamento">Relacionamento</option>
                 <option value="lei_atracao">Lei da Atração</option>
+                <option value="crianca_interior">Criança Interior</option>
                 <option value="geral">Geral</option>
               </select>
               <div className="flex items-center text-xs text-netzach-muted bg-[#0F0518] border border-netzach-border rounded px-3">

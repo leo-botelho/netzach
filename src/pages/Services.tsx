@@ -72,7 +72,14 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
 
 export default function Services() {
   const navigate = useNavigate();
-  const { canAccess, isFree } = usePlan();
+  const { canAccess, isFree, planType } = usePlan();
+
+  const PERSONA_NAMES: Record<string, string> = {
+    hecate: 'Hécate',
+    isis: 'Ísis',
+    lilith: 'Lilith',
+  };
+  const personaName = PERSONA_NAMES[planType] ?? 'Sacerdotisa';
   const [upgradeModule, setUpgradeModule] = useState<string | null>(null);
 
   const handleModuleClick = (mod: Module) => {
@@ -111,7 +118,9 @@ export default function Services() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`font-mystic text-base transition-colors ${blocked ? 'text-netzach-muted' : 'text-white group-hover:text-netzach-gold'}`}>{mod.title}</p>
+                        <p className={`font-mystic text-base transition-colors ${blocked ? 'text-netzach-muted' : 'text-white group-hover:text-netzach-gold'}`}>
+                        {mod.moduleKey === 'sacerdotisa' ? `Sacerdotisa ${personaName}` : mod.title}
+                      </p>
                         {mod.badge && (
                           <span className="text-[9px] bg-netzach-gold/20 border border-netzach-gold/40 text-netzach-gold px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold">{mod.badge}</span>
                         )}

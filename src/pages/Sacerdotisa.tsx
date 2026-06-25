@@ -243,7 +243,7 @@ export default function Sacerdotisa() {
     <div className="min-h-screen bg-netzach-bg flex flex-col font-sans">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-netzach-bg/90 backdrop-blur-md border-b border-netzach-border px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate('/templo')} className="text-netzach-muted hover:text-white p-1">
+        <button onClick={() => navigate('/servicos')} className="text-netzach-muted hover:text-white p-1">
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3 flex-1">
@@ -251,8 +251,8 @@ export default function Sacerdotisa() {
             {plan.symbol}
           </div>
           <div>
-            <h1 className="font-mystic text-netzach-gold text-base leading-none">Sacerdotisa</h1>
-            <p className="text-[10px] text-netzach-muted uppercase tracking-widest">Netzach</p>
+            <h1 className="font-mystic text-netzach-gold text-base leading-none">{plan.name}</h1>
+            <p className="text-[10px] text-netzach-muted uppercase tracking-widest">{plan.title}</p>
           </div>
         </div>
 

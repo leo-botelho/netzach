@@ -1,4 +1,4 @@
-import Anthropic from 'npm:@anthropic-ai/sdk@0.27.0';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.40.0';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -199,7 +199,13 @@ Deno.serve(async (req: Request) => {
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: fullSystemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: fullSystemPrompt,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages: [{ role: 'user', content: inputText }],
     });
 

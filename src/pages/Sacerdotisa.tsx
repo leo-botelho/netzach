@@ -158,49 +158,59 @@ export default function Sacerdotisa() {
     setMessages(prev => [...prev, assistantMsg]);
 
     try {
-      const response = await supabase.functions.invoke('sacerdotisa', {
-        body: { query: text, context: buildContext() },
-      });
+      const { data: { session } } = await supabase.auth.getSession();
 
-      // Trata limite de perguntas
-      if (response.error) {
-        const errData = response.error as unknown as { message?: string; context?: { error?: string; message?: string } };
-        const detail = errData?.context as { error?: string; message?: string } | undefined;
-        if (detail?.error === 'limit_reached') {
-          setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: detail.message ?? 'Você atingiu o limite semanal.' };
-            return updated;
-          });
-          setLoading(false);
-          return;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sacerdotisa`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ message: text, context: buildContext() }),
         }
-        throw response.error;
+      );
+
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', content: errData.message ?? 'Você atingiu o limite semanal.' };
+          return updated;
+        });
+        setLoading(false);
+        return;
       }
 
-      const raw: string = typeof response.data === 'string'
-        ? response.data
-        : JSON.stringify(response.data);
+      if (!res.ok) throw new Error(await res.text());
 
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
       let fullText = '';
-      const lines = raw.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-          try {
-            const json = JSON.parse(line.slice(6)) as { text?: string };
-            if (json.text) fullText += json.text;
-          } catch { /* linha mal-formada */ }
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+            try {
+              const json = JSON.parse(line.slice(6)) as { text?: string };
+              if (json.text) {
+                fullText += json.text;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: 'assistant', content: fullText };
+                  return updated;
+                });
+              }
+            } catch { /* linha mal-formada */ }
+          }
         }
       }
 
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: 'assistant',
-          content: fullText || 'As palavras se perderam no éter. Tente novamente.',
-        };
-        return updated;
-      });
+      if (!fullText) throw new Error('Resposta vazia');
 
       // Atualiza contagem local
       setWeeklyUsed(prev => prev + 1);

@@ -59,6 +59,10 @@ export default function AdminPanel() {
     fetchPlans();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'conhecimento') fetchKnowledge();
+  }, [activeTab]);
+
   const fetchPlans = async () => {
     const { data } = await supabase.from('plan_configs').select('*').order('id');
     if (data) setPlans(data.map(p => ({ ...p, _price: String(p.price) })));

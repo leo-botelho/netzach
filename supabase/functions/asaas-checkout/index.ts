@@ -21,6 +21,8 @@ const PLAN_MAP: Record<string, { planType: string; label: string }> = {
 };
 
 async function asaas<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  if (!ASAAS_KEY) throw new Error('ASAAS_API_KEY não configurado nos secrets da Edge Function');
+
   const res = await fetch(`${ASAAS_BASE}${path}`, {
     method,
     headers: {
@@ -29,11 +31,24 @@ async function asaas<T>(path: string, method = 'GET', body?: unknown): Promise<T
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  const text = await res.text();
+
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Asaas ${method} ${path} → ${res.status}: ${err}`);
+    let detail = text;
+    try {
+      const parsed = JSON.parse(text);
+      // Asaas retorna { errors: [{ code, description }] }
+      if (parsed.errors?.length) {
+        detail = parsed.errors.map((e: { code: string; description: string }) =>
+          `[${e.code}] ${e.description}`
+        ).join(' | ');
+      }
+    } catch { /* usa o text bruto */ }
+    throw new Error(`Asaas ${method} ${path} → HTTP ${res.status}: ${detail}`);
   }
-  return res.json() as Promise<T>;
+
+  return JSON.parse(text) as T;
 }
 
 Deno.serve(async (req) => {
@@ -81,7 +96,7 @@ Deno.serve(async (req) => {
         email: customer.email,
         cpfCnpj: customer.cpfCnpj?.replace(/\D/g, ''),
         phone: customer.phone?.replace(/\D/g, ''),
-        notificationDisabled: false,
+        notificationDisabled: true,
       });
       asaasCustomerId = created.id;
     }
@@ -103,6 +118,7 @@ Deno.serve(async (req) => {
         dueDate: dueDateStr,
         description: `Netzach — ${planMeta.label}`,
         externalReference: `${user_id}|${plan_id}`,
+        notificationDisabled: true,
       });
 
       const pixData = await asaas<{ encodedImage: string; payload: string }>(
@@ -129,6 +145,7 @@ Deno.serve(async (req) => {
           cycle,
           description: `Netzach — ${planMeta.label}`,
           externalReference: `${user_id}|${plan_id}`,
+          notificationDisabled: true,
           creditCard: {
             holderName: card.holderName,
             number: card.number.replace(/\s/g, ''),
@@ -165,8 +182,9 @@ Deno.serve(async (req) => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('asaas-checkout error:', message);
+    // Sempre retorna 200 para o Supabase JS client expor o corpo no `data`
     return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

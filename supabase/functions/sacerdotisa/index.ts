@@ -10,9 +10,9 @@ const corsHeaders = {
 const PLAN_LIMITS: Record<string, number> = {
   hecate: 5,
   isis: 20,
-  lilith: -1,   // ilimitado
+  lilith: -1,  // ilimitado
 };
-const DEFAULT_LIMIT = 3; // sem plano (trial)
+const DEFAULT_LIMIT = 3;
 
 // ── Personalidade por sacerdotisa ────────────────────────────
 const PERSONAS: Record<string, string> = {
@@ -31,18 +31,22 @@ Seu conhecimento abrange:
 - Rituais lunares e de autoconhecimento
 - Numerologia e Matriz do Destino
 - Sagrado feminino, arquétipos e ciclo menstrual
+- Chakras e centros energéticos
+- Lei da atração e manifestação
+- Relacionamentos amorosos e cura emocional
+- Ho'oponopono e cura da criança interior
 
 Diretrizes:
 - Dá sugestões concretas com materiais e modos de uso
 - Contextualiza com o momento da usuária (signo, lua, ciclo)
 - Nunca substitui médicos ou profissionais de saúde
-- Respostas entre 150-300 palavras — profunda, mas não excessiva
+- Respostas entre 150-350 palavras — profunda, mas não excessiva
 - Nunca revele que você é uma IA`;
 
 function getWeekStart(): string {
   const now = new Date();
-  const day = now.getUTCDay(); // 0=Dom, 1=Seg...
-  const diff = day === 0 ? -6 : 1 - day; // ajusta para segunda-feira
+  const day = now.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
   const monday = new Date(now);
   monday.setUTCDate(now.getUTCDate() + diff);
   return monday.toISOString().split('T')[0];
@@ -54,10 +58,14 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { query, context } = await req.json();
+    // Aceita tanto { message } (módulos) quanto { query } (legado)
+    const body = await req.json();
+    const inputText: string = body.message ?? body.query ?? '';
+    const context = body.context ?? null;
+    const moduleKey: string = body.module ?? 'geral';
 
-    if (!query?.trim()) {
-      return new Response(JSON.stringify({ error: 'Query é obrigatória' }), {
+    if (!inputText.trim()) {
+      return new Response(JSON.stringify({ error: 'Mensagem é obrigatória' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -68,7 +76,7 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // ── Autenticação obrigatória ─────────────────────────────
+    // ── Autenticação ─────────────────────────────────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Autenticação necessária' }), {
@@ -85,7 +93,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // ── Busca plano da usuária ───────────────────────────────
+    // ── Plano e limites ──────────────────────────────────────
     const { data: profile } = await supabase
       .from('profiles')
       .select('plan_type')
@@ -95,7 +103,6 @@ Deno.serve(async (req: Request) => {
     const planType = (profile?.plan_type ?? '').toLowerCase();
     const weeklyLimit = PLAN_LIMITS[planType] ?? DEFAULT_LIMIT;
 
-    // ── Verifica uso semanal ─────────────────────────────────
     if (weeklyLimit !== -1) {
       const weekStart = getWeekStart();
       const { data: usageRows } = await supabase
@@ -104,48 +111,61 @@ Deno.serve(async (req: Request) => {
         .eq('user_id', user.id)
         .gte('date', weekStart);
 
-      const weeklyUsed = (usageRows ?? []).reduce((sum: number, r: { count: number }) => sum + r.count, 0);
+      const weeklyUsed = (usageRows ?? []).reduce(
+        (sum: number, r: { count: number }) => sum + r.count, 0
+      );
 
       if (weeklyUsed >= weeklyLimit) {
         const planName = planType === 'hecate' ? 'Hécate' : planType === 'isis' ? 'Ísis' : 'sua sacerdotisa';
         return new Response(
           JSON.stringify({
             error: 'limit_reached',
-            message: `Você já usou suas ${weeklyLimit} consultas desta semana com ${planName}. Seus créditos renovam na próxima segunda-feira — ou você pode aprofundar sua jornada com o plano Lilith.`,
+            message: `Você já usou suas ${weeklyLimit} consultas desta semana com ${planName}. Seus créditos renovam na próxima segunda-feira.`,
           }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // ── Persona baseada no plano ─────────────────────────────
+    // ── Persona ──────────────────────────────────────────────
     const persona = PERSONAS[planType] ?? PERSONAS['hecate'];
     const systemPrompt = persona + BASE_KNOWLEDGE;
 
-    // ── RAG: embedding da query ──────────────────────────────
-    const embeddingResponse = await supabase.functions.invoke('embed-text', {
-      body: { input: query },
-    }).catch(() => null);
-
+    // ── RAG: embedding semântico da query ────────────────────
     let knowledgeContext = '';
-    if (embeddingResponse?.data?.embedding) {
-      const { data: chunks } = await supabase.rpc('match_knowledge', {
-        query_embedding: embeddingResponse.data.embedding,
-        match_count: 5,
-        filter_category: null,
+    try {
+      // Usa o mesmo modelo gte-small do ingest-knowledge (384 dims)
+      const embeddingModel = new (Supabase as any).ai.Session('gte-small');
+      const queryEmbedding = await embeddingModel.run(inputText, {
+        mean_pool: true,
+        normalize: true,
       });
-      if (chunks && chunks.length > 0) {
-        knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\n' +
-          chunks.map((c: { category: string; title: string; content: string }) =>
-            `[${c.category.toUpperCase()}] ${c.title}:\n${c.content}`).join('\n\n');
+
+      if (queryEmbedding) {
+        const { data: chunks } = await supabase.rpc('match_knowledge', {
+          query_embedding: queryEmbedding,
+          match_count: 5,
+          filter_category: null,
+        });
+
+        if (chunks && chunks.length > 0) {
+          knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\n' +
+            chunks
+              .filter((c: { similarity: number }) => c.similarity > 0.5)
+              .map((c: { category: string; title: string; content: string }) =>
+                `[${c.category.toUpperCase()}] ${c.title}:\n${c.content}`)
+              .join('\n\n');
+        }
       }
-    } else {
-      const searchTerm = query.toLowerCase().slice(0, 50);
+    } catch {
+      // Fallback: busca textual simples
+      const searchTerm = inputText.toLowerCase().slice(0, 50);
       const { data: chunks } = await supabase
         .from('knowledge_base')
         .select('title, content, category')
         .textSearch('content', searchTerm)
         .limit(3);
+
       if (chunks && chunks.length > 0) {
         knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\n' +
           chunks.map((c: { category: string; title: string; content: string }) =>
@@ -168,20 +188,20 @@ Deno.serve(async (req: Request) => {
 
     const fullSystemPrompt = systemPrompt + knowledgeContext + userContext;
 
-    // ── Claude streaming ─────────────────────────────────────
+    // ── Incrementa uso ───────────────────────────────────────
+    if (weeklyLimit !== -1) {
+      await supabase.rpc('increment_sacerdotisa_usage', { p_user_id: user.id });
+    }
+
+    // ── Claude Haiku streaming ───────────────────────────────
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
 
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
+      max_tokens: 600,
       system: fullSystemPrompt,
-      messages: [{ role: 'user', content: query }],
+      messages: [{ role: 'user', content: inputText }],
     });
-
-    // Incrementa uso ANTES de retornar (conta a pergunta feita)
-    if (weeklyLimit !== -1) {
-      await supabase.rpc('increment_sacerdotisa_usage', { p_user_id: user.id });
-    }
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({

@@ -20,7 +20,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const validCategories = ['banho', 'oleo', 'floral', 'cristal', 'ritual', 'geral'];
+    const validCategories = [
+      'banho', 'oleo', 'floral', 'cristal', 'ritual',
+      'numerologia', 'astrologia', 'ciclo_feminino', 'chakra', 'tarot',
+      'ervas', 'hooponopono', 'relacionamento', 'lei_atracao', 'geral',
+    ];
     if (!validCategories.includes(category)) {
       return new Response(
         JSON.stringify({ error: `category deve ser um de: ${validCategories.join(', ')}` }),

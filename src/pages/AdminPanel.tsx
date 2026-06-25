@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
   Star, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2,
-  Link as LinkIcon, Users, Search, Ban, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight
+  Link as LinkIcon, Users, Search, Ban, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight,
+  BookOpen, Upload, Loader2
 } from 'lucide-react';
 
 const SIGNOS = ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes'];
@@ -38,6 +39,11 @@ export default function AdminPanel() {
   const [knowledgeList, setKnowledgeList] = useState<any[]>([]);
   const [knowledgeForm, setKnowledgeForm] = useState({ title: '', content: '', category: 'banho' });
   const [kbLoading, setKbLoading] = useState(false);
+
+  // Ingestão em lote
+  const [bulkForm, setBulkForm] = useState({ source_title: '', text: '', category: 'geral' });
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ inserted: number; total_chunks: number; errors?: string[] } | null>(null);
 
   // Planos
   const [plans, setPlans] = useState<any[]>([]);
@@ -196,6 +202,33 @@ export default function AdminPanel() {
     await supabase.from('knowledge_base').delete().eq('id', id);
     fetchKnowledge();
   };
+
+  const handleBulkIngest = async () => {
+    if (!bulkForm.source_title || !bulkForm.text) return alert('Título e texto são obrigatórios.');
+    if (bulkForm.text.split(/\s+/).length < 50) return alert('Texto muito curto — cole pelo menos um capítulo.');
+    setBulkLoading(true);
+    setBulkResult(null);
+    const { data, error } = await supabase.functions.invoke('ingest-bulk', { body: bulkForm });
+    setBulkLoading(false);
+    if (error) {
+      alert('Erro ao chamar a função: ' + error.message);
+      return;
+    }
+    if (data?.error) {
+      alert('Erro: ' + data.error);
+      return;
+    }
+    setBulkResult(data);
+    fetchKnowledge();
+  };
+
+  const handleBulkFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setBulkForm(f => ({ ...f, text: ev.target?.result as string ?? '' }));
+    reader.readAsText(file, 'utf-8');
+  };
   const handleCompleteRequest = async (id: string) => { await supabase.from('service_requests').update({ status: 'completed' }).eq('id', id); fetchRequests(); };
 
   const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -296,6 +329,88 @@ export default function AdminPanel() {
       {/* 7. BASE DE CONHECIMENTO */}
       {activeTab === 'conhecimento' && (
         <div className="space-y-6 max-w-3xl">
+
+          {/* INGESTÃO EM LOTE — livro/capítulo completo */}
+          <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-gold/30 space-y-4">
+            <h2 className="text-xl font-mystic text-netzach-gold flex items-center gap-2">
+              <BookOpen size={20}/> Ingerir Livro ou Capítulo Completo
+            </h2>
+            <p className="text-xs text-netzach-muted">
+              Cole o texto completo — o sistema divide automaticamente em chunks de ~300 palavras com overlap,
+              gera embedding de cada um e indexa tudo de uma vez. Para PDFs: converta para .txt antes de colar.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                placeholder="Título do livro ou fonte (ex: O Poder do Agora)"
+                className="col-span-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm"
+                value={bulkForm.source_title}
+                onChange={e => setBulkForm(f => ({ ...f, source_title: e.target.value }))}
+              />
+              <select
+                className="p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm"
+                value={bulkForm.category}
+                onChange={e => setBulkForm(f => ({ ...f, category: e.target.value }))}
+              >
+                <option value="banho">Banho</option>
+                <option value="oleo">Óleo Essencial</option>
+                <option value="floral">Floral de Bach</option>
+                <option value="cristal">Cristal</option>
+                <option value="ritual">Ritual</option>
+                <option value="numerologia">Numerologia</option>
+                <option value="astrologia">Astrologia</option>
+                <option value="ciclo_feminino">Ciclo Feminino</option>
+                <option value="chakra">Chakra</option>
+                <option value="tarot">Tarot</option>
+                <option value="ervas">Ervas</option>
+                <option value="hooponopono">Ho'oponopono</option>
+                <option value="relacionamento">Relacionamento</option>
+                <option value="lei_atracao">Lei da Atração</option>
+                <option value="geral">Geral</option>
+              </select>
+              <label className="flex items-center gap-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-netzach-muted text-sm cursor-pointer hover:border-netzach-gold transition-colors">
+                <Upload size={14}/> Carregar arquivo .txt / .md
+                <input type="file" accept=".txt,.md" className="hidden" onChange={handleBulkFile}/>
+              </label>
+            </div>
+
+            <textarea
+              rows={10}
+              placeholder="Cole aqui o texto completo do livro ou capítulo..."
+              className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm font-mono leading-relaxed"
+              value={bulkForm.text}
+              onChange={e => setBulkForm(f => ({ ...f, text: e.target.value }))}
+            />
+
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs text-netzach-muted">
+                {bulkForm.text ? `~${bulkForm.text.split(/\s+/).filter(Boolean).length.toLocaleString('pt-BR')} palavras detectadas` : 'Nenhum texto'}
+              </span>
+              <button
+                onClick={handleBulkIngest}
+                disabled={bulkLoading}
+                className="bg-netzach-gold text-netzach-bg px-6 py-3 rounded font-bold hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2 text-sm"
+              >
+                {bulkLoading
+                  ? <><Loader2 size={15} className="animate-spin"/> Processando chunks...</>
+                  : <><BookOpen size={15}/> Processar e Indexar</>
+                }
+              </button>
+            </div>
+
+            {bulkResult && (
+              <div className={`rounded-xl p-4 text-sm space-y-1 ${bulkResult.errors?.length ? 'bg-yellow-900/20 border border-yellow-700/40' : 'bg-green-900/20 border border-green-700/40'}`}>
+                <p className={bulkResult.errors?.length ? 'text-yellow-300' : 'text-green-300'}>
+                  ✦ {bulkResult.inserted} de {bulkResult.total_chunks} chunks indexados com sucesso.
+                </p>
+                {bulkResult.errors?.map((e, i) => (
+                  <p key={i} className="text-red-400 text-xs">{e}</p>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* CHUNK ÚNICO */}
           <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border space-y-4">
             <h2 className="text-xl font-mystic text-white flex items-center gap-2"><Bot size={20} className="text-netzach-gold"/> Adicionar Conhecimento</h2>
             <p className="text-xs text-netzach-muted">O texto será convertido em embedding (gte-small) e indexado para busca semântica.</p>
@@ -316,6 +431,15 @@ export default function AdminPanel() {
                 <option value="floral">Floral de Bach</option>
                 <option value="cristal">Cristal</option>
                 <option value="ritual">Ritual</option>
+                <option value="numerologia">Numerologia</option>
+                <option value="astrologia">Astrologia</option>
+                <option value="ciclo_feminino">Ciclo Feminino</option>
+                <option value="chakra">Chakra</option>
+                <option value="tarot">Tarot</option>
+                <option value="ervas">Ervas</option>
+                <option value="hooponopono">Ho'oponopono</option>
+                <option value="relacionamento">Relacionamento</option>
+                <option value="lei_atracao">Lei da Atração</option>
                 <option value="geral">Geral</option>
               </select>
               <div className="flex items-center text-xs text-netzach-muted bg-[#0F0518] border border-netzach-border rounded px-3">

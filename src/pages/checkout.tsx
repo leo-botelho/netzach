@@ -223,7 +223,7 @@ export default function Checkout() {
               <button
                 key={cycle}
                 onClick={() => {
-                  const equiv = PLANS.find(p =>
+                  const equiv = plans.find(p =>
                     p.sacerdotisa === selectedPlan.sacerdotisa && p.id.endsWith(cycle)
                   );
                   if (equiv) setSelectedPlan(equiv);

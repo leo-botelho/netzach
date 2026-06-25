@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Sparkles, Lock } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Lock, BookMarked, Check } from 'lucide-react';
 import type { Profile } from '../types';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import { calcularMatrizDestino } from '../utils/calculationsMatriz';
@@ -77,6 +77,7 @@ export default function Sacerdotisa() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { loadProfile(); }, []);
@@ -145,6 +146,29 @@ export default function Sacerdotisa() {
     : plan.weeklyLimit - weeklyUsed;
 
   const isLimited = remaining <= 0;
+
+  const saveToGrimorio = async (msgIndex: number) => {
+    if (savedIndexes.has(msgIndex)) return;
+    const response = messages[msgIndex]?.content;
+    if (!response) return;
+
+    const prompt = messages[msgIndex - 1]?.role === 'user' ? messages[msgIndex - 1].content : null;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase.from('sacerdotisa_history').insert({
+      user_id: session.user.id,
+      module: 'sacerdotisa',
+      prompt,
+      response,
+      saved: true,
+    });
+
+    if (!error) {
+      setSavedIndexes(prev => new Set(prev).add(msgIndex));
+    }
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading || isLimited) return;
@@ -330,18 +354,33 @@ export default function Sacerdotisa() {
                 {plan.symbol}
               </div>
             )}
-            <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-              msg.role === 'user'
-                ? 'bg-netzach-accent text-white rounded-tr-sm'
-                : 'bg-netzach-card border border-netzach-border text-netzach-text rounded-tl-sm'
-            }`}>
-              {msg.content}
-              {msg.role === 'assistant' && msg.content === '' && loading && (
-                <span className="inline-flex gap-1 items-center h-4">
-                  <span className="w-1.5 h-1.5 bg-netzach-gold rounded-full dot-bounce-1" />
-                  <span className="w-1.5 h-1.5 bg-netzach-gold rounded-full dot-bounce-2" />
-                  <span className="w-1.5 h-1.5 bg-netzach-gold rounded-full dot-bounce-3" />
-                </span>
+            <div className="max-w-[80%] flex flex-col gap-1">
+              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                msg.role === 'user'
+                  ? 'bg-netzach-accent text-white rounded-tr-sm'
+                  : 'bg-netzach-card border border-netzach-border text-netzach-text rounded-tl-sm'
+              }`}>
+                {msg.content}
+                {msg.role === 'assistant' && msg.content === '' && loading && (
+                  <span className="inline-flex gap-1 items-center h-4">
+                    <span className="w-1.5 h-1.5 bg-netzach-gold rounded-full dot-bounce-1" />
+                    <span className="w-1.5 h-1.5 bg-netzach-gold rounded-full dot-bounce-2" />
+                    <span className="w-1.5 h-1.5 bg-netzach-gold rounded-full dot-bounce-3" />
+                  </span>
+                )}
+              </div>
+              {msg.role === 'assistant' && msg.content && !(loading && i === messages.length - 1) && (
+                <button
+                  onClick={() => saveToGrimorio(i)}
+                  className={`self-start flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                    savedIndexes.has(i)
+                      ? 'border-netzach-gold/40 text-netzach-gold bg-netzach-gold/10 cursor-default'
+                      : 'border-netzach-border text-netzach-muted hover:border-netzach-gold/50 hover:text-netzach-gold'
+                  }`}
+                >
+                  {savedIndexes.has(i) ? <Check size={11} /> : <BookMarked size={11} />}
+                  {savedIndexes.has(i) ? 'Salvo no Grimório' : 'Salvar no Grimório'}
+                </button>
               )}
             </div>
           </div>

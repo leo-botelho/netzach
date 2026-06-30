@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
+const LS_KEY = 'netzach_push_subscribed';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -13,7 +14,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  // Inicia com o valor do localStorage para evitar flash ao scroll no iOS
+  const [isSubscribed, setIsSubscribed] = useState(() => localStorage.getItem(LS_KEY) === '1');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -23,11 +25,13 @@ export function usePushNotifications() {
 
     setPermission(Notification.permission);
 
-    // Verifica se já existe inscrição ativa no browser
+    // Confirma com o browser e sincroniza — não pisca pois localStorage já deu o estado inicial
     navigator.serviceWorker.ready.then(reg =>
       reg.pushManager.getSubscription()
     ).then(sub => {
-      setIsSubscribed(!!sub);
+      const active = !!sub;
+      setIsSubscribed(active);
+      localStorage.setItem(LS_KEY, active ? '1' : '0');
     }).catch(() => {});
   }, []);
 
@@ -42,9 +46,7 @@ export function usePushNotifications() {
 
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
-      if (existing) {
-        await existing.unsubscribe();
-      }
+      if (existing) await existing.unsubscribe();
 
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -60,16 +62,12 @@ export function usePushNotifications() {
       if (!session) return false;
 
       await supabase.from('push_subscriptions').upsert(
-        {
-          user_id: session.user.id,
-          endpoint,
-          p256dh: keys.p256dh,
-          auth: keys.auth,
-        },
+        { user_id: session.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth },
         { onConflict: 'user_id,endpoint' }
       );
 
       setIsSubscribed(true);
+      localStorage.setItem(LS_KEY, '1');
       return true;
     } catch (err) {
       console.error('Push subscription error:', err);
@@ -95,6 +93,7 @@ export function usePushNotifications() {
 
     await subscription.unsubscribe();
     setIsSubscribed(false);
+    localStorage.setItem(LS_KEY, '0');
   };
 
   return { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe };

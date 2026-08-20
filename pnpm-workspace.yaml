@@ -1,2 +1,9 @@
+# O pnpm bloqueia scripts de instalação por padrão e falha quando
+# encontra algum não decidido. Este arquivo ficou com o texto de
+# exemplo ("set this to true or false") em vez de uma resposta, o que
+# derrubava a verificação automática na instalação limpa.
+#
+# O esbuild precisa do script para baixar o binário da plataforma; sem
+# ele o Vite não compila.
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true

@@ -1,5 +1,6 @@
-# 1. Atualizamos para o Node 20 (Resolve os avisos de EBADENGINE)
-FROM node:20-alpine AS build
+# Node 24, a mesma versão usada em desenvolvimento e na CI. O 20
+# saiu do suporte em abril de 2026 e não atende o que o jsdom exige.
+FROM node:24-alpine AS build
 
 WORKDIR /app
 COPY package*.json ./

@@ -75,6 +75,14 @@ export default function AdminPanel() {
   const [alertaTitulo, setAlertaTitulo] = useState('');
   const [erros, setErros] = useState<ErroAgrupado[]>([]);
 
+  // Teste da base: o que a sacerdotisa recebe para uma pergunta
+  const [testePergunta, setTestePergunta] = useState('');
+  const [testeCarregando, setTesteCarregando] = useState(false);
+  const [testeResultado, setTesteResultado] = useState<{
+    usados: Array<{ titulo: string; categoria: string; proximidade: number; trecho: string }>;
+    descartados: Array<{ titulo: string; categoria: string; proximidade: number }>;
+  } | null>(null);
+
   const fetchPlans = async () => {
     const { data } = await supabase.from('plan_configs').select('*').order('id');
     if (data) setPlans(data.map(p => ({ ...p, _price: String(p.price) })));
@@ -200,6 +208,20 @@ export default function AdminPanel() {
   const handleDeleteService = async (id: string) => { if(confirm("Excluir?")) { await supabase.from('services_catalog').delete().eq('id', id); fetchCatalog(); } };
   
   const fetchRequests = async () => { const { data } = await supabase.from('service_requests').select('*, profiles(full_name, whatsapp)').order('created_at', { ascending: false }); if(data) setRequests(data); };
+
+  const testarConhecimento = async () => {
+    if (!testePergunta.trim()) return;
+    setTesteCarregando(true);
+    setTesteResultado(null);
+
+    const { data, error } = await supabase.functions.invoke('testar-conhecimento', {
+      body: { pergunta: testePergunta },
+    });
+
+    setTesteCarregando(false);
+    if (error) { alert('Não consegui consultar a base agora.'); return; }
+    setTesteResultado(data);
+  };
 
   const fetchErros = async () => {
     const { data, error } = await supabase
@@ -404,6 +426,83 @@ export default function AdminPanel() {
       {/* 7. BASE DE CONHECIMENTO */}
       {activeTab === 'conhecimento' && (
         <div className="space-y-6 max-w-3xl">
+
+          {/* TESTAR O QUE A SACERDOTISA RECEBE */}
+          <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border space-y-4">
+            <h2 className="text-xl font-mystic text-white flex items-center gap-2">
+              <Search size={18}/> O que ela recebe
+            </h2>
+            <p className="text-xs text-netzach-muted">
+              Escreva uma pergunta como uma assinante escreveria. Aparece exatamente o material
+              que chegaria até a sacerdotisa, com a nota de proximidade. Se a resposta dela saiu
+              errada, é aqui que se descobre por quê: material errado chegando, ou material certo
+              que ficou de fora.
+            </p>
+
+            <div className="flex gap-2">
+              <input
+                className="flex-1 p-3 bg-netzach-deep border border-netzach-border rounded text-white"
+                placeholder="Ex: vou para um lugar perigoso, que floral me protege?"
+                value={testePergunta}
+                onChange={e => setTestePergunta(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') testarConhecimento(); }}
+              />
+              <button onClick={testarConhecimento} disabled={testeCarregando || !testePergunta.trim()}
+                className="bg-netzach-gold text-netzach-bg px-5 rounded font-bold disabled:opacity-40">
+                {testeCarregando ? '...' : 'Testar'}
+              </button>
+            </div>
+
+            {testeResultado && (
+              <div className="space-y-4 pt-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-netzach-gold font-bold mb-2">
+                    Chega até ela ({testeResultado.usados.length})
+                  </p>
+                  {testeResultado.usados.length === 0 ? (
+                    <p className="text-sm text-red-400">
+                      Nada chega. Ela vai responder sem material sobre isso, e é aí que erra.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {testeResultado.usados.map((t, i) => (
+                        <div key={i} className="bg-netzach-deep border border-netzach-border rounded-lg p-3">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-sm text-white font-medium">{t.titulo}</span>
+                            <span className="text-[10px] text-netzach-muted uppercase">{t.categoria}</span>
+                            <span className="text-[10px] text-netzach-gold ml-auto">{t.proximidade}</span>
+                          </div>
+                          <p className="text-xs text-netzach-muted leading-relaxed">{t.trecho}...</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {testeResultado.descartados.length > 0 && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-netzach-muted font-bold mb-2">
+                      Existe na base, mas ficou de fora
+                    </p>
+                    <div className="space-y-1">
+                      {testeResultado.descartados.map((t, i) => (
+                        <div key={i} className="flex items-baseline gap-2 text-xs">
+                          <span className="text-netzach-muted">{t.titulo}</span>
+                          <span className="text-[10px] text-netzach-muted/60 uppercase">{t.categoria}</span>
+                          <span className="text-[10px] text-netzach-muted/60 ml-auto">{t.proximidade}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-netzach-muted/70 mt-2">
+                      Se algo aqui deveria ter chegado, o texto do material provavelmente não usa
+                      as mesmas palavras que a assinante usaria. Reescrever o trecho com a
+                      linguagem dela resolve.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* INGESTÃO EM LOTE — livro/capítulo completo */}
           <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-gold/30 space-y-4">

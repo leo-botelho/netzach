@@ -2,6 +2,59 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-08-19 — Sacerdotisa citando a base, interrogando e errando o floral
+
+Primeiro teste real depois do deploy. A memoria funcionou (ela manteve o contexto entre tres
+mensagens), mas a Raquel apontou tres problemas na mesma conversa.
+
+### 1. Ela disse "a historia de Jennifer, na base que tenho"
+**A causa estava no proprio prompt.** A regra tinha um exemplo literal:
+
+    "Nao encontrei orientacoes sobre isso na minha base agora. (...)
+     assim posso te guiar com o que tenho disponivel."
+
+Ou seja, o prompt ensinava a mencionar a base. E a base contem historias de casos, que ela
+passou a narrar para a assinante.
+
+Regras reescritas:
+- **Nunca mencionar o material**, de nenhuma forma. A assinante nao sabe que existe base e
+  nao deve saber; para ela, a sacerdotisa simplesmente sabe.
+- Sem material sobre o tema, **nao anunciar isso**: oferecer o mais proximo ou perguntar, em
+  vez de dizer "nao encontrei".
+- **Nunca narrar a historia de outra pessoa.** Casos e nomes na base sao referencia para a
+  sacerdotisa, nao conteudo para repetir. A assinante veio falar da vida dela.
+
+### 2. Tres pedidos de banho, nenhum banho
+A usuaria pediu banho na primeira mensagem e recebeu tres rodadas de perguntas. O prompt nao
+dizia quando entregar e quando perguntar.
+
+- **Quando ela pede uma pratica, entregue nesta resposta.** Nao a faca pedir duas vezes.
+- Pergunta so **depois** de ja ter entregue algo concreto.
+- **Nunca responder so com perguntas.** Uma resposta que so interroga e uma resposta que falhou.
+- Faltando informacao: escolher a leitura mais provavel, entregar, e oferecer ajustar.
+
+### 3. Floral errado com convicção
+Ela indicou **WILD OAT** para medo de assalto. Wild Oat trata incerteza sobre proposito de
+vida; para medo de algo concreto e conhecido, nao serve. E a descricao que ela deu do floral
+estava correta — errou a aplicacao, nao a definicao.
+
+Isso nao e problema de prompt, e do material que chegou ate ela. Adicionada regra de conferir
+o que a essencia trata antes de indicar, e que **indicar a errada com conviccao e pior do que
+nao indicar**. Mas a correcao de fato depende da base.
+
+**Nova ferramenta: "O que ela recebe"**, na aba de conhecimento do painel. A Raquel escreve
+uma pergunta como uma assinante escreveria e ve exatamente o material que chegaria ate a
+sacerdotisa, com a nota de proximidade — e tambem **o que existe na base mas ficou de fora**
+por pouco.
+
+E o que separa as duas causas possiveis de uma resposta ruim: material errado chegando, ou
+material certo que nao chegou. Nao chama o modelo, entao e instantaneo e nao custa nada.
+
+Edge function nova: `testar-conhecimento` (so admin).
+
+### Verificado
+181 testes · tipos e lint limpos · build completo.
+
 ## 2026-08-19 — Agendamentos separados das tabelas
 
 A Raquel bateu no erro `schema "cron" does not exist` ao rodar as migrations. Era

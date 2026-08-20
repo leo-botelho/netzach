@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { corsHeaders, servico, erro, exigirUsuaria, segredoInternoValido } from '../_shared/auth.ts';
 
 /**
  * Replica o fluxo N8N supabase-netzach:
@@ -12,23 +12,28 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
  * - Diretamente do frontend (quando usuária atualiza dados de nascimento)
  */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabase = servico();
 
     const astroApiKey = Deno.env.get('FREEASTROLOGY_API_KEY')!;
 
     const body = await req.json();
+
+    // ── Quem pode calcular o mapa de quem ────────────────────────
+    // Antes o user_id vinha do corpo sem verificação: dava para
+    // sobrescrever os signos de qualquer usuária.
+    // O Database Webhook se identifica pelo segredo interno.
+    const viaWebhook = segredoInternoValido(req);
+    let idAutenticado: string | null = null;
+
+    if (!viaWebhook) {
+      const auth = await exigirUsuaria(req, supabase);
+      if ('resposta' in auth) return auth.resposta;
+      idAutenticado = auth.usuaria.id;
+    }
 
     // Suporte a dois formatos de entrada:
     // 1. Database Webhook: { type: 'INSERT', record: { user_id, birth_date, birth_time, birth_city } }
@@ -37,7 +42,7 @@ Deno.serve(async (req) => {
     if (body.type === 'INSERT' && body.record) {
       if (body.type !== 'INSERT') {
         return new Response(JSON.stringify({ skipped: 'not INSERT' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
         });
       }
       record = body.record;
@@ -48,9 +53,11 @@ Deno.serve(async (req) => {
     const { user_id, birth_date, birth_time, birth_city } = record;
 
     if (!user_id || !birth_date || !birth_city) {
-      return new Response(JSON.stringify({ error: 'user_id, birth_date e birth_city são obrigatórios' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return erro(req, 400, 'user_id, birth_date e birth_city são obrigatórios');
+    }
+
+    if (idAutenticado && user_id !== idAutenticado) {
+      return erro(req, 403, 'Só é possível calcular o próprio mapa');
     }
 
     // ── 1. Parsear data e hora (mesmo que o N8N faz) ─────────────
@@ -69,9 +76,7 @@ Deno.serve(async (req) => {
     const geoData = await geoRes.json();
 
     if (!geoData || geoData.length === 0) {
-      return new Response(JSON.stringify({ error: `Cidade não encontrada: ${cidade}` }), {
-        status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return erro(req, 422, `Cidade não encontrada: ${cidade}`);
     }
 
     const lat = parseFloat(geoData[0].lat);
@@ -127,14 +132,11 @@ Deno.serve(async (req) => {
     if (updateError) throw updateError;
 
     return new Response(JSON.stringify({ ok: true, sign_sun, sign_moon, sign_rising }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     });
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('calculate-astral-chart error:', message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('calculate-astral-chart error:', err instanceof Error ? err.message : String(err));
+    return erro(req, 500, 'Não foi possível calcular o mapa astral agora');
   }
 });

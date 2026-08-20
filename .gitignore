@@ -28,3 +28,10 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Estado local da CLI do Supabase: guarda a URL do pooler, com host
+# e usuário do banco. Não pertence ao repositório.
+supabase/.temp/
+
+# Cache de compilação do TypeScript
+*.tsbuildinfo

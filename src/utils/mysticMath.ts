@@ -1,4 +1,5 @@
 import { differenceInDays, addDays, format } from 'date-fns';
+import type { MoonPhase, CycleStatus } from '../types';
 import { ptBR } from 'date-fns/locale';
 
 // 1. Calcular Signo Solar
@@ -26,7 +27,7 @@ export const getSunSign = (dateString: string): string => {
 };
 
 // 2. Calcular Previsão do Ciclo
-export const calculateCycleStatus = (lastPeriod: string, cycleDays = 28) => {
+export const calculateCycleStatus = (lastPeriod: string, cycleDays = 28): CycleStatus | null => {
   if (!lastPeriod) return null;
 
   const today = new Date();
@@ -59,7 +60,7 @@ export const calculateCycleStatus = (lastPeriod: string, cycleDays = 28) => {
 };
 
 // 3. Lua
-export const getMoonPhase = (date: Date = new Date()) => {
+export const getMoonPhase = (date: Date = new Date()): MoonPhase => {
   // Duração exata de um ciclo lunar em dias (Ciclo Sinódico)
   const LUNAR_MONTH = 29.53058867;
   
@@ -75,17 +76,21 @@ export const getMoonPhase = (date: Date = new Date()) => {
   const cycles = diffInDays / LUNAR_MONTH;
   const phase = cycles - Math.floor(cycles);
 
+  // Dia dentro da lunação (1 a 30). MandalaDoMes já exibia este valor,
+  // mas ele nunca era retornado: a tela mostrava "Dia undefined".
+  const dayOfCycle = Math.floor(phase * LUNAR_MONTH) + 1;
+
   // Dividimos o ciclo em 4 partes equilibradas (aprox. 7.3 dias cada fase)
   // Centralizando para que a energia da fase fique correta no app
   if (phase >= 0.875 || phase < 0.125) {
-    return { phase: 'Nova', label: 'Sementes no Escuro' };
+    return { dayOfCycle, phase: 'Nova', label: 'Sementes no Escuro' };
   }
   if (phase >= 0.125 && phase < 0.375) {
-    return { phase: 'Crescente', label: 'Expansão e Ação' };
+    return { dayOfCycle, phase: 'Crescente', label: 'Expansão e Ação' };
   }
   if (phase >= 0.375 && phase < 0.625) {
-    return { phase: 'Cheia', label: 'Plenitude e Luz' };
+    return { dayOfCycle, phase: 'Cheia', label: 'Plenitude e Luz' };
   }
   
-  return { phase: 'Minguante', label: 'Limpeza e Desapego' };
+  return { dayOfCycle, phase: 'Minguante', label: 'Limpeza e Desapego' };
 };

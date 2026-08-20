@@ -36,8 +36,10 @@ export interface Profile {
   whatsapp_instance_id?: string;
   whatsapp_token?: string;
 
-  // Campo legado do sistema antigo (para evitar quebras se ainda houver referência)
-  expediente?: any; 
+  // Campo legado do sistema antigo, mantido só para não quebrar
+  // referências antigas. Formato desconhecido de propósito.
+  expediente?: unknown;
+  asaas_customer_id?: string | null;
 }
 
 // ==========================================
@@ -262,3 +264,66 @@ export const ARCANOS: { [key: number]: string } = {
   15: "O Diabo", 16: "A Torre", 17: "A Estrela", 18: "A Lua", 19: "O Sol",
   20: "O Julgamento", 21: "O Mundo", 22: "O Louco"
 };
+
+// ==========================================
+// 5. TABELAS SEM TIPO GERADO
+//
+// Enquanto `supabase gen types` não puder rodar (exige o projeto
+// ligado à CLI), estes tipos são escritos à mão a partir das
+// migrations e do uso real no código. Antes tudo isso era `any`.
+// ==========================================
+
+/** Plano vendido na tela de assinatura. Ver migration 20260624_plan_configs. */
+export interface PlanConfig {
+  id: string;                       // 'hecate_mensal', 'isis_anual', ...
+  plan_type: 'hecate' | 'isis' | 'lilith';
+  name: string;
+  cycle: 'mensal' | 'anual';
+  price: number;
+  symbol?: string;
+  features?: string;
+  active: boolean;
+  updated_at?: string;
+}
+
+/** Trecho da base de conhecimento da sacerdotisa. */
+export interface KnowledgeChunk {
+  id: string;
+  category: string;
+  title: string;
+  /** Ausente na listagem do painel, que seleciona só os metadados. */
+  content?: string;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+}
+
+/** Intenção guardada na Mandala do Mês. */
+export interface MandalaIntention {
+  id?: string;
+  user_id: string;
+  month: string;
+  intention: string;
+  created_at?: string;
+}
+
+/** Fase lunar calculada em utils/mysticMath. */
+export interface MoonPhase {
+  dayOfCycle: number;
+  phase: 'Nova' | 'Crescente' | 'Cheia' | 'Minguante';
+  label: string;
+}
+
+/** Situação do ciclo menstrual calculada em utils/mysticMath. */
+export interface CycleStatus {
+  phaseName: string;
+  dayOfCycle: number;
+  nextPeriodDate: string;
+  statusText: string;
+  isLate: boolean;
+}
+
+/**
+ * Muitas telas fazem `select` de poucas colunas do perfil. Este apelido
+ * evita fingir que o objeto é um Profile inteiro.
+ */
+export type PerfilParcial = Partial<Profile>;

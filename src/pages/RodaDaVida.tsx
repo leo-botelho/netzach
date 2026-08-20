@@ -51,11 +51,11 @@ function RadarChart({ scores }: { scores: Scores }) {
       {/* Axes */}
       {AREAS.map((_, i) => {
         const outer = point(i, maxR);
-        return <line key={i} x1={cx} y1={cy} x2={outer.x.toFixed(1)} y2={outer.y.toFixed(1)} stroke="#4D2B78" strokeWidth="1" />;
+        return <line key={i} x1={cx} y1={cy} x2={outer.x.toFixed(1)} y2={outer.y.toFixed(1)} stroke="#4E3A8E" strokeWidth="1" />;
       })}
 
       {/* Data */}
-      <path d={dataPath} fill="#C5A059" fillOpacity="0.25" stroke="#C5A059" strokeWidth="2" />
+      <path d={dataPath} fill="#C9A84C" fillOpacity="0.25" stroke="#C9A84C" strokeWidth="2" />
 
       {/* Labels */}
       {AREAS.map((a, i) => {

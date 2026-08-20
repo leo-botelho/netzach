@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import MeusDados from '../components/MeusDados';
 import { ArrowLeft, Save, User, Calendar, MapPin, Droplet, Weight, Sparkles, Check, Bell } from 'lucide-react';
 import type { Profile } from '../types';
 
@@ -371,7 +372,7 @@ export default function ProfilePage() {
               { key: 'lunch_tea',        label: 'Chá pós-almoço',             desc: 'Digestão ayurvédica' },
               { key: 'night_tea',        label: 'Chá noturno',                desc: 'Encerramento do dia' },
               { key: 'weekly_tarot',     label: 'Tarô da semana',             desc: 'Sábados às 9h' },
-              { key: 'credits_renewed',  label: 'Créditos renovados',         desc: 'Toda sexta-feira' },
+              { key: 'credits_renewed',  label: 'Créditos renovados',         desc: 'Toda segunda-feira' },
               { key: 'credits_unused',   label: 'Créditos sobrando',          desc: 'Quinta-feira antes de expirar' },
               { key: 'lunar_phase',      label: 'Mudança de fase lunar',      desc: 'Na virada de cada fase' },
               { key: 'monthly_retro',    label: 'Retrospectiva mensal',       desc: 'Dia 1 de cada mês' },
@@ -468,6 +469,9 @@ export default function ProfilePage() {
         >
           {saved ? '✓ Dados salvos' : saving ? 'Salvando...' : 'Salvar alterações'}
         </button>
+
+        {/* Direitos sobre os próprios dados (§16, LGPD) */}
+        <MeusDados />
 
       </main>
     </div>

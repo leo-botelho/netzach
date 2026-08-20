@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  Moon, Droplet, Star, LogOut, Calendar as CalendarIcon,
-  Sparkles, BookOpen, Sun, MessageSquare, X, CloudMoon,
+  Moon, Droplet, LogOut, Calendar as CalendarIcon,
+  Sparkles, BookOpen, Sun, X, CloudMoon,
   ArrowUpCircle, Bell, BellOff, Smartphone, UserCircle
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { InstallPWAModal } from '../components/InstallPWAModal';
-import type { Profile } from '../types';
+import type { Profile, MoonPhase, CycleStatus } from '../types';
+import DicaDoDia from '../components/DicaDoDia';
 
 // ── Check-in card ──────────────────────────────────────────────
 function CheckinCard({ userId }: { userId?: string }) {
@@ -64,13 +65,12 @@ export default function Temple() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [moon, setMoon] = useState<any>(null);
-  const [cycle, setCycle] = useState<any>(null);
+  const [moon, setMoon] = useState<MoonPhase | null>(null);
+  const [cycle, setCycle] = useState<CycleStatus | null>(null);
   const [horoscope, setHoroscope] = useState<{ sky: string; sun: string; moon: string; rising: string }>({ sky: '', sun: '', moon: '', rising: '' });
   const [dailyInsight, setDailyInsight] = useState<{ tarot: string; bath: string; image: string; meaning: string }>({ tarot: '', bath: '', image: '', meaning: '' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isArcanoModalOpen, setIsArcanoModalOpen] = useState(false);
-  const [isSkyModalOpen, setIsSkyModalOpen] = useState(false);
   const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{ title: string; sign: string; text: string } | null>(null);
   const [newPeriodDate, setNewPeriodDate] = useState('');
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -170,6 +170,9 @@ export default function Temple() {
 
       <main className="max-w-lg mx-auto px-4 py-5 space-y-4">
 
+        {/* Só aparece quando há um padrão a nomear (§7 do documento). */}
+        <DicaDoDia />
+
         {/* CHECK-IN */}
         <CheckinCard userId={profile?.user_id} />
 
@@ -223,7 +226,7 @@ export default function Temple() {
         <div>
           <p className="text-[10px] uppercase tracking-widest text-netzach-muted font-bold mb-3 pl-1">Mapa Celeste</p>
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setIsSkyModalOpen(true)} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
+            <button onClick={() => navigate('/ceu')} className="bg-netzach-card border border-netzach-border p-4 rounded-xl text-left hover:border-netzach-gold/50 transition-all group">
               <CloudMoon size={16} className="text-netzach-gold mb-2 opacity-70"/>
               <p className="text-[10px] text-netzach-muted uppercase tracking-wider">Coletivo</p>
               <p className="font-mystic text-base text-white group-hover:text-netzach-gold transition-colors">Céu da Semana</p>
@@ -324,16 +327,6 @@ export default function Temple() {
       )}
 
       {/* MODAL CÉU */}
-      {isSkyModalOpen && (
-        <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto" onClick={() => setIsSkyModalOpen(false)}>
-          <div className="bg-netzach-card border border-netzach-border rounded-2xl p-6 w-full max-w-md relative my-auto" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setIsSkyModalOpen(false)} className="absolute top-4 right-4 text-netzach-muted hover:text-white"><X size={20}/></button>
-            <CloudMoon size={20} className="text-netzach-gold mb-3"/>
-            <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold mb-1">Céu da Semana</p>
-            <p className="text-sm text-netzach-text/90 leading-relaxed whitespace-pre-wrap">{horoscope.sky || 'Sem previsão disponível.'}</p>
-          </div>
-        </div>
-      )}
 
       {/* MODAL HORÓSCOPO */}
       {activeHoroscopeModal && (

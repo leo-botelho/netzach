@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useSubscription } from '../hooks/useSubscription';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +12,12 @@ export default function SubscriptionGuard() {
         Sintonizando...
       </div>
     );
+  }
+
+  // Sem sessão não há o que liberar. Antes esta checagem não existia
+  // e cada página tinha que se defender sozinha, depois de montar.
+  if (!sub.isAuthenticated) {
+    return <Navigate to="/portal" replace />;
   }
 
   if (sub.isExpired) {

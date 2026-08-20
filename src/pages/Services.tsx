@@ -42,9 +42,8 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
     title: 'Cura Interior',
     modules: [
       { emoji: '✨', title: 'Lei da Atração', description: 'Afirmação, visualização guiada e ação de ancoragem para manifestar o que deseja.', path: '/lei-atracao', moduleKey: 'lei_atracao' },
+      { emoji: '🌠', title: 'Quadro dos Sonhos', description: 'O que você está chamando para a sua vida, por área, com as afirmações que sustentam.', path: '/quadro-dos-sonhos', moduleKey: 'quadro_sonhos' },
       { emoji: '💗', title: 'Relacionamento Amoroso', description: 'Carta do amor e orientação sagrada para o que vive no campo amoroso agora.', path: '/relacionamento', moduleKey: 'relacionamento' },
-      { emoji: '🤍', title: "Ho'oponopono", description: 'Ritual havaiano de perdão e liberação. As 4 frases adaptadas ao seu contexto.', path: '/hooponopono', moduleKey: 'hooponopono' },
-      { emoji: '🌱', title: 'Criança Interior', description: 'Cura e acolhimento das feridas primárias com carta personalizada da sacerdotisa.', path: '/crianca-interior', moduleKey: 'crianca_interior' },
     ],
   },
   {
@@ -54,11 +53,13 @@ const CATEGORIES: { title: string; modules: Module[] }[] = [
       { emoji: '📊', title: 'Retrospectiva', description: 'Calendário de humor, gratidões e hábitos do mês. Sua jornada em visualização.', path: '/retrospectiva', moduleKey: 'retrospectiva' },
       { emoji: '🌀', title: 'Mandala do Mês', description: 'Panorama energético do mês: arcano, fases lunares, número pessoal e sua intenção.', path: '/mandala-mes', moduleKey: 'mandala_mes' },
       { emoji: '🌙', title: 'Mandala Lunar', description: 'Visualização circular do seu ciclo lunar: sono, humor, energia e hábitos dia a dia.', path: '/mandala-lunar', moduleKey: 'mandala_lunar' },
+      { emoji: '💤', title: 'Diário de Sonhos', description: 'Os símbolos que se repetem nos seus sonhos e em que fase da lua você sonha mais.', path: '/sonhos', moduleKey: 'sonhos' },
     ],
   },
   {
     title: 'Astrologia',
     modules: [
+      { emoji: '🌌', title: 'Céu da Semana', description: 'Panorama dos trânsitos, orientação dia a dia e a leitura do seu Sol, Lua e Ascendente.', path: '/ceu', moduleKey: 'ceu_semana' },
       { emoji: '☀️', title: 'Mapa Astral', description: 'Descubra seu signo solar, lunar e ascendente. Calcule via data de nascimento.', path: '/perfil', moduleKey: 'mapa_astral' },
     ],
   },
@@ -141,7 +142,7 @@ export default function Services() {
         ))}
 
         {isFree && (
-          <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-gold/30 rounded-2xl p-5 text-center space-y-3">
+          <div className="bg-gradient-to-br from-netzach-card to-netzach-card2 border border-netzach-gold/30 rounded-2xl p-5 text-center space-y-3">
             <p className="text-2xl">✦</p>
             <p className="font-mystic text-lg text-white">Desbloqueie sua jornada completa</p>
             <p className="text-sm text-netzach-muted">A partir de R$29,90/mês. Acesse todos os módulos, Sacerdotisa e rituais personalizados.</p>

@@ -1,10 +1,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0.40.0';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders, servico, erro, exigirUsuaria } from '../_shared/auth.ts';
+import { montarPrompt, MODULOS_VALIDOS, MAX_ENTRADA } from '../_shared/prompts.ts';
+import { faseLunar, faseDoCiclo, arcanoCentral } from '../_shared/ciclos.ts';
 
 // ── Limites semanais por plano ───────────────────────────────
 const PLAN_LIMITS: Record<string, number> = {
@@ -126,56 +123,48 @@ function getWeekStart(): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders(req) });
   }
 
   try {
-    // Aceita tanto { message } (módulos) quanto { query } (legado)
+    // O cliente manda apenas o que a usuária escreveu. O texto de
+    // instrução é montado aqui, a partir do módulo.
     const body = await req.json();
-    const inputText: string = body.message ?? body.query ?? '';
-    const context = body.context ?? null;
+    const inputText: string = (body.message ?? body.query ?? '').toString();
     const moduleKey: string = body.module ?? 'geral';
 
     if (!inputText.trim()) {
-      return new Response(JSON.stringify({ error: 'Mensagem é obrigatória' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return erro(req, 400, 'Mensagem é obrigatória');
+    }
+    if (inputText.length > MAX_ENTRADA) {
+      return erro(req, 400, `A mensagem pode ter no máximo ${MAX_ENTRADA} caracteres.`);
+    }
+    if (!MODULOS_VALIDOS.has(moduleKey)) {
+      return erro(req, 400, `Módulo desconhecido: ${moduleKey}`);
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabase = servico();
 
     // ── Autenticação ─────────────────────────────────────────
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Autenticação necessária' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const auth = await exigirUsuaria(req, supabase);
+    if ('resposta' in auth) return auth.resposta;
+    const user = auth.usuaria;
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // ── Plano e limites ──────────────────────────────────────
+    // ── Perfil: plano e contexto ─────────────────────────────
+    // O contexto vem do banco, não do corpo da requisição: antes era
+    // o navegador quem dizia qual era o signo e a fase do ciclo.
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan_type')
+      .select('plan_type, full_name, sign_sun, sign_moon, sign_rising, last_period_date, cycle_duration, birth_date')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     const planType = (profile?.plan_type ?? '').toLowerCase();
     const weeklyLimit = PLAN_LIMITS[planType] ?? DEFAULT_LIMIT;
 
-    if (weeklyLimit !== -1) {
+    // ── Limite do chat livre ─────────────────────────────────
+    // Os módulos têm limite próprio, conferido no débito lá embaixo.
+    if (moduleKey === 'geral' && weeklyLimit !== -1) {
       const weekStart = getWeekStart();
       const { data: usageRows } = await supabase
         .from('sacerdotisa_usage')
@@ -194,25 +183,91 @@ Deno.serve(async (req: Request) => {
             error: 'limit_reached',
             message: `Você já usou suas ${weeklyLimit} consultas desta semana com ${planName}. Seus créditos renovam na próxima segunda-feira.`,
           }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 429, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
     }
 
+    // ── Crédito do módulo, conferido e debitado no servidor ──
+    // Antes o `module` chegava aqui e era ignorado: o controle vivia
+    // inteiramente no navegador, em usePlanCredit.
+    if (moduleKey !== 'geral') {
+      const { error: creditoError } = await supabase.rpc('consume_module_credit', {
+        p_user_id: user.id,
+        p_module: moduleKey,
+        p_week_start: getWeekStart(),
+      });
+
+      if (creditoError) {
+        const semPlano = creditoError.message?.includes('sem_plano');
+        return new Response(
+          JSON.stringify({
+            error: semPlano ? 'sem_plano' : 'limit_reached',
+            message: semPlano
+              ? 'Este módulo faz parte dos planos do portal.'
+              : 'Você já usou suas consultas deste módulo nesta semana, minha querida.',
+          }),
+          { status: 429, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // ── Memória da conversa ──────────────────────────────────
+    // Só o chat livre tem memória: os módulos são consultas
+    // independentes, e arrastar contexto entre eles confundiria mais
+    // do que ajudaria.
+    //
+    // O histórico vem do banco, nunca do cliente: se viesse de lá,
+    // seria possível forjar falas da sacerdotisa e induzi-la a quebrar
+    // as próprias regras.
+    const TROCAS_LEMBRADAS = 3;
+    let historico: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+    if (moduleKey === 'geral') {
+      const { data: anteriores } = await supabase
+        .from('sacerdotisa_messages')
+        .select('role, content')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(TROCAS_LEMBRADAS * 2);
+
+      // Vieram da mais recente para a mais antiga; a conversa precisa
+      // da ordem inversa.
+      historico = ((anteriores ?? []).reverse() as typeof historico);
+
+      // A conversa tem de começar por uma fala da usuária.
+      while (historico.length > 0 && historico[0].role !== 'user') historico.shift();
+    }
+
+    // ── Texto efetivamente enviado ao modelo ─────────────────
+    const cicloAtual = faseDoCiclo(profile?.last_period_date, profile?.cycle_duration ?? 28);
+
+    const promptFinal = montarPrompt(moduleKey, inputText.trim(), {
+      nome: profile?.full_name,
+      signo_solar: profile?.sign_sun,
+      fase_ciclo: cicloAtual,
+    });
+
     // ── Persona ──────────────────────────────────────────────
     const persona = PERSONAS[planType] ?? PERSONAS['hecate'];
-    const systemPrompt = persona + BASE_KNOWLEDGE;
 
     // ── RAG: embedding semântico da query ────────────────────
     // Detecta intenção de banho para filtrar categoria correta
     const BANHO_KEYWORDS = ['banho', 'erva', 'imersão', 'banheira', 'chá para banhar', 'defumação'];
     const FLORAL_KEYWORDS = ['floral', 'bach', 'remédio floral', 'gotinhas'];
     const lowerInput = inputText.toLowerCase();
-    const wantsBanho = BANHO_KEYWORDS.some(k => lowerInput.includes(k));
-    const wantsFloral = FLORAL_KEYWORDS.some(k => lowerInput.includes(k));
+    const wantsBanho = moduleKey === 'banho_personalizado'
+      || BANHO_KEYWORDS.some(k => lowerInput.includes(k));
+    const wantsFloral = moduleKey === 'florais'
+      || FLORAL_KEYWORDS.some(k => lowerInput.includes(k));
     const ragCategory = wantsBanho && !wantsFloral ? 'banho' : null;
 
-    let knowledgeContext = '';
+    const SEM_BASE = '\n\n--- BASE DE CONHECIMENTO ---\nNenhuma informação relevante encontrada para esta consulta.';
+    const formatar = (chunks: Array<{ category: string; title: string; content: string }>) =>
+      '\n\n--- BASE DE CONHECIMENTO ---\n' +
+      chunks.map(c => `[${c.category.toUpperCase()}] ${c.title}:\n${c.content}`).join('\n\n');
+
+    let knowledgeContext = SEM_BASE;
     try {
       // Usa o mesmo modelo gte-small do ingest-knowledge (384 dims)
       const embeddingModel = new (Supabase as any).ai.Session('gte-small');
@@ -222,108 +277,185 @@ Deno.serve(async (req: Request) => {
       });
 
       if (queryEmbedding) {
-        const { data: chunks } = await supabase.rpc('match_knowledge', {
+        const { data: chunks, error: ragError } = await supabase.rpc('match_knowledge', {
           query_embedding: queryEmbedding,
           match_count: 5,
           filter_category: ragCategory,
         });
 
+        // Antes este erro era engolido por um catch vazio e virava
+        // "não encontrei informação" na tela, sem alarme nenhum.
+        if (ragError) throw ragError;
+
         const relevant = (chunks ?? []).filter(
           (c: { similarity: number }) => c.similarity > 0.5
         );
-
-        if (relevant.length > 0) {
-          knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\n' +
-            relevant
-              .map((c: { category: string; title: string; content: string }) =>
-                `[${c.category.toUpperCase()}] ${c.title}:\n${c.content}`)
-              .join('\n\n');
-        } else {
-          knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\nNenhuma informação relevante encontrada para esta consulta.';
-        }
+        if (relevant.length > 0) knowledgeContext = formatar(relevant);
       }
-    } catch {
-      // Fallback: busca textual simples
-      const searchTerm = inputText.toLowerCase().slice(0, 50);
-      const { data: chunks } = await supabase
-        .from('knowledge_base')
-        .select('title, content, category')
-        .textSearch('content', searchTerm)
-        .limit(3);
+    } catch (ragErr) {
+      console.error('RAG falhou, usando busca textual:', ragErr instanceof Error ? ragErr.message : ragErr);
 
-      if (chunks && chunks.length > 0) {
-        knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\n' +
-          chunks.map((c: { category: string; title: string; content: string }) =>
-            `[${c.category.toUpperCase()}] ${c.title}:\n${c.content}`).join('\n\n');
-      } else {
-        knowledgeContext = '\n\n--- BASE DE CONHECIMENTO ---\nNenhuma informação relevante encontrada para esta consulta.';
+      // Plano B: busca textual. `textSearch` monta um to_tsquery e
+      // rejeita texto livre, então as palavras vão separadas por OR.
+      const termos = inputText
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter(t => t.length > 3)
+        .slice(0, 6);
+
+      if (termos.length > 0) {
+        const { data: chunks } = await supabase
+          .from('knowledge_base')
+          .select('title, content, category')
+          .textSearch('content', termos.join(' | '), { config: 'portuguese' })
+          .limit(3);
+
+        if (chunks && chunks.length > 0) knowledgeContext = formatar(chunks);
       }
     }
 
     // ── Contexto da usuária ──────────────────────────────────
-    let userContext = '';
-    if (context) {
-      const parts: string[] = [];
-      if (context.signo_solar) parts.push(`Sol em ${context.signo_solar}`);
-      if (context.signo_lunar) parts.push(`Lua em ${context.signo_lunar}`);
-      if (context.ascendente) parts.push(`Ascendente ${context.ascendente}`);
-      if (context.fase_ciclo) parts.push(`Fase do ciclo: ${context.fase_ciclo}`);
-      if (context.fase_lua) parts.push(`Lua ${context.fase_lua}`);
-      if (context.arcano_central) parts.push(`Arcano central: ${context.arcano_central}`);
-      if (parts.length > 0) userContext = `\n\n--- CONTEXTO DA USUÁRIA ---\n${parts.join(' | ')}`;
-    }
+    // Lido do perfil, não do corpo da requisição.
+    const partes: string[] = [];
+    if (profile?.sign_sun) partes.push(`Sol em ${profile.sign_sun}`);
+    if (profile?.sign_moon) partes.push(`Lua em ${profile.sign_moon}`);
+    if (profile?.sign_rising) partes.push(`Ascendente ${profile.sign_rising}`);
+    if (cicloAtual) partes.push(`Fase do ciclo: ${cicloAtual}`);
+    partes.push(`Lua ${faseLunar()}`);
 
-    const fullSystemPrompt = systemPrompt + knowledgeContext + userContext;
+    // O arcano central era citado no chat e vinha do navegador; agora
+    // sai da data de nascimento guardada no perfil.
+    const arcano = arcanoCentral(profile?.birth_date);
+    if (arcano) partes.push(`Arcano central: ${arcano.numero}, ${arcano.nome}`);
+    const userContext = partes.length > 0
+      ? `\n\n--- CONTEXTO DA USUÁRIA ---\n${partes.join(' | ')}`
+      : '';
 
-    // ── Incrementa uso ───────────────────────────────────────
-    if (weeklyLimit !== -1) {
+    // ── Incrementa uso do chat livre ─────────────────────────
+    // Os módulos já foram debitados por consume_module_credit.
+    if (moduleKey === 'geral' && weeklyLimit !== -1) {
       await supabase.rpc('increment_sacerdotisa_usage', { p_user_id: user.id });
     }
 
     // ── Claude Haiku streaming ───────────────────────────────
+    // Se a geração falhar aqui, o crédito já debitado volta para a
+    // usuária: ela não perde a consulta por uma falha nossa.
+    const estornarCredito = async () => {
+      if (moduleKey === 'geral') return;
+      await supabase.rpc('refund_module_credit', {
+        p_user_id: user.id,
+        p_module: moduleKey,
+        p_week_start: getWeekStart(),
+      });
+    };
+
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
 
-    const stream = await anthropic.messages.stream({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: [
-        {
-          type: 'text',
-          text: fullSystemPrompt,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [{ role: 'user', content: inputText }],
-    });
+    let stream;
+    try {
+      stream = await anthropic.messages.stream({
+        model: 'claude-haiku-4-5-20251001',
+        // O prompt pede respostas de 150 a 350 palavras. Em português
+        // isso pode passar de 1024 tokens, que era o teto anterior e
+        // cortava a resposta no meio da frase. O custo não muda: paga-se
+        // pelo que é gerado, não pelo teto.
+        max_tokens: 2048,
+        system: [
+          // Bloco estável (persona + regras): é o único que pode ser
+          // reaproveitado entre chamadas. Antes o cache_control cobria
+          // também o RAG e o contexto, que mudam a cada consulta, então
+          // o prefixo nunca se repetia e não havia acerto de cache.
+          {
+            type: 'text',
+            text: persona + BASE_KNOWLEDGE,
+            cache_control: { type: 'ephemeral' },
+          },
+          // Bloco volátil: sem cache.
+          {
+            type: 'text',
+            text: knowledgeContext + userContext,
+          },
+        ],
+        messages: [...historico, { role: 'user', content: promptFinal }],
+      });
+    } catch (modeloErr) {
+      await estornarCredito();
+      throw modeloErr;
+    }
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of stream) {
-          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-            controller.enqueue(encoder.encode(
-              `data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`
-            ));
+      async start(controller) {
+        let respostaCompleta = '';
+
+        try {
+          for await (const chunk of stream) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              respostaCompleta += chunk.delta.text;
+              controller.enqueue(encoder.encode(
+                `data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`
+              ));
+            }
           }
+
+          // ── Guarda a troca, para a próxima mensagem ter contexto ──
+          if (moduleKey === 'geral' && respostaCompleta) {
+            const { error: memoriaErro } = await supabase
+              .from('sacerdotisa_messages')
+              .insert([
+                { user_id: user.id, role: 'user', content: inputText.trim() },
+                { user_id: user.id, role: 'assistant', content: respostaCompleta },
+              ]);
+            // Falhar aqui não estraga a resposta que ela já leu.
+            if (memoriaErro) console.error('Falha ao guardar a conversa:', memoriaErro.message);
+          }
+
+          // ── Mede o aproveitamento de cache ───────────────────────
+          // O bloco estável tem cerca de 900 tokens, abaixo do mínimo
+          // para cachear. Este registro diz se o cache pega de verdade:
+          // se `cache_lidos` ficar sempre em zero, o cache_control não
+          // está entregando nada e pode sair.
+          try {
+            const final = await stream.finalMessage();
+            const uso = final.usage;
+            console.log(JSON.stringify({
+              modulo: moduleKey,
+              entrada: uso.input_tokens,
+              saida: uso.output_tokens,
+              cache_escritos: uso.cache_creation_input_tokens ?? 0,
+              cache_lidos: uso.cache_read_input_tokens ?? 0,
+              trocas_lembradas: historico.length / 2,
+              // "max_tokens" aqui significa resposta cortada no meio.
+              parou_porque: final.stop_reason,
+            }));
+          } catch { /* medição não pode derrubar a resposta */ }
+
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (streamErr) {
+          // Sem isto, uma falha no meio do streaming deixava o
+          // controller aberto e a tela esperando para sempre.
+          console.error('Erro no streaming:', streamErr instanceof Error ? streamErr.message : streamErr);
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ error: 'A conexão se interrompeu. Tente novamente.' })}\n\n`
+          ));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
         }
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        controller.close();
       },
     });
 
     return new Response(readable, {
       headers: {
-        ...corsHeaders,
+        ...corsHeaders(req),
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
       },
     });
 
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(
-      JSON.stringify({ error: 'Erro ao consultar a Sacerdotisa', detail: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('sacerdotisa error:', err instanceof Error ? err.message : String(err));
+    return erro(req, 500, 'A sacerdotisa não pôde responder agora. Tente novamente em instantes.');
   }
 });

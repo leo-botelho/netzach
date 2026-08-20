@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Sparkles, Lock, BookMarked, Check } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Lock, BookMarked, Check, RefreshCw } from 'lucide-react';
 import type { Profile } from '../types';
-import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
-import { calcularMatrizDestino } from '../utils/calculationsMatriz';
 
 // ── Configuração por plano ───────────────────────────────────
 const PLAN_CONFIG: Record<string, {
@@ -116,29 +114,22 @@ export default function Sacerdotisa() {
     setProfileLoading(false);
   };
 
-  const buildContext = () => {
-    if (!profile) return {};
-    const moon = getMoonPhase();
-    const cycle = profile.last_period_date
-      ? calculateCycleStatus(profile.last_period_date, profile.cycle_duration ?? 28)
-      : null;
 
-    let arcano_central: number | undefined;
-    if (profile.birth_date) {
-      try {
-        const matriz = calcularMatrizDestino(profile.birth_date);
-        arcano_central = matriz.central.maior.arcano;
-      } catch { /* ignora */ }
-    }
+  /**
+   * Começa uma conversa nova.
+   *
+   * A sacerdotisa passou a lembrar das últimas trocas, então é preciso
+   * poder virar a página: trazer um assunto novo sem o anterior
+   * pesando por cima. Apaga a memória guardada, não o Grimório.
+   */
+  const recomecarConversa = async () => {
+    if (messages.length === 0) return;
+    if (!confirm('Começar uma conversa nova? O que você salvou no Grimório continua guardado.')) return;
 
-    return {
-      signo_solar: profile.sign_sun ?? undefined,
-      signo_lunar: profile.sign_moon ?? undefined,
-      ascendente: profile.sign_rising ?? undefined,
-      fase_lua: moon?.phase,
-      fase_ciclo: cycle?.phaseName ?? undefined,
-      arcano_central,
-    };
+    setMessages([]);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from('sacerdotisa_messages').delete().eq('user_id', session.user.id);
   };
 
   const remaining = plan.weeklyLimit === -1
@@ -192,7 +183,7 @@ export default function Sacerdotisa() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token}`,
           },
-          body: JSON.stringify({ message: text, context: buildContext() }),
+          body: JSON.stringify({ message: text }),
         }
       );
 
@@ -280,6 +271,13 @@ export default function Sacerdotisa() {
           </div>
         </div>
 
+        {messages.length > 0 && (
+          <button onClick={recomecarConversa} aria-label="Começar uma conversa nova"
+            className="text-netzach-muted hover:text-netzach-gold transition-colors p-1">
+            <RefreshCw size={16} />
+          </button>
+        )}
+
         {/* Contador de perguntas */}
         {plan.weeklyLimit !== -1 && (
           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium ${
@@ -357,7 +355,7 @@ export default function Sacerdotisa() {
             <div className="max-w-[80%] flex flex-col gap-1">
               <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === 'user'
-                  ? 'bg-netzach-accent text-white rounded-tr-sm'
+                  ? 'bg-netzach-accent-deep text-white rounded-tr-sm'
                   : 'bg-netzach-card border border-netzach-border text-netzach-text rounded-tl-sm'
               }`}>
                 {msg.content}

@@ -5,24 +5,18 @@ export const PLAN_LIMITS: Record<string, Record<string, number | null>> = {
     florais: 1,
     lei_atracao: 1,
     relacionamento: 1,
-    hooponopono: 1,
-    crianca_interior: 1,
   },
   isis: {
     banho_personalizado: 3,
     florais: 3,
     lei_atracao: 3,
     relacionamento: 3,
-    hooponopono: 2,
-    crianca_interior: 2,
   },
   lilith: {
     banho_personalizado: null,
     florais: null,
     lei_atracao: null,
     relacionamento: null,
-    hooponopono: null,
-    crianca_interior: null,
   },
 };
 

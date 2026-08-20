@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 const QUESTIONS = [
   { id: 1, chakra: 'root',    text: 'Me sinto segura financeiramente e fisicamente no meu corpo.' },
@@ -194,7 +194,7 @@ export default function ChakraDiagnostico() {
             </div>
 
             {/* Afirmação */}
-            <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-5 text-center space-y-2">
+            <div className="bg-gradient-to-br from-netzach-card to-netzach-card2 border border-netzach-border rounded-2xl p-5 text-center space-y-2">
               <p className="text-[10px] uppercase tracking-widest text-netzach-gold">Afirmação</p>
               <p className="font-mystic text-lg text-white italic">"{chakra.affirmation}"</p>
             </div>

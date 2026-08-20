@@ -27,7 +27,7 @@ const reduceNumber = (num: number): number => {
 export const calculateDestinyNumber = (birthDate: string | undefined): number => {
   if (!birthDate) return 0;
   const cleanDate = birthDate.replace(/-/g, '');
-  let sum = cleanDate.split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+  const sum = cleanDate.split('').reduce((acc, digit) => acc + parseInt(digit), 0);
   return reduceNumber(sum);
 };
 

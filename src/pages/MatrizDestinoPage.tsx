@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { calcularMatrizDestino } from '../utils/calculationsMatriz';
 import { MatrizMandala } from '../components/MatrizMandala';
-import type { MatrizDestino as MatrizDestinoType } from '../types';
+import type { MatrizDestino as MatrizDestinoType, PerfilParcial } from '../types';
 import { ARCANOS } from '../types';
 import { ArrowLeft, Loader2, ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +11,7 @@ export default function MatrizDestinoPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<PerfilParcial | null>(null);
   const [matriz, setMatriz] = useState<MatrizDestinoType | null>(null);
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export default function MatrizDestinoPage() {
       const matrizCalculada = calcularMatrizDestino(profile.birth_date);
       setMatriz(matrizCalculada);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Não foi possível montar sua matriz agora.');
     } finally {
       setLoading(false);
     }
@@ -87,9 +87,9 @@ export default function MatrizDestinoPage() {
 
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-mystic text-netzach-gold mb-2">Matriz da Alma</h1>
-          <p className="text-lg text-white font-light">{profileData.full_name}</p>
+          <p className="text-lg text-white font-light">{profileData?.full_name ?? ''}</p>
           <p className="text-xs text-netzach-muted uppercase tracking-widest mt-1">
-            {formatDateSafe(profileData.birth_date)}
+            {profileData?.birth_date ? formatDateSafe(profileData.birth_date) : ''}
           </p>
         </div>
 
@@ -137,7 +137,7 @@ export default function MatrizDestinoPage() {
             <h3 className="text-xl font-mystic text-netzach-gold mb-6 text-center">Mapa da Saúde</h3>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-netzach-muted uppercase bg-[#0F0518] border-b border-netzach-border">
+                    <thead className="text-xs text-netzach-muted uppercase bg-netzach-deep border-b border-netzach-border">
                         <tr>
                             <th className="px-6 py-3">Chakra</th>
                             <th className="px-6 py-3 text-center">Física</th>
@@ -147,7 +147,7 @@ export default function MatrizDestinoPage() {
                     </thead>
                     <tbody className="divide-y divide-netzach-border">
                         {chakraRows.map((row, index) => (
-                            <tr key={index} className="hover:bg-[#0F0518]/50 transition-colors">
+                            <tr key={index} className="hover:bg-netzach-deep/50 transition-colors">
                                 <td className="px-6 py-4 font-bold text-white">
                                     {row.name} <span className="block text-xs font-normal text-netzach-muted">{row.desc}</span>
                                 </td>
@@ -157,7 +157,7 @@ export default function MatrizDestinoPage() {
                             </tr>
                         ))}
                         {/* Resumo */}
-                        <tr className="bg-[#0F0518] font-bold">
+                        <tr className="bg-netzach-deep font-bold">
                             <td className="px-6 py-4 text-netzach-gold">RESUMO GERAL</td>
                             <td className="px-6 py-4 text-center text-white">{matriz.resumoSaude.fisico}</td>
                             <td className="px-6 py-4 text-center text-white">{matriz.resumoSaude.energetico}</td>
@@ -189,7 +189,7 @@ export default function MatrizDestinoPage() {
                         <span className="text-xs text-netzach-muted uppercase">Meio</span>
                     </div>
                     <div className="text-center">
-                        <div className="w-10 h-10 rounded-full bg-[#0F0518] flex items-center justify-center text-md font-bold text-netzach-gold mb-2 mx-auto">
+                        <div className="w-10 h-10 rounded-full bg-netzach-deep flex items-center justify-center text-md font-bold text-netzach-gold mb-2 mx-auto">
                             {matriz.diagonalSuperiorEsquerda.menor.arcano}
                         </div>
                         <span className="text-xs text-netzach-muted uppercase">Menor</span>
@@ -215,7 +215,7 @@ export default function MatrizDestinoPage() {
                         <span className="text-xs text-netzach-muted uppercase">Meio</span>
                     </div>
                     <div className="text-center">
-                        <div className="w-10 h-10 rounded-full bg-[#0F0518] flex items-center justify-center text-md font-bold text-netzach-gold mb-2 mx-auto">
+                        <div className="w-10 h-10 rounded-full bg-netzach-deep flex items-center justify-center text-md font-bold text-netzach-gold mb-2 mx-auto">
                             {matriz.diagonalSuperiorDireita.menor.arcano}
                         </div>
                         <span className="text-xs text-netzach-muted uppercase">Menor</span>
@@ -225,7 +225,7 @@ export default function MatrizDestinoPage() {
         </div>
 
         {/* 5. CTA - Venda */}
-        <div className="text-center bg-gradient-to-r from-netzach-card to-[#2a1245] p-8 rounded-2xl border border-netzach-gold/50 shadow-2xl relative overflow-hidden">
+        <div className="text-center bg-gradient-to-r from-netzach-card to-netzach-card2 p-8 rounded-2xl border border-netzach-gold/50 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles size={100}/></div>
             <h2 className="text-2xl font-mystic text-white mb-4">Quer desvendar todos os segredos da sua Alma?</h2>
             <p className="text-netzach-muted mb-8 max-w-xl mx-auto leading-relaxed">

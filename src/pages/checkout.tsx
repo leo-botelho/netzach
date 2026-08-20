@@ -127,12 +127,17 @@ export default function Checkout() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
+      if (!session) {
+        setLoading(false);
+        return setError('Sua sessão expirou. Entre novamente para concluir a assinatura.');
+      }
+
       const [month, year] = form.cardExpiry.split('/');
+      // user_id e preço não são mais enviados: o servidor pega a
+      // identidade do token e o valor de plan_configs.
       const body: Record<string, unknown> = {
-        user_id: session?.user.id,
         plan_id: selectedPlan.id,
         payment_method: paymentMethod === 'credit_card' ? 'CREDIT_CARD' : 'PIX',
-        amount: selectedPlan.price,
         customer: {
           name: form.name,
           email: form.email,
@@ -153,9 +158,17 @@ export default function Checkout() {
 
       const { data, error: fnError } = await supabase.functions.invoke('asaas-checkout', { body });
 
-      if (fnError || data?.error) {
-        throw new Error(data?.error || fnError?.message || 'Erro desconhecido');
+      if (fnError) {
+        // Em status != 2xx o corpo não vem em `data`; a mensagem
+        // tratada pelo servidor está no contexto do erro.
+        let msg = 'Não foi possível concluir o pagamento agora.';
+        try {
+          const corpo = await (fnError as { context?: Response }).context?.json();
+          if (corpo?.error) msg = corpo.error;
+        } catch { /* mantém a mensagem padrão */ }
+        throw new Error(msg);
       }
+      if (data?.error) throw new Error(data.error);
 
       if (paymentMethod === 'pix') {
         setPixData({ qr_code_base64: data.qr_code_base64, copy_paste: data.copy_paste });

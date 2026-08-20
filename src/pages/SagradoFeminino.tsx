@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { PerfilParcial } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -59,7 +60,7 @@ const MOON_ARCHETYPES: Record<string, {
 
 export default function SagradoFeminino() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<PerfilParcial | null>(null);
   const [loading, setLoading] = useState(true);
   const moon = getMoonPhase();
 
@@ -119,7 +120,7 @@ export default function SagradoFeminino() {
         </div>
 
         {/* Mensagem lunar */}
-        <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-5 space-y-2">
+        <div className="bg-gradient-to-br from-netzach-card to-netzach-card2 border border-netzach-border rounded-2xl p-5 space-y-2">
           <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">{moonArc?.lunar}</p>
           <p className="text-sm text-netzach-text/90 leading-relaxed italic">"{moonArc?.message}"</p>
         </div>

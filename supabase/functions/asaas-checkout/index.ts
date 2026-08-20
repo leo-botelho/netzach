@@ -20,6 +20,13 @@ const PLAN_MAP: Record<string, { planType: string; label: string }> = {
   lilith_anual:   { planType: 'lilith', label: 'Lilith Anual' },
 };
 
+/**
+ * Erro que pode ser mostrado à usuária: recusa de cartão, CPF inválido,
+ * o que o Asaas devolve como 400. Tudo que não for isso vira mensagem
+ * genérica, para não expor configuração interna na tela.
+ */
+class ErroDeNegocio extends Error {}
+
 async function asaas<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   if (!ASAAS_KEY) throw new Error('ASAAS_API_KEY não configurado nos secrets da Edge Function');
 
@@ -36,15 +43,17 @@ async function asaas<T>(path: string, method = 'GET', body?: unknown): Promise<T
 
   if (!res.ok) {
     let detail = text;
+    let temDescricao = false;
     try {
       const parsed = JSON.parse(text);
       // Asaas retorna { errors: [{ code, description }] }
       if (parsed.errors?.length) {
-        detail = parsed.errors.map((e: { code: string; description: string }) =>
-          `[${e.code}] ${e.description}`
-        ).join(' | ');
+        detail = parsed.errors.map((e: { description: string }) => e.description).join(' | ');
+        temDescricao = true;
       }
     } catch { /* usa o text bruto */ }
+
+    if (res.status === 400 && temDescricao) throw new ErroDeNegocio(detail);
     throw new Error(`Asaas ${method} ${path} → HTTP ${res.status}: ${detail}`);
   }
 
@@ -61,15 +70,33 @@ Deno.serve(async (req) => {
     );
 
     const {
-      user_id,
       plan_id,          // ex: 'hecate_mensal'
       payment_method,   // 'CREDIT_CARD' | 'PIX'
-      amount,           // em reais (ex: 29.90)
       customer,         // { name, email, cpfCnpj, phone }
       card,             // { holderName, number, expiryMonth, expiryYear, ccv }
     } = await req.json();
 
-    if (!user_id || !plan_id || !payment_method || !amount || !customer) {
+    // ── Quem está comprando vem do token, nunca do corpo ─────────
+    // Antes o user_id chegava pelo body: qualquer pessoa podia ativar
+    // assinatura em nome de outra.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Autenticação necessária' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const user_id = user.id;
+
+    if (!plan_id || !payment_method || !customer) {
       return new Response(JSON.stringify({ error: 'Campos obrigatórios ausentes' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -80,6 +107,27 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: `Plano inválido: ${plan_id}` }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // ── O preço é do banco, não do cliente ───────────────────────
+    // Antes o valor cobrado vinha no corpo da requisição: dava para
+    // pedir o plano anual e mandar amount = 0.01.
+    const { data: planConfig, error: planError } = await supabase
+      .from('plan_configs')
+      .select('price, active')
+      .eq('id', plan_id)
+      .maybeSingle();
+
+    if (planError) throw new Error(`Falha ao ler plan_configs: ${planError.message}`);
+    if (!planConfig || !planConfig.active) {
+      return new Response(JSON.stringify({ error: `Plano indisponível: ${plan_id}` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const amount = Number(planConfig.price);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error(`Preço inválido cadastrado para ${plan_id}`);
     }
 
     // ── 1. Criar/buscar cliente no Asaas ────────────────────────
@@ -182,10 +230,21 @@ Deno.serve(async (req) => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('asaas-checkout error:', message);
-    // Sempre retorna 200 para o Supabase JS client expor o corpo no `data`
-    return new Response(JSON.stringify({ error: message }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+
+    // Recusa de cartão e afins a usuária precisa ler; falha de
+    // configuração, não. O detalhe fica no log da função.
+    const ehDeNegocio = err instanceof ErroDeNegocio;
+    return new Response(
+      JSON.stringify({
+        error: ehDeNegocio
+          ? message
+          : 'Não foi possível concluir o pagamento agora. Tente novamente em instantes.',
+      }),
+      {
+        status: ehDeNegocio ? 400 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
 

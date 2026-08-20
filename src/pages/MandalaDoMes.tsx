@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import type { PerfilParcial } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Save, Check } from 'lucide-react';
+import { ArrowLeft, Save, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getMoonPhase } from '../utils/mysticMath';
 
@@ -48,7 +49,7 @@ const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
 
 export default function MandalaDoMes() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<PerfilParcial | null>(null);
   const [intention, setIntention] = useState('');
   const [savedIntention, setSavedIntention] = useState('');
   const [saving, setSaving] = useState(false);
@@ -101,7 +102,7 @@ export default function MandalaDoMes() {
       <main className="max-w-lg mx-auto px-4 py-5 space-y-5">
 
         {/* Arcano do mês */}
-        <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-gold/30 rounded-2xl p-5 space-y-3">
+        <div className="bg-gradient-to-br from-netzach-card to-netzach-card2 border border-netzach-gold/30 rounded-2xl p-5 space-y-3">
           <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">Arcano do mês</p>
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-netzach-gold/20 border border-netzach-gold/40 flex items-center justify-center shrink-0">

@@ -24,7 +24,7 @@ export function InstallPWAModal({ onClose }: Props) {
           <div className="text-4xl mb-3">✦</div>
           <h2 className="font-mystic text-netzach-gold text-lg mb-2">Netzach já está instalado</h2>
           <p className="text-sm text-netzach-muted mb-4">O app está na sua tela inicial. Você pode abri-lo de lá a qualquer momento.</p>
-          <button onClick={onClose} className="w-full bg-netzach-accent text-white py-3 rounded-xl font-mystic">
+          <button onClick={onClose} className="w-full bg-netzach-accent-deep text-white py-3 rounded-xl font-mystic">
             Entendido ✦
           </button>
         </div>

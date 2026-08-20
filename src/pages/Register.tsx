@@ -120,7 +120,7 @@ export default function Register() {
                   value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
               </div>
               <button type="button" onClick={() => setStep(2)} disabled={!formData.name || !formData.email || !formData.whatsapp || !formData.password}
-                className="w-full bg-netzach-accent text-white p-3 rounded-lg font-bold hover:bg-purple-800 transition-all disabled:opacity-50 mt-2">
+                className="w-full bg-netzach-accent-deep text-white p-3 rounded-lg font-bold hover:bg-purple-800 transition-all disabled:opacity-50 mt-2">
                 Continuar →
               </button>
             </div>
@@ -202,7 +202,7 @@ export default function Register() {
 
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setStep(1)} className="flex-1 bg-transparent border border-netzach-border text-netzach-muted p-3 rounded-lg font-bold hover:text-white text-sm">Voltar</button>
-                <button type="button" onClick={() => setStep(3)} className="flex-[2] bg-netzach-accent text-white p-3 rounded-lg font-mystic font-bold hover:bg-purple-800 transition-all text-sm">
+                <button type="button" onClick={() => setStep(3)} className="flex-[2] bg-netzach-accent-deep text-white p-3 rounded-lg font-mystic font-bold hover:bg-purple-800 transition-all text-sm">
                   Continuar →
                 </button>
               </div>

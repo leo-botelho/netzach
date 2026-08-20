@@ -1,11 +1,35 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { Profile, PlanConfig, KnowledgeChunk, ServiceCatalog, ServiceRequest } from '../types';
 import { useNavigate } from 'react-router-dom';
 import {
   Star, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2,
   Link as LinkIcon, Users, Search, Ban, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight,
-  BookOpen, Upload, Loader2
+  BookOpen, Upload, Loader2, AlertTriangle
 } from 'lucide-react';
+
+/** Plano com o preço em texto, do jeito que o campo de edição usa. */
+type PlanoEditavel = PlanConfig & { _price: string };
+
+/** Uma linha da visão erros_recentes. */
+type ErroAgrupado = {
+  mensagem: string; origem: string | null; rota: string | null;
+  ocorrencias: number; pessoas_afetadas: number; ultima_vez: string;
+};
+
+/**
+ * O que a fundadora pode publicar no Céu da Semana (§6.5).
+ * `chave` é o valor gravado em horoscopes.sign.
+ */
+const DIAS_SEMANA = [
+  { chave: 'segunda', rotulo: 'Segunda-feira' },
+  { chave: 'terca',   rotulo: 'Terça-feira' },
+  { chave: 'quarta',  rotulo: 'Quarta-feira' },
+  { chave: 'quinta',  rotulo: 'Quinta-feira' },
+  { chave: 'sexta',   rotulo: 'Sexta-feira' },
+  { chave: 'sabado',  rotulo: 'Sábado' },
+  { chave: 'domingo', rotulo: 'Domingo' },
+];
 
 const SIGNOS = ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes'];
 
@@ -30,13 +54,13 @@ export default function AdminPanel() {
   const [newService, setNewService] = useState({ title: '', description: '', price: '', payment_url: '' });
   
   // Listas
-  const [catalog, setCatalog] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [catalog, setCatalog] = useState<ServiceCatalog[]>([]);
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Base de Conhecimento
-  const [knowledgeList, setKnowledgeList] = useState<any[]>([]);
+  const [knowledgeList, setKnowledgeList] = useState<KnowledgeChunk[]>([]);
   const [knowledgeForm, setKnowledgeForm] = useState({ title: '', content: '', category: 'banho' });
   const [kbLoading, setKbLoading] = useState(false);
 
@@ -46,29 +70,17 @@ export default function AdminPanel() {
   const [bulkResult, setBulkResult] = useState<{ inserted: number; total_chunks: number; errors?: string[] } | null>(null);
 
   // Planos
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<PlanoEditavel[]>([]);
   const [planSaving, setPlanSaving] = useState<string | null>(null);
-
-  useEffect(() => {
-    checkAdmin();
-    fetchRequests();
-    fetchCatalog();
-    fetchUsers();
-    loadTodayInsight();
-    fetchKnowledge();
-    fetchPlans();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'conhecimento') fetchKnowledge();
-  }, [activeTab]);
+  const [alertaTitulo, setAlertaTitulo] = useState('');
+  const [erros, setErros] = useState<ErroAgrupado[]>([]);
 
   const fetchPlans = async () => {
     const { data } = await supabase.from('plan_configs').select('*').order('id');
     if (data) setPlans(data.map(p => ({ ...p, _price: String(p.price) })));
   };
 
-  const savePlan = async (plan: any) => {
+  const savePlan = async (plan: PlanoEditavel) => {
     setPlanSaving(plan.id);
     const price = parseFloat(plan._price.replace(',', '.'));
     if (isNaN(price) || price <= 0) { alert('Preço inválido'); setPlanSaving(null); return; }
@@ -77,19 +89,10 @@ export default function AdminPanel() {
     await fetchPlans();
   };
 
-  const updatePlanField = (id: string, field: string, value: any) => {
+  const updatePlanField = (id: string, field: keyof PlanoEditavel, value: string | number | boolean) => {
     setPlans(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
-  const checkAdmin = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return navigate('/portal');
-    const { data } = await supabase.from('profiles').select('role').eq('user_id', session.user.id).single();
-    if (data?.role !== 'admin') {
-      alert("Acesso restrito.");
-      navigate('/templo');
-    }
-  };
 
   // Carrega o Arcano/Energia já salvo hoje (para editar)
   const loadTodayInsight = async () => {
@@ -162,8 +165,23 @@ export default function AdminPanel() {
   
   const handleSavePrediction = async () => {
     setLoading(true);
-    const type = selectedSign === 'Geral' ? 'sky_weekly' : 'sign_weekly';
-    const signKey = selectedSign === 'Geral' ? 'ceu_semana' : selectedSign.toLowerCase();
+
+    // Quatro tipos de publicação do Céu da Semana:
+    //   sky_weekly    → panorama geral
+    //   day_weekly    → orientação de um dia
+    //   transit_alert → alerta de trânsito sensível
+    //   sign_weekly   → previsão de um signo
+    const ehDia = DIAS_SEMANA.some(d => d.chave === selectedSign);
+    const ehAlerta = selectedSign === 'Alerta';
+
+    const type = selectedSign === 'Geral' ? 'sky_weekly'
+      : ehDia ? 'day_weekly'
+      : ehAlerta ? 'transit_alert'
+      : 'sign_weekly';
+
+    const signKey = selectedSign === 'Geral' ? 'ceu_semana'
+      : ehAlerta ? (alertaTitulo.trim() || 'transito')
+      : selectedSign.toLowerCase();
     await supabase.from('horoscopes').delete().match({ sign: signKey, type });
     const { error } = await supabase.from('horoscopes').insert({ sign: signKey, type, content: predictionText, valid_date: new Date().toISOString() });
     if (!error && selectedSign === 'Geral') {
@@ -182,6 +200,15 @@ export default function AdminPanel() {
   const handleDeleteService = async (id: string) => { if(confirm("Excluir?")) { await supabase.from('services_catalog').delete().eq('id', id); fetchCatalog(); } };
   
   const fetchRequests = async () => { const { data } = await supabase.from('service_requests').select('*, profiles(full_name, whatsapp)').order('created_at', { ascending: false }); if(data) setRequests(data); };
+
+  const fetchErros = async () => {
+    const { data, error } = await supabase
+      .from('erros_recentes')
+      .select('*')
+      .limit(50);
+    if (error) console.error('Falha ao ler os erros:', error.message);
+    setErros((data ?? []) as ErroAgrupado[]);
+  };
 
   const fetchKnowledge = async () => { const { data } = await supabase.from('knowledge_base').select('id, title, category, created_at').order('created_at', { ascending: false }); if(data) setKnowledgeList(data); };
 
@@ -237,6 +264,24 @@ export default function AdminPanel() {
 
   const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // Declarados aqui embaixo, depois das funções que chamam: antes o
+  // efeito vinha primeiro e usava referências ainda não inicializadas.
+  useEffect(() => {
+    fetchRequests();
+    fetchCatalog();
+    fetchUsers();
+    loadTodayInsight();
+    fetchKnowledge();
+    fetchPlans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'conhecimento') fetchKnowledge();
+    if (activeTab === 'erros') fetchErros();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   return (
     <div className="min-h-screen bg-netzach-bg text-netzach-text font-sans p-6">
       <header className="mb-8 border-b border-netzach-border pb-4 flex justify-between items-center">
@@ -254,6 +299,7 @@ export default function AdminPanel() {
             { id: 'iniciadas', icon: Users, label: '6. Alunas' },
             { id: 'conhecimento', icon: Bot, label: '7. Netzach IA' },
             { id: 'planos', icon: CreditCard, label: '8. Planos' },
+            { id: 'erros', icon: AlertTriangle, label: '9. Falhas' },
         ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-6 py-3 rounded-lg border whitespace-nowrap ${activeTab === tab.id ? 'bg-netzach-gold text-netzach-bg border-netzach-gold font-bold' : 'bg-netzach-card border-netzach-border text-netzach-muted'}`}>
                 <tab.icon size={18}/> {tab.label}
@@ -266,12 +312,12 @@ export default function AdminPanel() {
         <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border max-w-3xl space-y-4">
             <h2 className="text-xl font-mystic text-white mb-2">Arcano da Semana</h2>
             <div className="grid grid-cols-2 gap-4">
-                <input placeholder="Nome do Arcano" className="p-3 bg-[#0F0518] border border-netzach-border rounded text-white" value={insightForm.tarot_card_id} onChange={e => setInsightForm({...insightForm, tarot_card_id: e.target.value})}/>
-                <input placeholder="Fase da Lua" className="p-3 bg-[#0F0518] border border-netzach-border rounded text-white" value={insightForm.moon_phase} onChange={e => setInsightForm({...insightForm, moon_phase: e.target.value})}/>
+                <input placeholder="Nome do Arcano" className="p-3 bg-netzach-deep border border-netzach-border rounded text-white" value={insightForm.tarot_card_id} onChange={e => setInsightForm({...insightForm, tarot_card_id: e.target.value})}/>
+                <input placeholder="Fase da Lua" className="p-3 bg-netzach-deep border border-netzach-border rounded text-white" value={insightForm.moon_phase} onChange={e => setInsightForm({...insightForm, moon_phase: e.target.value})}/>
             </div>
-            <input placeholder="URL da Imagem da Carta" className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-xs" value={insightForm.card_image_url} onChange={e => setInsightForm({...insightForm, card_image_url: e.target.value})}/>
-            <textarea rows={4} placeholder="Interpretação completa..." className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white" value={insightForm.card_meaning} onChange={e => setInsightForm({...insightForm, card_meaning: e.target.value})}/>
-            <input placeholder="Banho Recomendado (Texto curto)" className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white" value={insightForm.recommended_bath} onChange={e => setInsightForm({...insightForm, recommended_bath: e.target.value})}/>
+            <input placeholder="URL da Imagem da Carta" className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white text-xs" value={insightForm.card_image_url} onChange={e => setInsightForm({...insightForm, card_image_url: e.target.value})}/>
+            <textarea rows={4} placeholder="Interpretação completa..." className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white" value={insightForm.card_meaning} onChange={e => setInsightForm({...insightForm, card_meaning: e.target.value})}/>
+            <input placeholder="Banho Recomendado (Texto curto)" className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white" value={insightForm.recommended_bath} onChange={e => setInsightForm({...insightForm, recommended_bath: e.target.value})}/>
             <button onClick={handleSaveInsight} disabled={loading} className="w-full bg-netzach-gold text-netzach-bg py-3 rounded font-bold hover:bg-white">{loading ? 'Salvando...' : 'Salvar / Atualizar'}</button>
         </div>
       )}
@@ -279,9 +325,34 @@ export default function AdminPanel() {
       {/* 2. PREVISÕES */}
       {activeTab === 'previsoes' && (
         <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border max-w-3xl space-y-4">
-            <h2 className="text-xl font-mystic text-white">Horóscopo</h2>
-            <select className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white" value={selectedSign} onChange={e => setSelectedSign(e.target.value)}><option value="Geral">🌌 Céu da Semana (Geral)</option>{SIGNOS.map(s => <option key={s} value={s}>{s}</option>)}</select>
-            <textarea rows={6} className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white" value={predictionText} onChange={e => setPredictionText(e.target.value)} placeholder="Escreva a previsão aqui..."/>
+            <h2 className="text-xl font-mystic text-white">Céu da Semana</h2>
+            <p className="text-xs text-netzach-muted -mt-2">
+              O que você publica aqui aparece em /ceu para as assinantes.
+            </p>
+
+            <select className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white" value={selectedSign} onChange={e => setSelectedSign(e.target.value)}>
+              <optgroup label="Semana">
+                <option value="Geral">🌌 Panorama da semana</option>
+                <option value="Alerta">⚠️ Alerta de trânsito sensível</option>
+              </optgroup>
+              <optgroup label="Dia a dia">
+                {DIAS_SEMANA.map(d => <option key={d.chave} value={d.chave}>📅 {d.rotulo}</option>)}
+              </optgroup>
+              <optgroup label="Por signo">
+                {SIGNOS.map(s => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+            </select>
+
+            {selectedSign === 'Alerta' && (
+              <input
+                className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white"
+                value={alertaTitulo}
+                onChange={e => setAlertaTitulo(e.target.value)}
+                placeholder="Nome do trânsito (ex: Mercúrio retrógrado, Lua fora de curso)"
+              />
+            )}
+
+            <textarea rows={6} className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white" value={predictionText} onChange={e => setPredictionText(e.target.value)} placeholder="Escreva a orientação aqui..."/>
             <button onClick={handleSavePrediction} disabled={loading} className="w-full bg-netzach-gold text-netzach-bg py-3 rounded font-bold hover:bg-white">{loading ? 'Publicando...' : 'Publicar'}</button>
         </div>
       )}
@@ -290,13 +361,13 @@ export default function AdminPanel() {
       {activeTab === 'catalogo' && (
         <div className="space-y-6">
             <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border space-y-4 max-w-2xl">
-                <input placeholder="Título do Serviço" className="w-full p-3 bg-[#0F0518] rounded border border-netzach-border text-white" onChange={e => setNewService({...newService, title: e.target.value})} value={newService.title}/>
-                <input placeholder="Preço (R$)" type="number" className="w-full p-3 bg-[#0F0518] rounded border border-netzach-border text-white" onChange={e => setNewService({...newService, price: e.target.value})} value={newService.price}/>
-                <div className="relative"><LinkIcon className="absolute left-3 top-3.5 text-netzach-muted" size={16}/><input placeholder="Link Pagamento (Opcional)" className="w-full pl-10 p-3 bg-[#0F0518] rounded border border-netzach-border text-white" onChange={e => setNewService({...newService, payment_url: e.target.value})} value={newService.payment_url}/></div>
-                <textarea rows={2} placeholder="Descrição" className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white" onChange={e => setNewService({...newService, description: e.target.value})} value={newService.description}/>
+                <input placeholder="Título do Serviço" className="w-full p-3 bg-netzach-deep rounded border border-netzach-border text-white" onChange={e => setNewService({...newService, title: e.target.value})} value={newService.title}/>
+                <input placeholder="Preço (R$)" type="number" className="w-full p-3 bg-netzach-deep rounded border border-netzach-border text-white" onChange={e => setNewService({...newService, price: e.target.value})} value={newService.price}/>
+                <div className="relative"><LinkIcon className="absolute left-3 top-3.5 text-netzach-muted" size={16}/><input placeholder="Link Pagamento (Opcional)" className="w-full pl-10 p-3 bg-netzach-deep rounded border border-netzach-border text-white" onChange={e => setNewService({...newService, payment_url: e.target.value})} value={newService.payment_url}/></div>
+                <textarea rows={2} placeholder="Descrição" className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white" onChange={e => setNewService({...newService, description: e.target.value})} value={newService.description}/>
                 <button onClick={handleCreateService} className="w-full bg-netzach-gold text-netzach-bg py-3 rounded font-bold">Adicionar ao Catálogo</button>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">{catalog.map(item => (<div key={item.id} className="p-4 border border-netzach-border rounded-xl flex justify-between bg-[#0F0518]"><div className="flex-1"><h4 className="font-bold text-netzach-gold">{item.title}</h4><p className="text-xs text-netzach-muted">R$ {item.price}</p></div><button onClick={() => handleDeleteService(item.id)} className="text-red-400 p-2"><Trash2 size={18}/></button></div>))}</div>
+            <div className="grid md:grid-cols-2 gap-4">{catalog.map(item => (<div key={item.id} className="p-4 border border-netzach-border rounded-xl flex justify-between bg-netzach-deep"><div className="flex-1"><h4 className="font-bold text-netzach-gold">{item.title}</h4><p className="text-xs text-netzach-muted">R$ {item.price}</p></div><button onClick={() => handleDeleteService(item.id)} className="text-red-400 p-2"><Trash2 size={18}/></button></div>))}</div>
         </div>
       )}
 
@@ -304,11 +375,11 @@ export default function AdminPanel() {
       {activeTab === 'rituais' && (
         <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border max-w-3xl space-y-4">
             <h2 className="text-xl font-mystic text-white">Novo Ritual</h2>
-            <input placeholder="Título do Ritual" className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded-lg text-white" onChange={e => setRitualData({...ritualData, title: e.target.value})} value={ritualData.title}/>
-            <textarea rows={3} placeholder="Ingredientes necessários..." className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded-lg text-white" onChange={e => setRitualData({...ritualData, materials: e.target.value})} value={ritualData.materials}/>
-            <textarea rows={4} placeholder="Como fazer (Passo a passo)..." className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded-lg text-white" onChange={e => setRitualData({...ritualData, description: e.target.value})} value={ritualData.description}/>
+            <input placeholder="Título do Ritual" className="w-full p-3 bg-netzach-deep border border-netzach-border rounded-lg text-white" onChange={e => setRitualData({...ritualData, title: e.target.value})} value={ritualData.title}/>
+            <textarea rows={3} placeholder="Ingredientes necessários..." className="w-full p-3 bg-netzach-deep border border-netzach-border rounded-lg text-white" onChange={e => setRitualData({...ritualData, materials: e.target.value})} value={ritualData.materials}/>
+            <textarea rows={4} placeholder="Como fazer (Passo a passo)..." className="w-full p-3 bg-netzach-deep border border-netzach-border rounded-lg text-white" onChange={e => setRitualData({...ritualData, description: e.target.value})} value={ritualData.description}/>
             <div className="flex gap-4">
-                <select className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded-lg text-white" value={ritualData.moon_phase} onChange={e => setRitualData({...ritualData, moon_phase: e.target.value})}>
+                <select className="w-full p-3 bg-netzach-deep border border-netzach-border rounded-lg text-white" value={ritualData.moon_phase} onChange={e => setRitualData({...ritualData, moon_phase: e.target.value})}>
                     <option value="Qualquer">Fase da Lua (Opcional)</option><option value="Nova">Nova</option><option value="Crescente">Crescente</option><option value="Cheia">Cheia</option><option value="Minguante">Minguante</option>
                 </select>
                 <button onClick={handleSaveRitual} disabled={loading} className="w-full bg-netzach-gold text-netzach-bg py-3 rounded-lg font-bold hover:bg-white transition-all">{loading ? 'Salvando...' : 'Adicionar ao Grimório'}</button>
@@ -347,12 +418,12 @@ export default function AdminPanel() {
             <div className="grid grid-cols-2 gap-3">
               <input
                 placeholder="Título do livro ou fonte (ex: O Poder do Agora)"
-                className="col-span-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm"
+                className="col-span-2 p-3 bg-netzach-deep border border-netzach-border rounded text-white text-sm"
                 value={bulkForm.source_title}
                 onChange={e => setBulkForm(f => ({ ...f, source_title: e.target.value }))}
               />
               <select
-                className="p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm"
+                className="p-3 bg-netzach-deep border border-netzach-border rounded text-white text-sm"
                 value={bulkForm.category}
                 onChange={e => setBulkForm(f => ({ ...f, category: e.target.value }))}
               >
@@ -373,7 +444,7 @@ export default function AdminPanel() {
                 <option value="crianca_interior">Criança Interior</option>
                 <option value="geral">Geral</option>
               </select>
-              <label className="flex items-center gap-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-netzach-muted text-sm cursor-pointer hover:border-netzach-gold transition-colors">
+              <label className="flex items-center gap-2 p-3 bg-netzach-deep border border-netzach-border rounded text-netzach-muted text-sm cursor-pointer hover:border-netzach-gold transition-colors">
                 <Upload size={14}/> Carregar arquivo .txt / .md
                 <input type="file" accept=".txt,.md" className="hidden" onChange={handleBulkFile}/>
               </label>
@@ -382,7 +453,7 @@ export default function AdminPanel() {
             <textarea
               rows={10}
               placeholder="Cole aqui o texto completo do livro ou capítulo..."
-              className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm font-mono leading-relaxed"
+              className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white text-sm font-mono leading-relaxed"
               value={bulkForm.text}
               onChange={e => setBulkForm(f => ({ ...f, text: e.target.value }))}
             />
@@ -422,12 +493,12 @@ export default function AdminPanel() {
             <div className="grid grid-cols-2 gap-4">
               <input
                 placeholder="Título (ex: Banho de Arruda)"
-                className="col-span-2 p-3 bg-[#0F0518] border border-netzach-border rounded text-white"
+                className="col-span-2 p-3 bg-netzach-deep border border-netzach-border rounded text-white"
                 value={knowledgeForm.title}
                 onChange={e => setKnowledgeForm({...knowledgeForm, title: e.target.value})}
               />
               <select
-                className="p-3 bg-[#0F0518] border border-netzach-border rounded text-white"
+                className="p-3 bg-netzach-deep border border-netzach-border rounded text-white"
                 value={knowledgeForm.category}
                 onChange={e => setKnowledgeForm({...knowledgeForm, category: e.target.value})}
               >
@@ -448,14 +519,14 @@ export default function AdminPanel() {
                 <option value="crianca_interior">Criança Interior</option>
                 <option value="geral">Geral</option>
               </select>
-              <div className="flex items-center text-xs text-netzach-muted bg-[#0F0518] border border-netzach-border rounded px-3">
+              <div className="flex items-center text-xs text-netzach-muted bg-netzach-deep border border-netzach-border rounded px-3">
                 {knowledgeList.length} itens na base
               </div>
             </div>
             <textarea
               rows={6}
               placeholder="Conteúdo detalhado (até ~500 palavras por chunk)..."
-              className="w-full p-3 bg-[#0F0518] border border-netzach-border rounded text-white text-sm"
+              className="w-full p-3 bg-netzach-deep border border-netzach-border rounded text-white text-sm"
               value={knowledgeForm.content}
               onChange={e => setKnowledgeForm({...knowledgeForm, content: e.target.value})}
             />
@@ -471,7 +542,7 @@ export default function AdminPanel() {
           {/* Lista */}
           <div className="space-y-2">
             {knowledgeList.map(item => (
-              <div key={item.id} className="bg-[#0F0518] border border-netzach-border rounded-xl p-4 flex justify-between items-center">
+              <div key={item.id} className="bg-netzach-deep border border-netzach-border rounded-xl p-4 flex justify-between items-center">
                 <div>
                   <span className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold mr-2">{item.category}</span>
                   <span className="text-sm text-white">{item.title}</span>
@@ -492,7 +563,7 @@ export default function AdminPanel() {
       {activeTab === 'iniciadas' && (
         <div>
             <div className="bg-netzach-card p-4 rounded-xl mb-4 flex gap-2"><Search className="text-netzach-muted"/><input placeholder="Buscar aluna..." className="bg-transparent w-full outline-none text-white" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/></div>
-            <div className="bg-netzach-card rounded-xl overflow-hidden">{filteredUsers.map(user => (<div key={user.id} className="p-4 border-b border-netzach-border flex justify-between items-center"><div><p className="font-bold">{user.full_name}</p><p className="text-xs text-netzach-muted">{user.whatsapp} • {user.sign_sun}</p></div>{user.role !== 'admin' && (<button onClick={() => toggleUserStatus(user.id, user.subscription_status)} className={user.subscription_status === 'active' ? 'text-green-400' : 'text-red-400'}>{user.subscription_status === 'active' ? <CheckCircle/> : <Ban/>}</button>)}</div>))}</div>
+            <div className="bg-netzach-card rounded-xl overflow-hidden">{filteredUsers.map(user => (<div key={user.id} className="p-4 border-b border-netzach-border flex justify-between items-center"><div><p className="font-bold">{user.full_name}</p><p className="text-xs text-netzach-muted">{user.whatsapp} • {user.sign_sun}</p></div>{user.role !== 'admin' && (<button onClick={() => toggleUserStatus(user.id, user.subscription_status ?? 'inactive')} className={user.subscription_status === 'active' ? 'text-green-400' : 'text-red-400'}>{user.subscription_status === 'active' ? <CheckCircle/> : <Ban/>}</button>)}</div>))}</div>
         </div>
       )}
 
@@ -557,6 +628,56 @@ export default function AdminPanel() {
             <p>Alterar preço NÃO altera assinaturas existentes no Asaas. Apenas novas cobranças usarão o novo valor.</p>
             <p>Para desativar um plano sem cancelar assinantes, use o toggle Ativo (plano não aparece no checkout).</p>
           </div>
+        </div>
+      )}
+
+      {/* 9. FALHAS ─────────────────────────────────────────────── */}
+      {activeTab === 'erros' && (
+        <div className="space-y-4 max-w-4xl">
+          <div>
+            <h2 className="text-xl font-mystic text-white">O que quebrou</h2>
+            <p className="text-xs text-netzach-muted mt-1">
+              Falhas dos últimos 7 dias, agrupadas. Antes disso, um erro no celular de uma
+              assinante não chegava até você.
+            </p>
+          </div>
+
+          {erros.length === 0 ? (
+            <div className="bg-netzach-card border border-netzach-border rounded-xl p-8 text-center">
+              <p className="text-3xl mb-2">✦</p>
+              <p className="text-netzach-gold font-mystic">Nenhuma falha registrada nesta semana</p>
+              <p className="text-xs text-netzach-muted mt-1">
+                É o que se espera de um portal saudável.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {erros.map((e, i) => (
+                <div key={i} className="bg-netzach-card border border-netzach-border rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                      e.pessoas_afetadas > 1
+                        ? 'bg-red-900/30 text-red-400 border border-red-500/30'
+                        : 'bg-netzach-deep text-netzach-muted border border-netzach-border'
+                    }`}>
+                      {e.ocorrencias}x
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white break-words">{e.mensagem}</p>
+                      <p className="text-[11px] text-netzach-muted mt-1">
+                        {e.rota ?? 'rota desconhecida'}
+                        {e.origem && ` · ${e.origem}`}
+                        {e.pessoas_afetadas > 1 && ` · ${e.pessoas_afetadas} pessoas`}
+                      </p>
+                      <p className="text-[11px] text-netzach-muted/60 mt-0.5">
+                        última vez: {new Date(e.ultima_vez).toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

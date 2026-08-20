@@ -1,5 +1,20 @@
 import type { MatrizDestino } from '../types';
 
+/** Círculo com o número do arcano dentro. */
+type FCProps = {
+  x: number; y: number; num: number | string;
+  r?: number; fill?: string; stroke?: string; sw?: number;
+};
+
+const FC = ({ x, y, num, r = 24, fill = '#1B1238', stroke = '#C9A84C', sw = 2 }: FCProps) => (
+  <g>
+    <circle cx={x} cy={y} r={r} fill={fill} stroke={stroke} strokeWidth={sw} />
+    <text x={x} y={y} fill="#fff"
+      fontSize={r >= 32 ? '20' : r >= 24 ? '16' : r >= 19 ? '13' : '11'}
+      fontWeight="bold" textAnchor="middle" dominantBaseline="middle">{num}</text>
+  </g>
+);
+
 interface Props {
   matriz: MatrizDestino;
 }
@@ -49,17 +64,6 @@ export const MatrizMandala = ({ matriz }: Props) => {
   const tRI    = { x: cx + d3,  y: cy - d3 };
   const bRI    = { x: cx + d3,  y: cy + d3 };
   const bLI    = { x: cx - d3,  y: cy + d3 };
-
-  // ── Componente círculo preenchido ───────────────────────────────────
-  type FCProps = { x:number; y:number; num:number|string; r?:number; fill?:string; stroke?:string; sw?:number };
-  const FC = ({ x, y, num, r=24, fill='#1e0f35', stroke='#c5a059', sw=2 }: FCProps) => (
-    <g>
-      <circle cx={x} cy={y} r={r} fill={fill} stroke={stroke} strokeWidth={sw}/>
-      <text x={x} y={y} fill="#fff"
-        fontSize={r>=32?'20':r>=24?'16':r>=19?'13':'11'}
-        fontWeight="bold" textAnchor="middle" dominantBaseline="middle">{num}</text>
-    </g>
-  );
 
   // ── IDs dos caminhos para textPath ─────────────────────────────────
   const mPath = `M ${tL.x} ${tL.y} L ${bR.x} ${bR.y}`;
@@ -210,8 +214,8 @@ export const MatrizMandala = ({ matriz }: Props) => {
       />
 
       {/* ── Labels topo e base ─────────────────────────────────────── */}
-      <text x={cx} y={40}      fill="#c5a059" fontSize="14" textAnchor="middle" fontWeight="700" letterSpacing="1">Dons e Talentos</text>
-      <text x={cx} y={S - 36}  fill="#c5a059" fontSize="14" textAnchor="middle" fontWeight="700" letterSpacing="1">Zona Cármica</text>
+      <text x={cx} y={40}      fill="#C9A84C" fontSize="14" textAnchor="middle" fontWeight="700" letterSpacing="1">Dons e Talentos</text>
+      <text x={cx} y={S - 36}  fill="#C9A84C" fontSize="14" textAnchor="middle" fontWeight="700" letterSpacing="1">Zona Cármica</text>
     </svg>
   );
 };

@@ -9,7 +9,7 @@ const PHASE_CONTENT: Record<string, {
 }> = {
   Nova: {
     emoji: '🌑', subtitle: 'Início, silêncio e semeadura',
-    color: '#2C1452',
+    color: '#3B2A70',
     energy: 'A Lua Nova é o momento do útero sagrado, escuro, fértil e cheio de possibilidades. É tempo de introspecção, de limpar o que não serve mais e de plantar intenções novas.',
     ritual: 'Acenda uma vela preta ou roxa. Em um papel, escreva o que você deseja manifestar neste ciclo. Dobre o papel três vezes em direção a você. Guarde-o em um lugar sagrado até a Lua Cheia.',
     intention: 'Novos começos, limpeza energética, introspecção, definição de metas',
@@ -87,7 +87,7 @@ export default function MagiaLunar() {
         </div>
 
         {/* Ritual */}
-        <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-border rounded-2xl p-5 space-y-3">
+        <div className="bg-gradient-to-br from-netzach-card to-netzach-card2 border border-netzach-border rounded-2xl p-5 space-y-3">
           <p className="text-[10px] uppercase tracking-widest text-netzach-gold font-bold">✦ Ritual desta fase</p>
           <p className="text-sm text-netzach-text/90 leading-relaxed">{content.ritual}</p>
         </div>

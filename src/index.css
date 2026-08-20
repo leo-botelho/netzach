@@ -30,9 +30,9 @@ body::after {
 
 /* ── Custom scrollbar ───────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: #1C0A38; }
-::-webkit-scrollbar-thumb { background: #4D2B78; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #C5A059; }
+::-webkit-scrollbar-track { background: #1B1238; }
+::-webkit-scrollbar-thumb { background: #4E3A8E; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #C9A84C; }
 
 /* ── Custom cursor (hide default apenas na Home) ────────────── */
 @media (hover: hover) and (pointer: fine) {
@@ -49,7 +49,7 @@ body::after {
 }
 
 /* ── Selection ──────────────────────────────────────────────── */
-::selection { background: #C5A059; color: #0F0518; }
+::selection { background: #C9A84C; color: #1B1238; }
 
 /* ── Keyframes ──────────────────────────────────────────────── */
 
@@ -95,8 +95,10 @@ body::after {
 
 /* ── Input padrão Netzach ───────────────────────────────────── */
 @layer components {
+  /* O campo afunda em relação à página e o contorno atinge 3:1 (WCAG 1.4.11),
+     o que o fundo da própria página não dava. */
   .input-mystic {
-    @apply w-full bg-netzach-bg border border-netzach-border rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors;
+    @apply w-full bg-netzach-deep border border-netzach-border-field rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors;
   }
   .input-mystic:focus {
     @apply border-netzach-gold;
@@ -114,8 +116,8 @@ body::after {
 
 /* Gold glow pulse — for feature icons / CTA */
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(197, 160, 89, 0.15); }
-  50%       { box-shadow: 0 0 45px rgba(197, 160, 89, 0.40); }
+  0%, 100% { box-shadow: 0 0 20px rgba(201, 168, 76, 0.15); }
+  50%       { box-shadow: 0 0 45px rgba(201, 168, 76, 0.40); }
 }
 
 .glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
@@ -132,11 +134,11 @@ body::after {
 @keyframes orb-pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 30px rgba(197, 160, 89, 0.2), 0 0 60px rgba(112, 11, 151, 0.1);
+    box-shadow: 0 0 30px rgba(201, 168, 76, 0.2), 0 0 60px rgba(139, 92, 246, 0.1);
   }
   50% {
     transform: scale(1.08);
-    box-shadow: 0 0 50px rgba(197, 160, 89, 0.4), 0 0 100px rgba(112, 11, 151, 0.2);
+    box-shadow: 0 0 50px rgba(201, 168, 76, 0.4), 0 0 100px rgba(139, 92, 246, 0.2);
   }
 }
 
@@ -161,9 +163,9 @@ body::after {
 .shimmer {
   background: linear-gradient(
     90deg,
-    #2C1452 25%,
-    #3D1A6E 50%,
-    #2C1452 75%
+    #3B2A70 25%,
+    #4E3A8E 50%,
+    #3B2A70 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;

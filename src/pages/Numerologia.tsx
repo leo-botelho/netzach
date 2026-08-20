@@ -176,7 +176,7 @@ export default function Numerologia() {
       <main className="max-w-lg mx-auto px-4 py-5 space-y-4">
 
         {/* Arcano pessoal destaque */}
-        <div className="bg-gradient-to-br from-netzach-card to-[#2a1245] border border-netzach-gold/30 rounded-2xl p-5 flex items-center gap-5">
+        <div className="bg-gradient-to-br from-netzach-card to-netzach-card2 border border-netzach-gold/30 rounded-2xl p-5 flex items-center gap-5">
           <div className="w-16 h-16 rounded-full bg-netzach-gold/20 border border-netzach-gold/40 flex items-center justify-center shrink-0">
             <span className="font-mystic text-3xl text-netzach-gold">{arcanaNum}</span>
           </div>

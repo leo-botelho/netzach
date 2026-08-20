@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -20,8 +20,8 @@ export default defineConfig({
         name: 'Netzach - Desperte sua Deusa interior',
         short_name: 'Netzach',
         description: 'Desperte sua Deusa interior',
-        theme_color: '#8B1FC8', // Violeta Vibrante (cor da barra do app)
-        background_color: '#1C0A38', // Violeta Escuro (fundo do app)
+        theme_color: '#8B5CF6', // Violeta sacerdotisa (documento §13)
+        background_color: '#2E1F5E', // Noite sagrada (documento §13)
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -94,4 +94,16 @@ export default defineConfig({
       }
     })
   ],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    // O service worker não roda sob jsdom.
+    exclude: ['node_modules/**', 'dist/**', 'src/sw.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/hooks/**', 'src/utils/**', 'src/lib/**', 'src/components/**'],
+    },
+  },
 });

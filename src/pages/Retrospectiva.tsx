@@ -9,7 +9,7 @@ const MOOD_LABELS: Record<number, { label: string; emoji: string; color: string 
   1: { label: 'Muito baixa', emoji: '😔', color: '#6B4F7E' },
   2: { label: 'Baixa',       emoji: '😕', color: '#7B5F8E' },
   3: { label: 'Neutra',      emoji: '😐', color: '#9E87BB' },
-  4: { label: 'Boa',         emoji: '🙂', color: '#C5A059' },
+  4: { label: 'Boa',         emoji: '🙂', color: '#C9A84C' },
   5: { label: 'Ótima',       emoji: '😊', color: '#D4A5C9' },
 };
 

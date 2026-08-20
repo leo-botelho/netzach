@@ -7,10 +7,11 @@ RUN npm install
 
 COPY . .
 
-# 2. Mudamos o comando de build
-# Em vez de "npm run build" (que roda o tsc e trava com erros),
-# rodamos direto o vite build. Ele constrói o site mesmo com avisos de variáveis não usadas.
-RUN npx vite build
+# 2. Build com verificação de tipos.
+# Antes o tsc era pulado de propósito, porque travava com erros, e a
+# imagem publicava código que não compilava. Os erros foram corrigidos
+# em 19/08/2026 e o type-check voltou para o caminho do build.
+RUN npm run build
 
 # Estágio de Servidor (Nginx) - Mantivemos a otimização de PWA
 FROM nginx:alpine

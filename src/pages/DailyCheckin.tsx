@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { EMOCOES_SONHO, INTENSIDADES } from '../lib/simbolosOniricos';
+import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Flame, Sun, Moon, Leaf, BookOpen, Wind, Droplets, Footprints, Coffee } from 'lucide-react';
 
@@ -69,9 +71,14 @@ export default function DailyCheckin() {
   const [saving, setSaving] = useState(false);
   const [activeView, setActiveView] = useState<'habits' | 'morning' | 'evening'>('habits');
   const [done, setDone] = useState(false);
+  const [cicloAtual, setCicloAtual] = useState<{ phaseName: string } | null>(null);
 
   // Forms
-  const [morning, setMorning] = useState({ energy: 0, emotion: 0, mind: 0, sleep_quality: 0, dream_notes: '', intention: '' });
+  const [morning, setMorning] = useState({
+    energy: 0, emotion: 0, mind: 0, sleep_quality: 0,
+    dream_notes: '', dream_emotion: '', dream_intensity: '',
+    intention: '',
+  });
   const [evening, setEvening] = useState({ alignment: '', gratitude: '', mood: 0, release_notes: '' });
 
   const today = new Date().toISOString().split('T')[0];
@@ -86,6 +93,17 @@ export default function DailyCheckin() {
     if (!session) return navigate('/portal');
     const uid = session.user.id;
     setUserId(uid);
+
+    // Ciclo menstrual, para gravar em que fase o sonho aconteceu
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('last_period_date, cycle_duration')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (perfil?.last_period_date) {
+      setCicloAtual(calculateCycleStatus(perfil.last_period_date, perfil.cycle_duration ?? 28));
+    }
 
     // Carrega check-ins de hoje
     const { data: checkins } = await supabase
@@ -157,10 +175,25 @@ export default function DailyCheckin() {
   const saveMorning = async () => {
     if (!userId || morning.energy === 0) return;
     setSaving(true);
-    await supabase.from('daily_checkins').upsert({
+
+    // A lua e a fase do ciclo do dia ficam gravadas junto com o sonho.
+    // É o que permite, meses depois, mostrar em que fases ela sonha
+    // mais intensamente (§9 do documento).
+    const temSonho = morning.dream_notes.trim().length > 0;
+    const { error } = await supabase.from('daily_checkins').upsert({
       user_id: userId, date: today, period: 'morning',
       ...morning,
+      dream_emotion: temSonho ? (morning.dream_emotion || null) : null,
+      dream_intensity: temSonho ? (morning.dream_intensity || null) : null,
+      dream_moon_phase: temSonho ? getMoonPhase().phase : null,
+      dream_cycle_phase: temSonho ? (cicloAtual?.phaseName ?? null) : null,
     }, { onConflict: 'user_id,date,period' });
+
+    if (error) {
+      console.error('Falha ao salvar o check-in da manhã:', error.message);
+      setSaving(false);
+      return;
+    }
     setCheckin(prev => ({ ...prev, morning: true }));
     setSaving(false);
     setDone(true);
@@ -346,11 +379,73 @@ export default function DailyCheckin() {
                   </div>
                   <textarea
                     rows={2}
-                    placeholder="Sonhos marcantes? (opcional)"
+                    placeholder="Você sonhou? Descreva o que lembra."
                     className="w-full p-3 bg-netzach-card border border-netzach-border rounded-xl text-sm text-white placeholder:text-netzach-muted outline-none focus:border-netzach-gold/50 resize-none"
                     value={morning.dream_notes}
                     onChange={e => setMorning(p => ({ ...p, dream_notes: e.target.value }))}
                   />
+
+                  {/* Emoção e intensidade só aparecem quando há sonho a
+                      registrar: perguntar antes seria ruído (§9). */}
+                  {morning.dream_notes.trim().length > 0 && (
+                    <div className="mt-3 space-y-3 fade-up">
+                      <div>
+                        <p className="text-xs text-netzach-muted uppercase tracking-wider mb-2">
+                          Que emoção ficou do sonho?
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {EMOCOES_SONHO.map(e => (
+                            <button
+                              key={e.chave}
+                              type="button"
+                              aria-pressed={morning.dream_emotion === e.chave}
+                              onClick={() => setMorning(p => ({
+                                ...p,
+                                dream_emotion: p.dream_emotion === e.chave ? '' : e.chave,
+                              }))}
+                              className={`px-2.5 py-1 rounded-full border text-xs transition-all ${
+                                morning.dream_emotion === e.chave
+                                  ? 'border-netzach-gold bg-netzach-gold/10 text-white'
+                                  : 'border-netzach-border text-netzach-muted hover:text-white'
+                              }`}
+                            >
+                              {e.emoji} {e.rotulo}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-netzach-muted uppercase tracking-wider mb-2">
+                          Como ele veio?
+                        </p>
+                        <div className="flex gap-1.5">
+                          {INTENSIDADES.map(i => (
+                            <button
+                              key={i.chave}
+                              type="button"
+                              aria-pressed={morning.dream_intensity === i.chave}
+                              onClick={() => setMorning(p => ({
+                                ...p,
+                                dream_intensity: p.dream_intensity === i.chave ? '' : i.chave,
+                              }))}
+                              className={`flex-1 py-1.5 rounded-lg border text-xs transition-all ${
+                                morning.dream_intensity === i.chave
+                                  ? 'border-netzach-gold bg-netzach-gold/10 text-white'
+                                  : 'border-netzach-border text-netzach-muted hover:text-white'
+                              }`}
+                            >
+                              {i.rotulo}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <a href="/sonhos" className="inline-block text-[11px] text-netzach-gold border-b border-netzach-gold/40 hover:border-netzach-gold transition-colors">
+                        Ver seus padrões de sonho
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div>

@@ -131,14 +131,14 @@ export default function Rituals() {
                 <div className="flex justify-between items-start mb-3 relative z-10">
                   <h3 className="text-lg font-mystic text-white group-hover:text-netzach-gold transition-colors">{ritual.title}</h3>
                   {ritual.moon_phase && ritual.moon_phase !== 'Qualquer' && (
-                    <span className="text-[10px] uppercase tracking-wider bg-[#0F0518] border border-netzach-border px-2 py-1 rounded flex items-center gap-1 text-netzach-muted">
+                    <span className="text-[10px] uppercase tracking-wider bg-netzach-deep border border-netzach-border px-2 py-1 rounded flex items-center gap-1 text-netzach-muted">
                       <Moon size={10} /> {ritual.moon_phase}
                     </span>
                   )}
                 </div>
                 <p className="text-sm text-netzach-text/80 mb-4 leading-relaxed relative z-10">{ritual.description}</p>
                 {ritual.materials && (
-                  <div className="bg-[#0F0518]/50 p-4 rounded-lg border border-netzach-border/50 text-sm relative z-10">
+                  <div className="bg-netzach-deep/50 p-4 rounded-lg border border-netzach-border/50 text-sm relative z-10">
                     <strong className="text-netzach-gold block mb-2 text-xs uppercase flex items-center gap-1">
                       <Sparkles size={12} /> Ingredientes Necessários:
                     </strong>

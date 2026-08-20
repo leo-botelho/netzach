@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Moon, Sparkles, ArrowRight, Star, Bot } from 'lucide-react';
-import CosmicCanvas from '../components/CosmicCanvas';
+
+/**
+ * O three.js pesa mais do que todo o resto do portal somado e serve
+ * apenas ao fundo animado desta seção. Carregado à parte, o texto da
+ * landing aparece sem esperar por ele.
+ */
+const CosmicCanvas = lazy(() => import('../components/CosmicCanvas'));
 
 // ── Scroll reveal hook ───────────────────────────────────────────
 function useReveal(threshold = 0.1) {
@@ -135,12 +141,14 @@ export default function Home() {
       <section className="relative min-h-screen flex flex-col overflow-hidden">
 
         {/* Three.js sacred geometry + particles */}
-        <CosmicCanvas />
+        <Suspense fallback={null}>
+          <CosmicCanvas />
+        </Suspense>
 
         {/* Gradient veil for text legibility */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-b from-netzach-bg/20 via-transparent to-netzach-bg" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,#0F0518_80%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,#1B1238_80%)]" />
         </div>
 
         {/* Nav */}
@@ -313,7 +321,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-10 md:gap-16">
           {/* Icon side */}
           <div className="shrink-0">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border border-netzach-gold/25 bg-gradient-to-br from-netzach-card to-[#200940] flex items-center justify-center shadow-[0_0_50px_rgba(112,11,151,0.25)]">
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border border-netzach-gold/25 bg-gradient-to-br from-netzach-card to-netzach-card2 flex items-center justify-center shadow-[0_0_50px_rgba(112,11,151,0.25)]">
               <Bot size={36} className="text-netzach-gold" strokeWidth={1.5} />
             </div>
           </div>

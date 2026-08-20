@@ -1,9 +1,9 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { corsHeaders, servico, erro, exigirAdmin } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Teto de entrada: sem limite, um texto grande gerava centenas de
+// embeddings numa única invocação e estourava o tempo da função.
+const MAX_TEXTO = 400_000;
+const MAX_CHUNKS = 400;
 
 const VALID_CATEGORIES = [
   'banho', 'oleo', 'floral', 'cristal', 'ritual',
@@ -67,9 +67,17 @@ function chunkText(text: string, maxWords = 300, overlapWords = 40): string[] {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(req) });
 
   try {
+    const supabase = servico();
+
+    // ── Só admin ─────────────────────────────────────────────────
+    // Mesmo risco do ingest-knowledge: o que entra aqui vai para o
+    // system prompt da sacerdotisa.
+    const auth = await exigirAdmin(req, supabase);
+    if ('resposta' in auth) return auth.resposta;
+
     const {
       source_title,   // ex: "A Chave da Teosofia"
       text,           // texto completo do livro/capítulo
@@ -79,31 +87,26 @@ Deno.serve(async (req: Request) => {
     } = await req.json();
 
     if (!source_title || !text || !category) {
-      return new Response(
-        JSON.stringify({ error: 'source_title, text e category são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return erro(req, 400, 'source_title, text e category são obrigatórios');
     }
 
     if (!VALID_CATEGORIES.includes(category)) {
-      return new Response(
-        JSON.stringify({ error: `category deve ser: ${VALID_CATEGORIES.join(', ')}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return erro(req, 400, `category deve ser: ${VALID_CATEGORIES.join(', ')}`);
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    if (typeof text !== 'string' || text.length > MAX_TEXTO) {
+      return erro(req, 400, `text deve ser texto de até ${MAX_TEXTO} caracteres. Divida em partes menores.`);
+    }
 
     const chunks = chunkText(text, chunk_size ?? 300, overlap_size ?? 40);
 
     if (chunks.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Nenhum chunk gerado — texto muito curto ou vazio' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return erro(req, 400, 'Nenhum chunk gerado — texto muito curto ou vazio');
+    }
+
+    if (chunks.length > MAX_CHUNKS) {
+      return erro(req, 400,
+        `Este texto geraria ${chunks.length} trechos, acima do limite de ${MAX_CHUNKS} por envio. Divida em partes menores.`);
     }
 
     const model = new (Supabase as any).ai.Session('gte-small');
@@ -111,25 +114,36 @@ Deno.serve(async (req: Request) => {
     let inserted = 0;
     const errors: string[] = [];
 
+    // Embedding continua sendo um por trecho (o modelo é local), mas a
+    // gravação vai em lote: antes era um INSERT por trecho.
+    const LOTE = 50;
+    let pendentes: Record<string, unknown>[] = [];
+
+    const gravar = async () => {
+      if (pendentes.length === 0) return;
+      const { error } = await supabase.from('knowledge_base').insert(pendentes);
+      if (error) errors.push(`lote de ${pendentes.length} trechos: ${error.message}`);
+      else inserted += pendentes.length;
+      pendentes = [];
+    };
+
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       try {
         const embedding = await model.run(chunk, { mean_pool: true, normalize: true });
-
-        const { error } = await supabase.from('knowledge_base').insert({
+        pendentes.push({
           title: `${source_title} — parte ${i + 1}/${chunks.length}`,
           content: chunk,
           category,
           embedding,
           metadata: { source: source_title, chunk_index: i, total_chunks: chunks.length },
         });
-
-        if (error) errors.push(`chunk ${i + 1}: ${error.message}`);
-        else inserted++;
+        if (pendentes.length >= LOTE) await gravar();
       } catch (e: unknown) {
         errors.push(`chunk ${i + 1}: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
+    await gravar();
 
     return new Response(
       JSON.stringify({
@@ -138,15 +152,11 @@ Deno.serve(async (req: Request) => {
         inserted,
         errors: errors.length > 0 ? errors : undefined,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('ingest-bulk error:', message);
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('ingest-bulk error:', err instanceof Error ? err.message : String(err));
+    return erro(req, 500, 'Falha ao ingerir o material');
   }
 });

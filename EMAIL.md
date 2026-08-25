@@ -31,9 +31,9 @@ Em [resend.com](https://resend.com), criar a conta com o email da Raquel.
 ### 1.2 Adicionar o domínio
 
 **Domains → Add Domain**. Digite o domínio do app (por exemplo
-`netzach.com.br`).
+`netzach.app.br`).
 
-O Resend sugere usar um subdomínio, tipo `mail.netzach.com.br`. Vale a pena:
+O Resend sugere usar um subdomínio, tipo `mail.netzach.app.br`. Vale a pena:
 se um dia um email de sistema for marcado como spam, isso não contamina a
 reputação do domínio principal que você usa para falar com as pessoas.
 
@@ -56,9 +56,9 @@ Copie e cole exatamente como aparece. Dois cuidados que derrubam a maioria das
 tentativas:
 
 - Alguns painéis completam o domínio sozinhos. Se o Resend pede o nome
-  `resend._domainkey` e o painel mostra `resend._domainkey.netzach.com.br`
+  `resend._domainkey` e o painel mostra `resend._domainkey.netzach.app.br`
   depois de salvar, está certo. Se você colar o nome completo e ele virar
-  `resend._domainkey.netzach.com.br.netzach.com.br`, está errado.
+  `resend._domainkey.netzach.app.br.netzach.app.br`, está errado.
 - No campo de valor, nada de espaço sobrando no fim.
 
 Depois de salvar, volte ao Resend e clique em **Verify**. Costuma levar de
@@ -86,7 +86,7 @@ Ligue **Enable Custom SMTP** e preencha:
 
 | Campo | Valor |
 |-------|-------|
-| Sender email | `sacerdotisa@mail.netzach.com.br` (o domínio verificado) |
+| Sender email | `sacerdotisa@mail.netzach.app.br` (o domínio verificado) |
 | Sender name | `Netzach` |
 | Host | `smtp.resend.com` |
 | Port number | `465` |
@@ -116,9 +116,9 @@ certa. É a configuração que mais gera confusão.
 **Authentication → URL Configuration**:
 
 - **Site URL**: o endereço do app em produção, sem barra no fim
-  (`https://netzach.com.br`)
+  (`https://netzach.app.br`)
 - **Redirect URLs**: uma por linha —
-  - `https://netzach.com.br/nova-senha`
+  - `https://netzach.app.br/nova-senha`
   - `http://localhost:5174/nova-senha` *(para testar na sua máquina)*
 
 O Supabase só redireciona para endereços que estão nessa lista. Qualquer outro
@@ -187,7 +187,7 @@ aqui:
 | Email não chega | **Resend → Logs**. Sem registro nenhum, o Supabase não conseguiu conectar: confira usuário (`resend`) e senha (a chave inteira, com o `re_`) |
 | Chega na caixa de spam | Domínio verificado no Resend? Os registros todos verdes? DMARC ausente pesa contra |
 | `Error sending recovery email` | Limite por hora estourado, ou o SMTP não está salvo |
-| Link abre a home, não `/nova-senha` | Falta o endereço em **Redirect URLs** |
+| Link abre a home, não `/nova-senha` | Falta `https://netzach.app.br/nova-senha` em **Redirect URLs**. Aconteceu em 25/08/2026. O Supabase descarta o destino em silêncio, sem erro nenhum, e usa a Site URL no lugar. Depois de salvar, peça um link novo: o antigo já foi gasto no clique |
 | "Este caminho já se fechou" logo de cara | O link já foi usado, ou passou de uma hora. Alguns antivírus corporativos abrem os links do email antes de você — o que consome o link |
 | Layout quebrado no Gmail | Só acontece se o HTML for editado com `<style>` no topo ou flexbox. Os cinco arquivos usam tabela e estilo em cada tag justamente por isso |
 

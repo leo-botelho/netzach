@@ -117,12 +117,34 @@ certa. É a configuração que mais gera confusão.
 
 - **Site URL**: o endereço do app em produção, sem barra no fim
   (`https://netzach.app.br`)
-- **Redirect URLs**: uma por linha —
-  - `https://netzach.app.br/nova-senha`
-  - `http://localhost:5174/nova-senha` *(para testar na sua máquina)*
+- **Redirect URLs**: uma por linha, com curinga —
+  - `https://netzach.app.br/**`
+  - `https://*.netzach.pages.dev/**` *(as prévias do Cloudflare)*
+  - `http://localhost:5174/**` *(para testar na sua máquina)*
 
 O Supabase só redireciona para endereços que estão nessa lista. Qualquer outro
 ele ignora e joga a pessoa na Site URL, que não é a tela de trocar senha.
+
+Use `/**` no fim em vez de escrever `/nova-senha`. O app monta o destino a
+partir de onde a pessoa está (`window.location.origin`), então pedir a
+redefinição de dentro de uma prévia do Cloudflare gera um endereço que a
+entrada da raiz não cobre — e cai na home. Cada prévia ganha um código novo,
+então listar uma a uma é trabalho sem fim. O curinga cobre todas.
+
+### Descobrir para onde o Supabase manda, sem gastar um email
+
+Este comando pergunta ao endpoint com um token inventado. O token não vale
+nada, então nada é consumido: o que interessa é o cabeçalho `Location` da
+resposta.
+
+```bash
+curl -s -o /dev/null -D - "https://njevwglmpmqdaezlnbdc.supabase.co/auth/v1/verify?token=falso&type=recovery&redirect_to=https%3A%2F%2Fnetzach.app.br%2Fnova-senha" | grep -i location
+```
+
+Se o `Location` mantiver `/nova-senha`, o endereço está aceito na lista. Se
+vier só `https://netzach.app.br`, aquele destino foi recusado. Troque o valor
+de `redirect_to=` para testar outros endereços — a prévia do Cloudflare, por
+exemplo.
 
 ### Validade do link
 
@@ -187,7 +209,7 @@ aqui:
 | Email não chega | **Resend → Logs**. Sem registro nenhum, o Supabase não conseguiu conectar: confira usuário (`resend`) e senha (a chave inteira, com o `re_`) |
 | Chega na caixa de spam | Domínio verificado no Resend? Os registros todos verdes? DMARC ausente pesa contra |
 | `Error sending recovery email` | Limite por hora estourado, ou o SMTP não está salvo |
-| Link abre a home, não `/nova-senha` | Falta `https://netzach.app.br/nova-senha` em **Redirect URLs**. Aconteceu em 25/08/2026. O Supabase descarta o destino em silêncio, sem erro nenhum, e usa a Site URL no lugar. Depois de salvar, peça um link novo: o antigo já foi gasto no clique |
+| Link abre a home, não `/nova-senha` | O destino não passou na lista de **Redirect URLs** e o Supabase usou a Site URL no lugar, sem erro nenhum. Repare de onde você pediu a redefinição: o app usa o endereço da aba atual, então pedir de dentro de uma prévia gera um destino diferente do de produção. Use os curingas da etapa 3 e confirme com o comando `curl` de lá |
 | "Este caminho já se fechou" logo de cara | O link já foi usado, ou passou de uma hora. Alguns antivírus corporativos abrem os links do email antes de você — o que consome o link |
 | Layout quebrado no Gmail | Só acontece se o HTML for editado com `<style>` no topo ou flexbox. Os cinco arquivos usam tabela e estilo em cada tag justamente por isso |
 

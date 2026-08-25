@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Moon, Star, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { mensagemDoErroDeSenha, podeTentarDeNovo } from '../lib/erroDeSenha';
 
 /**
  * Definição da nova senha.
@@ -53,7 +54,9 @@ export default function NovaSenha() {
 
     if (error) {
       console.error('Falha ao trocar a senha:', error.message);
-      setErro('Não consegui guardar a nova senha. Peça um link novo e tente outra vez.');
+      setErro(mensagemDoErroDeSenha(error));
+      // Link gasto é a única falha que não adianta insistir daqui.
+      if (!podeTentarDeNovo(error)) setLinkValido(false);
       return;
     }
 

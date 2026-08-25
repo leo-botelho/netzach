@@ -144,8 +144,12 @@ Este comando pergunta ao endpoint com um token inventado. O token não vale
 nada, então nada é consumido: o que interessa é o cabeçalho `Location` da
 resposta.
 
+Troque `SEU-PROJETO` pelo identificador que aparece em **Project Settings →
+API**, no campo *Project URL* (é o mesmo que está no `.env`, em
+`VITE_SUPABASE_URL`).
+
 ```bash
-curl -s -o /dev/null -D - "https://njevwglmpmqdaezlnbdc.supabase.co/auth/v1/verify?token=falso&type=recovery&redirect_to=https%3A%2F%2Fnetzach.app.br%2Fnova-senha" | grep -i location
+curl -s -o /dev/null -D - "https://SEU-PROJETO.supabase.co/auth/v1/verify?token=falso&type=recovery&redirect_to=https%3A%2F%2Fnetzach.app.br%2Fnova-senha" | grep -i location
 ```
 
 Se o `Location` mantiver `/nova-senha`, o endereço está aceito na lista. Se

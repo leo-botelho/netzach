@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, Moon, Star } from 'lucide-react';
 
 export default function Login() {
@@ -74,6 +74,11 @@ export default function Login() {
             {loading ? 'Abrindo o Portal...' : 'Entrar'}
           </button>
         </form>
+
+        <Link to="/esqueci-senha"
+          className="block text-center mt-6 text-xs text-netzach-muted hover:text-netzach-gold transition-colors">
+          Esqueci minha senha
+        </Link>
       </div>
     </div>
   );

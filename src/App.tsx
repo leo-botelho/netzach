@@ -14,6 +14,8 @@ import Login from './pages/Login';
  * toda visitante que abrisse a home no celular.
  */
 const Register           = lazy(() => import('./pages/Register'));
+const EsqueciSenha       = lazy(() => import('./pages/EsqueciSenha'));
+const NovaSenha          = lazy(() => import('./pages/NovaSenha'));
 const Checkout           = lazy(() => import('./pages/checkout'));
 const Temple             = lazy(() => import('./pages/Temple'));
 const Services           = lazy(() => import('./pages/Services'));
@@ -60,6 +62,9 @@ function App() {
               <Route path="/assinar" element={<Checkout />} />
               <Route path="/portal" element={<Login />} />
               <Route path="/iniciacao" element={<Register />} />
+              <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+              {/* Chega pelo link do email, com sessão de recuperação já criada */}
+              <Route path="/nova-senha" element={<NovaSenha />} />
 
               {/* PRIVADO — exige sessão; bloqueado se a assinatura expirou */}
               <Route element={<SubscriptionGuard />}>

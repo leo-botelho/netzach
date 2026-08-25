@@ -2,6 +2,57 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-08-25 — Recuperacao de senha e emails com a identidade do Netzach
+
+Nao havia como recuperar senha. Quem esquecesse perdia a conta: nao existia rota, nao existia
+link na tela de entrada, e os emails do Supabase saiam com o template branco de fabrica.
+
+### Telas novas
+- `src/pages/EsqueciSenha.tsx` (`/esqueci-senha`) — pede o email e chama
+  `resetPasswordForEmail` com `redirectTo` para `/nova-senha`. **A resposta e sempre a mesma,
+  exista a conta ou nao**: dizer "esse email nao esta cadastrado" entregaria a qualquer pessoa
+  a lista de quem assina o portal. So erro de rede (`status !== 400`) aparece para a usuaria.
+- `src/pages/NovaSenha.tsx` (`/nova-senha`) — escuta `onAuthStateChange` procurando
+  `PASSWORD_RECOVERY`, porque a sessao vinda do link e criada **depois** da montagem do
+  componente; checar uma vez so daria falso negativo. Tres estados: sintonizando, link
+  expirado (com botao para pedir outro) e formulario. Minimo de 8 caracteres, com confirmacao.
+- Link "Esqueci minha senha" em `Login.tsx`; as duas rotas ficam **fora** do bloco protegido
+  em `App.tsx` — quem esqueceu a senha nao tem sessao.
+
+### Emails (`supabase/templates/`)
+Cinco templates prontos para colar no painel: confirmar-cadastro, redefinir-senha,
+link-magico, trocar-email, convite. Mais `_base.html`, que e o molde e **nao vai para o
+Supabase**.
+
+Decisao de implementacao: tabela aninhada com estilo embutido em cada tag. Nao e preferencia,
+e necessidade — o Gmail descarta `<style>` do cabecalho, o Outlook desenha com o motor do
+Word, e nenhum dos dois entende flexbox ou grid. Cormorant Garamond nao carrega em cliente de
+email: todo titulo leva Georgia de reserva.
+
+Paleta do documento (secao 13). O `#8674A6` do rascunho dava 3,43:1 sobre o cartao, abaixo do
+minimo de 4,5 para texto pequeno — trocado por `#A294C2` (5,12:1) em todos os arquivos. Texto
+corrido 11,76:1, dourado sobre o cartao 6,23:1, texto do botao sobre o dourado 6,23:1.
+
+### `EMAIL.md`
+Guia da configuracao inteira: dominio no Resend, os registros de DNS, chave de API, SMTP no
+Supabase (`smtp.resend.com`:465, usuario literal `resend`, senha = chave `re_...`) e a
+tabela de qual arquivo vai em qual aba.
+
+**O ponto que mais gera confusao esta na etapa 3**: sem `/nova-senha` na lista de
+**Redirect URLs**, o email chega, o link funciona, e a pessoa cai na home em vez da tela de
+trocar a senha. O Supabase ignora silenciosamente qualquer destino fora da lista.
+
+Motivo de trocar o envio padrao: o SMTP embutido do Supabase entrega **2 emails por hora** e
+e declaradamente so para teste.
+
+### Pendente
+- Raquel executar `EMAIL.md` (conta Resend, DNS, SMTP, colar os cinco templates)
+- Depois de configurar, rodar o teste de ponta a ponta descrito na secao "Testar"
+- Continua pendente: rodar `supabase/diagnostico-base.sql` (hipotese do nome das plantas
+  perdido no fatiamento) e as 8 migrations pelo SQL Editor
+
+---
+
 ## 2026-08-19 — Sacerdotisa citando a base, interrogando e errando o floral
 
 Primeiro teste real depois do deploy. A memoria funcionou (ela manteve o contexto entre tres

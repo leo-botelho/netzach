@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import AdminGuard from './components/AdminGuard';
+import DesvioRecuperacao from './components/DesvioRecuperacao';
 import Home from './pages/Home';
 import Login from './pages/Login';
 
@@ -55,6 +56,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
+          <DesvioRecuperacao />
           <Suspense fallback={<Sintonizando />}>
             <Routes>
               {/* PÚBLICO */}

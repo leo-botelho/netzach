@@ -48,6 +48,7 @@ export default function ProfilePage() {
     lunar_phase: true,
     monthly_retro: true,
     monthly_wheel: true,
+    course_replies: true,
     morning_time: '07:00',
     evening_time: '21:00',
   });
@@ -96,6 +97,7 @@ export default function ProfilePage() {
         lunar_phase: prefs.lunar_phase ?? true,
         monthly_retro: prefs.monthly_retro ?? true,
         monthly_wheel: prefs.monthly_wheel ?? true,
+        course_replies: prefs.course_replies ?? true,
         morning_time: prefs.morning_time || '07:00',
         evening_time: prefs.evening_time || '21:00',
       });
@@ -377,6 +379,7 @@ export default function ProfilePage() {
               { key: 'lunar_phase',      label: 'Mudança de fase lunar',      desc: 'Na virada de cada fase' },
               { key: 'monthly_retro',    label: 'Retrospectiva mensal',       desc: 'Dia 1 de cada mês' },
               { key: 'monthly_wheel',    label: 'Roda da vida',               desc: 'Dia 2 de cada mês' },
+              { key: 'course_replies',   label: 'Respostas às suas dúvidas',  desc: 'Quando a Raquel responder nos cursos' },
             ] as Array<{ key: keyof typeof notifPrefs; label: string; desc: string }>).map(({ key, label, desc }) => (
               <button
                 key={key}

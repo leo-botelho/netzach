@@ -2,6 +2,47 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-09-21 — Caixa de dúvidas dos cursos e aviso de resposta
+
+A Raquel descreveu o que queria: curso → módulos → aulas, com a aluna tirando dúvidas nos
+comentários. A estrutura já existia; faltava ela **ficar sabendo** das dúvidas. Com mais de 50
+aulas, ter que abrir aula por aula garantia pergunta sem resposta.
+
+### Caixa de dúvidas (painel, aba "11. Dúvidas (n)")
+- `duvidas_pendentes()` (migration `20260921_duvidas.sql`, só admin): conversa pendente é a
+  que tem a **última mensagem publicada de uma aluna**. Cobre a pergunta nova e a aluna que
+  respondeu de volta com outra dúvida. Comentário aberto pela própria Raquel (um aviso) não
+  entra. Ordem: quem esperou mais primeiro.
+- "Não precisa de resposta" grava `dispensada_em` no comentário de origem; se a aluna escrever
+  depois disso, a conversa volta para a caixa.
+- O contador da aba carrega ao abrir o painel.
+
+### Aviso para a aluna
+- **Edge function nova `responder-duvida`** (admin): grava a resposta e avisa por push quem
+  participou da conversa. Fica no servidor de propósito: o `send-push` manda para **a base
+  inteira** quando não recebe `user_id`, e montar o destino no navegador deixaria um erro bobo
+  a um passo de avisar todas as alunas. Aqui os destinos saem do banco e lista vazia não envia.
+- O aviso **não leva o texto** da pergunta nem da resposta, só o nome da aula: notificação
+  aparece na tela bloqueada e a dúvida pode ser pessoal.
+- Abre a aula em `#comentario-<id>`, e a lista de comentários rola até a conversa.
+- Nova preferência `course_replies` ("Respostas às suas dúvidas") no Perfil, desligável como as
+  outras. Falhar o aviso não desfaz a resposta nem vira erro para a Raquel.
+- A resposta dada de dentro da aula (componente `Comentarios`) passa pela mesma função quando
+  é a admin respondendo.
+- O envio de push saiu do `send-push` para `_shared/push.ts` (`enviarParaAssinaturas`,
+  `enviarParaUsuarias`); o `send-push` mantém o comportamento.
+
+### Testes
+245 no total. `Comentarios.test.tsx` garante que a resposta da admin vai para
+`responder-duvida` e a da aluna grava direto, sem aviso. **As duas edge functions não passaram
+por checagem de tipos**: não há Deno nesta máquina.
+
+### Ordem de deploy (importante)
+Migrations 9 e 10 logo depois do app publicar: o Perfil já grava `course_replies`, e sem a
+coluna salvar as preferências de notificação falha. Publicar `responder-duvida` e `send-push`.
+
+---
+
 ## 2026-09-21 — Área de cursos (migração da Hotmart), vídeo no YouTube primeiro
 
 A Raquel quer tirar os cursos da Hotmart (a formação Flor da Vida tem vários módulos e mais de

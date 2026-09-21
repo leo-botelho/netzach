@@ -62,6 +62,13 @@ export default function Comentarios({ aulaId }: { aulaId: string }) {
     supabase.rpc('is_admin').then(({ data }) => setSouAdmin(data === true));
   }, [carregar]);
 
+  // O aviso de resposta abre a aula com #comentario-<id>: depois que a
+  // lista chega, leva a aluna direto para a conversa.
+  useEffect(() => {
+    if (carregando || !window.location.hash.startsWith('#comentario-')) return;
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [carregando]);
+
   const enviar = async () => {
     const limpo = texto.trim();
     if (!limpo || enviando) return;
@@ -71,12 +78,18 @@ export default function Comentarios({ aulaId }: { aulaId: string }) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setEnviando(false); return; }
 
-    const { error } = await supabase.from('curso_comentarios').insert({
-      aula_id: aulaId,
-      user_id: session.user.id,
-      texto: limpo,
-      resposta_a: respondendo?.resposta_a ?? respondendo?.id ?? null,
-    });
+    // Resposta da Raquel passa pelo servidor, que grava e avisa quem
+    // estava na conversa. O resto grava direto, como sempre.
+    const { error } = souAdmin && respondendo
+      ? await supabase.functions.invoke('responder-duvida', {
+          body: { comentario_id: respondendo.id, texto: limpo },
+        })
+      : await supabase.from('curso_comentarios').insert({
+          aula_id: aulaId,
+          user_id: session.user.id,
+          texto: limpo,
+          resposta_a: respondendo?.resposta_a ?? respondendo?.id ?? null,
+        });
     setEnviando(false);
 
     if (error) {
@@ -111,7 +124,7 @@ export default function Comentarios({ aulaId }: { aulaId: string }) {
   // Função, não componente: um componente declarado aqui dentro seria
   // outro a cada render, e o React remontaria a lista inteira.
   const item = (c: Comentario, resposta = false) => (
-    <article key={c.id} className={`rounded-2xl p-4 border ${
+    <article key={c.id} id={`comentario-${c.id}`} className={`scroll-mt-20 rounded-2xl p-4 border ${
       c.da_raquel
         ? 'bg-netzach-gold/[0.07] border-netzach-gold/40'
         : 'bg-netzach-card border-netzach-border'

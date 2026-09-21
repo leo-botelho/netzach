@@ -79,10 +79,15 @@ conferindo se deu certo antes de ir para o próximo.
 | 7 | `20260819_registro_erros.sql` | Registro de falhas, com aba no painel |
 | 8 | `20260819_agendamentos.sql` | **Todos os agendamentos** ⚠️ *substituir 3 valores* |
 | 9 | `20260921_cursos.sql` | Área de cursos: cursos, módulos, aulas, acessos, progresso e comentários |
+| 10 | `20260921_duvidas.sql` | Caixa de dúvidas dos cursos e a opção de aviso de resposta |
 
 **Só o arquivo 8 pede substituição**, e é o único que depende das
 extensões do Passo 0. Se ele falhar, os sete primeiros continuam
 valendo: o portal funciona, só as tarefas automáticas ficam pendentes.
+
+**O arquivo 10 depende do 9.** E rode os dois logo depois de publicar o app: a tela
+de Perfil já grava a opção "Respostas às suas dúvidas", e enquanto a coluna não
+existir no banco, salvar as preferências de notificação falha.
 
 **O arquivo 9 tem que vir depois do 5 e do 6.** Ele recria as funções de
 exportar e excluir os dados da usuária para incluir os cursos. Rodado
@@ -118,7 +123,10 @@ npx supabase functions deploy
 
 Se preferir uma a uma: `sacerdotisa`, `asaas-checkout`, `asaas-webhook`,
 `calculate-astral-chart`, `ingest-knowledge`, `ingest-bulk`, `send-push`,
-`scheduled-notifications`.
+`scheduled-notifications`, `testar-conhecimento`, `responder-duvida`.
+
+`responder-duvida` é nova (resposta da Raquel às dúvidas dos cursos, com aviso
+para a aluna). `send-push` mudou junto: as duas usam `_shared/push.ts`.
 
 ---
 

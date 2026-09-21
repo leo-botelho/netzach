@@ -5,8 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   Star, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2,
   Link as LinkIcon, Users, Search, Ban, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight,
-  BookOpen, Upload, Loader2, AlertTriangle
+  BookOpen, Upload, Loader2, AlertTriangle, GraduationCap
 } from 'lucide-react';
+import AdminCursos from '../components/admin/AdminCursos';
 
 /** Plano com o preço em texto, do jeito que o campo de edição usa. */
 type PlanoEditavel = PlanConfig & { _price: string };
@@ -322,6 +323,7 @@ export default function AdminPanel() {
             { id: 'conhecimento', icon: Bot, label: '7. Netzach IA' },
             { id: 'planos', icon: CreditCard, label: '8. Planos' },
             { id: 'erros', icon: AlertTriangle, label: '9. Falhas' },
+            { id: 'cursos', icon: GraduationCap, label: '10. Cursos' },
         ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-6 py-3 rounded-lg border whitespace-nowrap ${activeTab === tab.id ? 'bg-netzach-gold text-netzach-bg border-netzach-gold font-bold' : 'bg-netzach-card border-netzach-border text-netzach-muted'}`}>
                 <tab.icon size={18}/> {tab.label}
@@ -729,6 +731,9 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
+      {/* 10. CURSOS ─ componente próprio, para não engordar este arquivo */}
+      {activeTab === 'cursos' && <AdminCursos />}
 
       {/* 9. FALHAS ─────────────────────────────────────────────── */}
       {activeTab === 'erros' && (

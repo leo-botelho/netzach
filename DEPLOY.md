@@ -78,10 +78,15 @@ conferindo se deu certo antes de ir para o próximo.
 | 6 | `20260819_memoria_conversa.sql` | Memória da Sacerdotisa |
 | 7 | `20260819_registro_erros.sql` | Registro de falhas, com aba no painel |
 | 8 | `20260819_agendamentos.sql` | **Todos os agendamentos** ⚠️ *substituir 3 valores* |
+| 9 | `20260921_cursos.sql` | Área de cursos: cursos, módulos, aulas, acessos, progresso e comentários |
 
 **Só o arquivo 8 pede substituição**, e é o único que depende das
 extensões do Passo 0. Se ele falhar, os sete primeiros continuam
 valendo: o portal funciona, só as tarefas automáticas ficam pendentes.
+
+**O arquivo 9 tem que vir depois do 5 e do 6.** Ele recria as funções de
+exportar e excluir os dados da usuária para incluir os cursos. Rodado
+antes, seria sobrescrito por eles e os cursos ficariam fora da LGPD.
 
 **O arquivo `00000000_schema_base.sql` não precisa ser rodado.** Ele
 descreve o que já existe, e serve para recriar o banco do zero se um dia

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/useAuth';
 
-const FREE_MODULES = new Set(['ciclo', 'checkin_basico']);
+// 'cursos' entra aqui porque o acesso a curso é por compra, não por plano:
+// a aluna da Hotmart no plano gratuito precisa chegar até a formação dela.
+const FREE_MODULES = new Set(['ciclo', 'checkin_basico', 'cursos']);
 
 export function usePlan() {
   const { userId, carregando: carregandoSessao } = useAuth();

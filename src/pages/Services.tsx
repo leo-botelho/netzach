@@ -15,6 +15,12 @@ interface Module {
 
 const CATEGORIES: { title: string; modules: Module[] }[] = [
   {
+    title: 'Formações',
+    modules: [
+      { emoji: '🎓', title: 'Cursos', description: 'As formações da Raquel em vídeo, no seu ritmo, com a conversa de cada aula.', path: '/cursos', moduleKey: 'cursos' },
+    ],
+  },
+  {
     title: 'Sacerdotisa',
     modules: [
       { emoji: '🌟', title: 'Sacerdotisa Netzach', description: 'Sua guia espiritual sagrada. Banhos, cristais, rituais e orientações personalizadas para seu momento.', path: '/sacerdotisa', moduleKey: 'sacerdotisa' },

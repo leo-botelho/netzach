@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import AdminGuard from './components/AdminGuard';
 import DesvioRecuperacao from './components/DesvioRecuperacao';
+import SessaoGuard from './components/SessaoGuard';
 import Home from './pages/Home';
 import Login from './pages/Login';
 
@@ -41,6 +42,9 @@ const DiarioSonhos       = lazy(() => import('./pages/DiarioSonhos'));
 const CeuDaSemana        = lazy(() => import('./pages/CeuDaSemana'));
 const QuadroDosSonhos    = lazy(() => import('./pages/QuadroDosSonhos'));
 const AdminPanel         = lazy(() => import('./pages/AdminPanel'));
+const Cursos             = lazy(() => import('./pages/Cursos'));
+const CursoDetalhe       = lazy(() => import('./pages/CursoDetalhe'));
+const CursoAula          = lazy(() => import('./pages/CursoAula'));
 
 /** Mesma linguagem do guard, para a troca de tela não piscar outro texto. */
 function Sintonizando() {
@@ -92,6 +96,15 @@ function App() {
                 <Route path="/sonhos" element={<DiarioSonhos />} />
                 <Route path="/ceu" element={<CeuDaSemana />} />
                 <Route path="/quadro-dos-sonhos" element={<QuadroDosSonhos />} />
+              </Route>
+
+              {/* CURSOS — só exige estar logada. Quem comprou na Hotmart comprou
+                  o curso, não o plano: a trava de assinatura não se aplica, e
+                  quem vê cada aula é decidido pela RLS de curso_acessos. */}
+              <Route element={<SessaoGuard />}>
+                <Route path="/cursos" element={<Cursos />} />
+                <Route path="/cursos/:slug" element={<CursoDetalhe />} />
+                <Route path="/cursos/:slug/aula/:aulaId" element={<CursoAula />} />
               </Route>
 
               {/* ADMIN — verificado antes de montar a página */}

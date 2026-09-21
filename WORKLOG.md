@@ -2,6 +2,76 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-09-21 — Área de cursos (migração da Hotmart), vídeo no YouTube primeiro
+
+A Raquel quer tirar os cursos da Hotmart (a formação Flor da Vida tem vários módulos e mais de
+50 aulas) e trazer para dentro do Netzach. **Decisão dela:** começar com vídeos do YouTube como
+não listados; Cloudflare Stream fica para depois. Pesquisa de preço feita antes (21/09):
+Cloudflare Stream não cobra upload nem conversão; cobra US$ 5/mês por 1.000 min armazenados
+(pré-pago) e US$ 1 por 1.000 min assistidos.
+
+### O risco do YouTube, e como foi reduzido
+Não listado não é privado: quem tem o código do vídeo assiste em qualquer lugar. Por isso o
+código mora em `curso_aula_videos`, tabela separada que a RLS só libera para quem tem o curso
+(ou para aula marcada como amostra). Título e descrição das aulas ficam visíveis a toda aluna
+logada, como vitrine. Quem tem acesso ainda consegue extrair o link: isso só se resolve com o
+Stream e token por aluna.
+
+A coluna `provedor` ('youtube' | 'cloudflare') existe para a troca ser mudança de dado. O
+player hoje só sabe tocar YouTube; o outro valor mostra um aviso.
+
+### Banco — `20260921_cursos.sql` (rodar DEPOIS da 5 e da 6)
+- `cursos` → `curso_modulos` → `curso_aulas`, com `curso_aula_videos` à parte
+- `curso_acessos`: acesso **por curso, não por plano**, com `origem` (manual, hotmart, asaas,
+  plano) e `expira_em` (null = vitalício, como a Hotmart vendia)
+- `curso_progresso`: posição onde parou + data de conclusão
+- `curso_comentarios`: um nível de resposta, publica na hora, admin oculta depois
+- Funções: `tem_acesso_ao_curso`, `pode_assistir_aula`, `comentarios_da_aula` (entrega só o
+  **primeiro nome** de quem comentou, sem abrir o perfil), `conceder_acesso_curso` (por email,
+  lê `auth.users`, só admin), `alunas_do_curso` (lista do painel, só admin)
+- `exportar_meus_dados` e `excluir_meus_dados` recriadas incluindo progresso e comentários. Os
+  acessos comprados não são apagados pela exclusão de conteúdo: vão junto com a conta.
+
+### Telas
+- `/cursos`, `/cursos/:slug`, `/cursos/:slug/aula/:aulaId`, sob o **`SessaoGuard`** novo (só
+  exige login). Ficaram fora do `SubscriptionGuard` de propósito: a aluna da Hotmart comprou o
+  curso, não o plano, e seria barrada com assinatura vencida ou inexistente. Pelo mesmo motivo
+  `cursos` entrou em `FREE_MODULES`.
+- Player com a API do YouTube em `youtube-nocookie.com` (sem cookie de rastreamento antes do
+  play), `rel=0`, retoma de onde parou, guarda posição a cada 10s, ao pausar e ao sair. Aula conta
+  como concluída a partir de 90%. O fim do vídeo registra posição = duração em vez de alternar a
+  conclusão, porque alternar podia **desmarcar** uma aula que os 90% tinham acabado de concluir.
+- O YouTube troca o elemento alvo por um iframe; o alvo é criado à mão dentro de uma caixa que o
+  React desenha vazia, senão a desmontagem tentaria remover um nó que já não existe.
+- Login agora volta para a página de origem (`state.voltarPara`), só com caminho interno, para
+  não virar redirecionamento aberto.
+- Atalho "Cursos" em Práticas, categoria Formações, no topo.
+
+### Painel — aba "10. Cursos" (`src/components/admin/AdminCursos.tsx`)
+Componente próprio para não engordar o `AdminPanel` (já com ~780 linhas). Cria curso, módulos e
+aulas; marca aula como amostra; reordena renumerando a lista toda. **Dois lotes pensados para a
+migração:** colar várias aulas de uma vez (`título | link`, uma por linha, aceita coluna colada
+de planilha; se uma linha estiver errada nada é gravado e o aviso diz qual), e colar vários
+emails para liberar acesso (quem ainda não tem conta volta numa lista à parte).
+
+### Testes
+241 no total (eram 195): `src/lib/cursos.test.ts` (43: 12 formatos de link do YouTube, ordem de
+aulas atravessando módulos, onde continuar, leitura em lote, duração) e `SessaoGuard.test.tsx`.
+No navegador: link de aula sem login vai para `/portal` guardando a aula, sem erro no console.
+**Não testado logada:** as telas com dados só funcionam depois da migration rodar e de haver um
+curso cadastrado.
+
+### Pendente
+- Raquel rodar `20260921_cursos.sql` e cadastrar um módulo de teste
+- Decidir: venda avulsa pelo Asaas (origem 'asaas' já prevista) ou curso dentro de plano
+- Afiliados da Hotmart: o Netzach não tem sistema de afiliados
+- Alunas sem conta: hoje é convidar pelo Supabase e liberar de novo. Automatizar o convite
+  (edge function com service role) se o volume pedir
+- Continua pendente o bug do botão de notificação no iPhone (desmarca ao rolar): esperando a
+  Raquel dizer se a tela pisca "Sintonizando..." e se continua desmarcado ao reabrir o app
+
+---
+
 ## 2026-08-25 — Recuperacao de senha e emails com a identidade do Netzach
 
 Nao havia como recuperar senha. Quem esquecesse perdia a conta: nao existia rota, nao existia

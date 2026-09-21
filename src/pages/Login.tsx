@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Lock, Mail, Moon, Star } from 'lucide-react';
 
 export default function Login() {
@@ -8,6 +8,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  // Quem chegou aqui vindo de uma página protegida (uma aula, por
+  // exemplo) volta para ela depois de entrar. Só caminhos internos: um
+  // endereço de fora aqui viraria redirecionamento aberto.
+  const voltarPara = (useLocation().state as { voltarPara?: string } | null)?.voltarPara;
+  const destino = voltarPara?.startsWith('/') && !voltarPara.startsWith('//') ? voltarPara : '/templo';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +28,7 @@ export default function Login() {
     if (error) {
       alert('As estrelas não se alinharam: ' + error.message);
     } else {
-      navigate('/templo'); // Redireciona para o novo Dashboard
+      navigate(destino);
     }
   };
 

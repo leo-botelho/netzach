@@ -6,10 +6,10 @@ import { ptBR } from 'date-fns/locale';
 import {
   Moon, Droplet, LogOut, Calendar as CalendarIcon,
   Sparkles, BookOpen, Sun, X, CloudMoon,
-  ArrowUpCircle, Bell, BellOff, Smartphone, UserCircle
+  ArrowUpCircle, Smartphone, UserCircle
 } from 'lucide-react';
 import { getMoonPhase, calculateCycleStatus } from '../utils/mysticMath';
-import { usePushNotifications } from '../hooks/usePushNotifications';
+import CartaoNotificacoes from '../components/CartaoNotificacoes';
 import { InstallPWAModal } from '../components/InstallPWAModal';
 import type { Profile, MoonPhase, CycleStatus } from '../types';
 import DicaDoDia from '../components/DicaDoDia';
@@ -74,7 +74,6 @@ export default function Temple() {
   const [activeHoroscopeModal, setActiveHoroscopeModal] = useState<{ title: string; sign: string; text: string } | null>(null);
   const [newPeriodDate, setNewPeriodDate] = useState('');
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const { isSupported: pushSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
 
   useEffect(() => {
     setMoon(getMoonPhase());
@@ -255,22 +254,7 @@ export default function Temple() {
           </div>
         </div>
 
-        {/* PUSH NOTIFICATION */}
-        {pushSupported && permission !== 'denied' && (
-          <div className="bg-netzach-card border border-netzach-border rounded-xl p-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {isSubscribed ? <Bell size={16} className="text-netzach-gold shrink-0"/> : <BellOff size={16} className="text-netzach-muted shrink-0"/>}
-              <div>
-                <p className="text-sm text-white">{isSubscribed ? 'Notificações ativas' : 'Ativar notificações'}</p>
-                <p className="text-[10px] text-netzach-muted">Rituais, fases lunares e check-in</p>
-              </div>
-            </div>
-            <button onClick={isSubscribed ? unsubscribe : subscribe} disabled={pushLoading}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-all shrink-0 disabled:opacity-40 ${isSubscribed ? 'border-netzach-border text-netzach-muted hover:border-red-400/50 hover:text-red-400' : 'border-netzach-gold/60 text-netzach-gold hover:bg-netzach-gold hover:text-netzach-bg'}`}>
-              {pushLoading ? '...' : isSubscribed ? 'Desativar' : 'Ativar'}
-            </button>
-          </div>
-        )}
+        <CartaoNotificacoes />
 
       </main>
 

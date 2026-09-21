@@ -2,6 +2,31 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-09-21 — Botão de notificação desmarcando sozinho no iPhone
+
+Sintoma relatado pela Raquel: ativa, o botão marca, e ao rolar a tela ele desmarca. Ela
+confirmou que a tela **não pisca "Sintonizando..."**, o que descarta recarregamento do app
+(atualização automática do service worker) e deixa só mudanças com a tela aberta. Pelo código
+eram duas, e as duas foram corrigidas:
+
+1. **Toque acidental em "Desativar".** O botão "Ativar" virava "Desativar" no mesmo lugar, e
+   no iPhone o toque curto de quem ia rolar conta como clique. Agora desativar pede dois
+   toques; o botão que desliga aparece à esquerda e "Manter" fica onde o dedo estava, então um
+   segundo toque acidental mantém. A pergunta some sozinha em 5s. Cartão extraído do Templo
+   para `src/components/CartaoNotificacoes.tsx`.
+2. **Checagem inicial atrasada.** Ao abrir a tela o hook pergunta ao aparelho se há inscrição;
+   se a resposta chegasse depois de a usuária ativar, trazia o "inativo" de antes. Agora cada
+   ação da usuária incrementa um contador e resposta mais velha que a última ação é descartada.
+
+Terceiro problema, achado junto: o erro do banco ao gravar a inscrição era ignorado. O botão
+mostrava "ativas" e o servidor não sabia do aparelho, então nada chegava. Agora a falha desfaz a
+inscrição do aparelho e mostra o aviso.
+
+Não reproduzido em iPhone real (sem aparelho aqui). Testes: `usePushNotifications.test.tsx` (3)
+e `CartaoNotificacoes.test.tsx` (4). 252 no total.
+
+---
+
 ## 2026-09-21 — Caixa de dúvidas dos cursos e aviso de resposta
 
 A Raquel descreveu o que queria: curso → módulos → aulas, com a aluna tirando dúvidas nos

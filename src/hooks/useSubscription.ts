@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/useAuth';
+import { avaliarAssinatura } from '../lib/assinatura';
 
 export interface SubscriptionState {
   loading: boolean;
@@ -66,21 +67,22 @@ export function useSubscription(): SubscriptionState {
         const status = data?.subscription_status ?? '';
         const endDate = data?.subscription_end_date ?? null;
 
-        const isFree = planType === 'free' || !planType;
-        const isPaid = !isFree && status === 'active';
-        const isExpiredByDate = !isFree && endDate
-          ? endDate < new Date().toISOString().split('T')[0]
-          : false;
-        const isExpired = !isFree &&
-          (status === 'inactive' || status === 'overdue' || status === 'cancelled' || isExpiredByDate);
+        // A regra mora em lib/assinatura.ts, compartilhada com o painel:
+        // antes o app e a tela da Raquel podiam discordar sobre quem
+        // estava bloqueada.
+        const estado = avaliarAssinatura({
+          plan_type: planType,
+          subscription_status: status,
+          subscription_end_date: endDate,
+        });
 
         setState({
           loading: false,
           isAuthenticated: true,
-          isActive: isFree || isPaid,
-          isPaid,
-          isFree,
-          isExpired,
+          isActive: estado.gratuita || estado.paga,
+          isPaid: estado.paga,
+          isFree: estado.gratuita,
+          isExpired: estado.bloqueada,
           planType,
           planName: PLAN_NAMES[planType] ?? planType,
           subscriptionStatus: status,

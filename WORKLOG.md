@@ -2,6 +2,57 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-10-06 — Bloqueio de assinatura: a trava barrava a própria Raquel
+
+A Raquel deu acesso a duas alunas, com plano lilith e vencimento em 30/09 e 03/10, e queria saber
+se o bloqueio era automático e por que o botão de alterar status no painel não fazia nada.
+
+**O bloqueio é automático e as duas já estavam bloqueadas** (plano pago + data vencida). O que
+não existia era como ver isso, e como bloquear à mão.
+
+### Por que o botão não funcionava
+O trigger `protect_profile_columns` (fase 1) devolve os valores antigos de plano, status e
+vencimento em qualquer update com `auth.uid()` não nulo. Ele existe para a usuária não se
+promover a Lilith vitalícia editando o próprio perfil, **e não tinha exceção para admin**. O
+painel mandava a alteração, o Postgres aceitava, o trigger revertia, nenhum erro voltava. A
+chamada antiga (`await ... update(...)` sem checar erro) não teria mostrado nada de qualquer
+forma. `20261006_admin_assinatura.sql` abre a exceção via `is_admin()`; `role` fica de fora de
+propósito, para ninguém virar admin pelo painel.
+
+### Por que o painel enganava
+A lista mostrava um check verde ligado a `subscription_status`, que **nasce `active` em toda
+conta criada**. Parecia que todas estavam em dia. E não mostrava plano nem vencimento, que são
+as duas colunas que de fato decidem.
+
+### A regra saiu do hook
+`src/lib/assinatura.ts` (`avaliarAssinatura`, `descreverAssinatura`) passa a ser a única fonte:
+`useSubscription` e o painel perguntam para ela. Antes a regra vivia só dentro do hook e o
+painel não tinha como mostrar o mesmo veredito.
+
+**Pegadinha que vale lembrar:** conta com `plan_type` nulo ou `free` é tratada como gratuita e
+**nunca é bloqueada por data**. O painel agora avisa isso em vermelho na linha da aluna.
+
+### `AdminAlunas.tsx` (aba 6, antes embutida no AdminPanel)
+Mostra plano, vencimento e o estado real (Liberada, Vencida, Bloqueada, Gratuita). Permite trocar
+plano, definir vencimento e bloquear/liberar. **Depois de gravar, relê o que o banco devolveu e
+compara**: se a trava reverter de novo, a tela diz para rodar a migration, em vez de fingir que
+salvou.
+
+### Limpeza
+`CriancaInterior.tsx` e `Hooponopono.tsx` estavam soltos no disco desta árvore (foram removidos
+do produto no commit 5e8366e, mas sobraram sem versionamento) e quebravam o typecheck. Movidos
+para o scratchpad da sessão, não apagados.
+
+262 testes (eram 252); 8 novos em `assinatura.test.ts`, com os dois casos reais de hoje. Não
+testado na tela: o painel exige login de admin.
+
+### Pendente
+- Rodar `20261006_admin_assinatura.sql` (sem ela, os botões da aba Alunas continuam sem efeito)
+- A aluna só vê o bloqueio ao recarregar o app; com a tela aberta, segue na sessão atual
+- A área de cursos fica fora do bloqueio de assinatura, por decisão de projeto
+
+---
+
 ## 2026-09-21 — Botão de notificação desmarcando sozinho no iPhone
 
 Sintoma relatado pela Raquel: ativa, o botão marca, e ao rolar a tela ele desmarca. Ela
@@ -914,7 +965,7 @@ e o painel admin nao monta.
 
 ## 2026-08-18 — Squad dev instalado
 
-- Squad dev do workspace instalado em `.claude/agents/` (12 agentes, cópias da fonte de verdade `C:\Users\raque\dev\.claude\agents\`) + `CLAUDE.md` do projeto criado com a stack REAL (Vite 7 + React 19 SPA, Tailwind v3, Supabase direto + Edge Functions Deno, Asaas, PWA com push) e as adaptações obrigatórias por agente — o app NÃO segue o padrão Next.js do workspace.
+- Squad dev do workspace instalado em `.claude/agents/` (12 agentes, cópias da fonte de verdade `D:\repo-local\.claude\agents\`) + `CLAUDE.md` do projeto criado com a stack REAL (Vite 7 + React 19 SPA, Tailwind v3, Supabase direto + Edge Functions Deno, Asaas, PWA com push) e as adaptações obrigatórias por agente — o app NÃO segue o padrão Next.js do workspace.
 - Documento oficial do produto copiado para `.claude/references/Netzach-Documento-Completo.pdf`.
 - **Estado do app encontrado** (pré-squad, autoria anterior): 27 páginas cobrindo a maior parte dos módulos do PDF; Sacerdotisa (chat IA Claude + RAG pgvector com personas por plano); sistema de créditos por plano (hecate/isis/lilith) com renovação às sextas; push notifications (subscriptions + cron + send); pagamentos Asaas (checkout + webhook); 14 migrations.
 - **Divergências PDF × código registradas no CLAUDE.md** (paleta do manifest, limites de créditos do chat, cobertura de módulos) — resolver com a Raquel antes de qualquer "correção".

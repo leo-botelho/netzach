@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Profile, PlanConfig, KnowledgeChunk, ServiceCatalog, ServiceRequest } from '../types';
+import type { PlanConfig, KnowledgeChunk, ServiceCatalog, ServiceRequest } from '../types';
 import { useNavigate } from 'react-router-dom';
 import {
   Star, Feather, CheckCircle, Sun, Sparkles, LayoutGrid, Trash2,
-  Link as LinkIcon, Users, Search, Ban, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight,
+  Link as LinkIcon, Users, Search, Bot, Plus, CreditCard, Save, ToggleLeft, ToggleRight,
   BookOpen, Upload, Loader2, AlertTriangle, GraduationCap, MessageCircleQuestion
 } from 'lucide-react';
 import AdminCursos from '../components/admin/AdminCursos';
+import AdminAlunas from '../components/admin/AdminAlunas';
 import AdminDuvidas from '../components/admin/AdminDuvidas';
 
 /** Plano com o preço em texto, do jeito que o campo de edição usa. */
@@ -67,8 +68,6 @@ export default function AdminPanel() {
   // Listas
   const [catalog, setCatalog] = useState<ServiceCatalog[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [users, setUsers] = useState<Profile[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Base de Conhecimento
   const [knowledgeList, setKnowledgeList] = useState<KnowledgeChunk[]>([]);
@@ -179,8 +178,6 @@ export default function AdminPanel() {
   };
 
   // --- OUTRAS FUNÇÕES ---
-  const fetchUsers = async () => { const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }); if(data) setUsers(data); };
-  const toggleUserStatus = async (id: string, current: string) => { if(!confirm("Alterar status?")) return; const novo = current === 'active' ? 'inactive' : 'active'; await supabase.from('profiles').update({ subscription_status: novo }).eq('id', id); fetchUsers(); };
   
   const handleSavePrediction = async () => {
     setLoading(true);
@@ -295,14 +292,12 @@ export default function AdminPanel() {
   };
   const handleCompleteRequest = async (id: string) => { await supabase.from('service_requests').update({ status: 'completed' }).eq('id', id); fetchRequests(); };
 
-  const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // Declarados aqui embaixo, depois das funções que chamam: antes o
   // efeito vinha primeiro e usava referências ainda não inicializadas.
   useEffect(() => {
     fetchRequests();
     fetchCatalog();
-    fetchUsers();
     loadTodayInsight();
     fetchKnowledge();
     fetchPlans();
@@ -671,13 +666,9 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* 6. INICIADAS */}
-      {activeTab === 'iniciadas' && (
-        <div>
-            <div className="bg-netzach-card p-4 rounded-xl mb-4 flex gap-2"><Search className="text-netzach-muted"/><input placeholder="Buscar aluna..." className="bg-transparent w-full outline-none text-white" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/></div>
-            <div className="bg-netzach-card rounded-xl overflow-hidden">{filteredUsers.map(user => (<div key={user.id} className="p-4 border-b border-netzach-border flex justify-between items-center"><div><p className="font-bold">{user.full_name}</p><p className="text-xs text-netzach-muted">{user.whatsapp} • {user.sign_sun}</p></div>{user.role !== 'admin' && (<button onClick={() => toggleUserStatus(user.id, user.subscription_status ?? 'inactive')} className={user.subscription_status === 'active' ? 'text-green-400' : 'text-red-400'}>{user.subscription_status === 'active' ? <CheckCircle/> : <Ban/>}</button>)}</div>))}</div>
-        </div>
-      )}
+      {/* 6. INICIADAS — componente próprio: mostra plano, vencimento e o
+          estado real da assinatura, e confere se o banco aceitou a mudança */}
+      {activeTab === 'iniciadas' && <AdminAlunas />}
 
       {/* 8. PLANOS */}
       {activeTab === 'planos' && (

@@ -55,7 +55,7 @@ Editor (`+00`, que o JavaScript recusa); o Safari do iPhone é mais estrito que 
 ilegível mostra "data desconhecida". 267 testes.
 
 ### Pendente
-- Rodar `20261006_admin_assinatura.sql` (sem ela, os botões da aba Alunas continuam sem efeito)
+- ~~Rodar `20261006_admin_assinatura.sql`~~ Feito e testado pela Raquel em 07/10/2026: bloquear e liberar pela aba Alunas funcionam
 - A aluna só vê o bloqueio ao recarregar o app; com a tela aberta, segue na sessão atual
 - A área de cursos fica fora do bloqueio de assinatura, por decisão de projeto
 

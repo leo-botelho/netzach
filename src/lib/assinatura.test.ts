@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { avaliarAssinatura, descreverAssinatura } from './assinatura';
+import { avaliarAssinatura, descreverAssinatura, dataDeEntrada } from './assinatura';
 
 /**
  * Casos reais de 06/10/2026: duas alunas com plano lilith e vencimento
@@ -89,5 +89,31 @@ describe('descreverAssinatura', () => {
     expect(descreverAssinatura({ plan_type: 'lilith', subscription_status: 'inactive' })).toBe('Bloqueada');
     expect(descreverAssinatura({ plan_type: 'lilith', subscription_status: 'active' })).toBe('Liberada');
     expect(descreverAssinatura({ plan_type: null })).toBe('Gratuita');
+  });
+});
+
+describe('dataDeEntrada', () => {
+  it('mostra dia/mês/ano', () => {
+    expect(dataDeEntrada('2026-09-30T15:00:00+00')).toBe('30/09/2026');
+  });
+
+  it('usa o horário de Brasília: 01h UTC ainda é o dia anterior aqui', () => {
+    // O caso real de 30/09/2026 às 01:01 UTC, que em Brasília era 29/09 à noite.
+    expect(dataDeEntrada('2026-09-30 01:01:33.256623+00')).toBe('29/09/2026');
+  });
+
+  it('entende o formato que o app recebe e o que o SQL Editor mostra', () => {
+    expect(dataDeEntrada('2026-10-03T12:24:53.123663+00:00')).toBe('03/10/2026');
+    expect(dataDeEntrada('2026-10-03 12:24:53.123663+00')).toBe('03/10/2026');
+    expect(dataDeEntrada('2026-10-03T12:24:53Z')).toBe('03/10/2026');
+  });
+
+  it('texto que não é data não vira "Invalid Date" na tela', () => {
+    expect(dataDeEntrada('ontem')).toBe('data desconhecida');
+  });
+
+  it('avisa quando não há data, em vez de mostrar "Invalid Date"', () => {
+    expect(dataDeEntrada(null)).toBe('data desconhecida');
+    expect(dataDeEntrada(undefined)).toBe('data desconhecida');
   });
 });

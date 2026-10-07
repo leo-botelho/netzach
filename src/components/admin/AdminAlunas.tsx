@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Search, ShieldCheck, ShieldOff, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { avaliarAssinatura, descreverAssinatura } from '../../lib/assinatura';
+import { avaliarAssinatura, descreverAssinatura, dataDeEntrada } from '../../lib/assinatura';
 import type { Profile } from '../../types';
 
 /**
@@ -130,6 +130,9 @@ export default function AdminAlunas() {
                 <p className="font-bold text-white truncate">{aluna.full_name || 'Sem nome'}</p>
                 <p className="text-xs text-netzach-muted truncate">
                   {aluna.whatsapp || 'sem WhatsApp'}{aluna.sign_sun ? ` • ${aluna.sign_sun}` : ''}
+                </p>
+                <p className="text-xs text-netzach-muted mt-0.5">
+                  Entrou em {dataDeEntrada(aluna.created_at)}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 mt-2">

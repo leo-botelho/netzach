@@ -11,6 +11,7 @@ export interface Profile {
   plan_type?: string;
   subscription_end_date?: string;
   last_payment_method?: string;
+  created_at?: string; // quando a conta foi criada
   
   // Astrologia e Dados Pessoais
   birth_date?: string;

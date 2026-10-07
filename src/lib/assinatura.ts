@@ -69,3 +69,23 @@ export function descreverAssinatura(dados: DadosDaAssinatura): string {
   if (e.motivo === 'vencida') return 'Vencida';
   return 'Liberada';
 }
+
+/**
+ * Quando a aluna entrou, em dia/mês/ano no horário de Brasília. O banco
+ * guarda em UTC: uma conta criada às 23h de Brasília cairia no dia
+ * seguinte se a data fosse cortada direto da string.
+ */
+export function dataDeEntrada(iso?: string | null): string {
+  if (!iso) return 'data desconhecida';
+
+  // O Postgres escreve "2026-09-30 01:01:33+00"; o JavaScript só entende
+  // ISO completo ("T" no meio e fuso com minutos, "+00:00"). O Safari do
+  // iPhone é ainda mais estrito que o Chrome, então normalizamos antes.
+  const normalizada = iso.trim().replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+  const data = new Date(normalizada);
+  if (Number.isNaN(data.getTime())) return 'data desconhecida';
+
+  return data.toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo',
+  });
+}

@@ -46,6 +46,14 @@ para o scratchpad da sessão, não apagados.
 262 testes (eram 252); 8 novos em `assinatura.test.ts`, com os dois casos reais de hoje. Não
 testado na tela: o painel exige login de admin.
 
+### Data de entrada na lista de alunas (07/10)
+Cada linha da aba Alunas mostra "Entrou em dd/mm/aaaa", lida de `profiles.created_at` (a coluna
+já existia e a lista já ordenava por ela). `dataDeEntrada` em `lib/assinatura.ts` converte para o
+horário de Brasília: o banco guarda em UTC, e uma conta criada às 23h de Brasília cairia no dia
+seguinte se a data fosse cortada direto da string. Aceita o formato do app (`+00:00`) e o do SQL
+Editor (`+00`, que o JavaScript recusa); o Safari do iPhone é mais estrito que o Chrome. Data
+ilegível mostra "data desconhecida". 267 testes.
+
 ### Pendente
 - Rodar `20261006_admin_assinatura.sql` (sem ela, os botões da aba Alunas continuam sem efeito)
 - A aluna só vê o bloqueio ao recarregar o app; com a tela aberta, segue na sessão atual

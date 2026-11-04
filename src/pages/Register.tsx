@@ -57,6 +57,11 @@ export default function Register() {
       email: formData.email,
       password: formData.password,
       options: {
+        // Sem destino, o link de confirmação do email cai na Site URL e a
+        // pessoa não sabe onde entrar. Fixado aqui, não depende de como o
+        // painel do Supabase está configurado. O aviso na tela de entrada
+        // lê o `confirmado=1`.
+        emailRedirectTo: `${window.location.origin}/portal?confirmado=1`,
         data: {
           full_name: formData.name,
           whatsapp: formData.whatsapp,

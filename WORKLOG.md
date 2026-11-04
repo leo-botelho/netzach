@@ -2,6 +2,26 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-04 — Link de confirmação do cadastro leva para o portal
+
+Quem se cadastrava recebia o email, clicava no link de confirmação e caía na home
+(`netzach.app.br`), sem saber onde entrar. O `signUp` não passava `emailRedirectTo`, então o
+Supabase usava a Site URL.
+
+`Register.tsx` agora manda `emailRedirectTo: <origem>/portal?confirmado=1`, independente de como o
+painel está configurado. Conferido no projeto real, com token falso: `/portal` e
+`/portal?confirmado=1` são aceitos pela lista de Redirect URLs, e um destino de fora é recusado.
+A Site URL do painel parece já estar em `/portal` (o destino recusado cai ali).
+
+`Login.tsx` (`/portal`) mostra um aviso quando chega com `confirmado=1`: "E-mail confirmado".
+Sem sessão: manda entrar com o email e a senha escolhidos. Com sessão (o link do email abre uma
+sessão naquele navegador): oferece o botão "Entrar no Templo". O aviso existe porque a confirmação
+pode ser aberta num aparelho diferente do cadastro, ou a aluna usar o app instalado, que tem
+armazenamento próprio. Só o valor `1` conta. Emails já enviados antes da mudança continuam
+apontando para a home. 290 testes (5 novos em `Login.test.tsx`); conferido no navegador.
+
+---
+
 ## 2026-11-04 — Mapa astral: fuso com horário de verão e cálculo automático no cadastro
 
 A Raquel notou que uma aluna nova ficou sem mapa e que, ao calcular à mão pelo N8N, o resultado

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, Mail, Moon, Star } from 'lucide-react';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
+import { Lock, Mail, Moon, Star, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../contexts/useAuth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,13 @@ export default function Login() {
   // endereço de fora aqui viraria redirecionamento aberto.
   const voltarPara = (useLocation().state as { voltarPara?: string } | null)?.voltarPara;
   const destino = voltarPara?.startsWith('/') && !voltarPara.startsWith('//') ? voltarPara : '/templo';
+
+  // O link de confirmação do email chega aqui com `confirmado=1`. Ao
+  // clicar nele o Supabase já abre uma sessão naquele navegador, mas
+  // quem se cadastrou no computador e confirmou no celular, ou vai usar o
+  // app instalado, ainda precisa entrar: o aviso diz o que fazer.
+  const confirmado = useSearchParams()[0].get('confirmado') === '1';
+  const { userId } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +58,29 @@ export default function Login() {
           <h1 className="text-3xl font-mystic font-bold text-netzach-gold">Portal Netzach</h1>
           <p className="text-netzach-muted text-sm mt-2 font-light tracking-widest uppercase">Inicie sua jornada</p>
         </div>
+
+        {confirmado && (
+          <div role="status" className="mb-8 rounded-xl border border-netzach-gold/40 bg-netzach-gold/[0.07] p-4 text-center space-y-3">
+            <p className="flex items-center justify-center gap-2 font-mystic text-netzach-gold">
+              <CheckCircle2 size={18} aria-hidden="true" /> E-mail confirmado
+            </p>
+            {userId ? (
+              <>
+                <p className="text-sm text-netzach-text/90 leading-relaxed">
+                  Sua conta está pronta e você já está dentro.
+                </p>
+                <button type="button" onClick={() => navigate(destino)}
+                  className="w-full bg-netzach-gold text-netzach-bg font-bold font-mystic py-2.5 rounded-lg hover:bg-white transition-colors">
+                  Entrar no Templo
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-netzach-text/90 leading-relaxed">
+                Sua conta está pronta. Entre abaixo com o e-mail e a senha que você escolheu.
+              </p>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="relative group">

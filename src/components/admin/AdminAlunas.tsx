@@ -198,6 +198,40 @@ export default function AdminAlunas() {
     carregar();
   };
 
+  // ── Notificação de teste ────────────────────────────────────
+  // O painel só dispara notificação ao publicar conteúdo de verdade, que
+  // vai para todas as alunas. Este envio é para uma só, e pede confirmação
+  // para ninguém ser avisada por engano.
+  const [testando, setTestando] = useState<string | null>(null);
+
+  const testarNotificacao = async (a: Profile) => {
+    const nome = a.full_name || 'esta aluna';
+    if (!confirm(`Enviar uma notificação de teste para ${nome}?`)) return;
+
+    setTestando(a.id);
+    setAviso({ tipo: 'info', texto: `Enviando a notificação de teste para ${nome}...` });
+    const { data, error } = await supabase.functions.invoke('send-push', {
+      body: {
+        user_id: a.user_id,
+        title: 'Teste do Netzach ✦',
+        body: 'Se você leu isto, as notificações estão funcionando.',
+        url: '/templo',
+      },
+    });
+    setTestando(null);
+
+    if (error) {
+      console.error('Falha ao enviar o teste:', error.message);
+      setAviso({ tipo: 'erro', texto: `O envio falhou (${error.message}).` });
+    } else if (!data?.total) {
+      setAviso({ tipo: 'erro', texto: `${nome} não tem notificações ativadas em nenhum aparelho.` });
+    } else if (!data?.sent) {
+      setAviso({ tipo: 'erro', texto: `${nome} tinha ${data.total} aparelho(s) registrado(s), mas o serviço de push recusou o envio${data.removidas ? ' (a inscrição estava vencida e foi removida: ela precisa ativar de novo)' : ''}.` });
+    } else {
+      setAviso({ tipo: 'ok', texto: `Notificação enviada para ${data.sent} aparelho(s) de ${nome}. Olhe o celular.` });
+    }
+  };
+
   const filtradas = alunas.filter(a =>
     `${a.full_name ?? ''} ${a.whatsapp ?? ''}`.toLowerCase().includes(busca.toLowerCase()),
   );
@@ -253,6 +287,10 @@ export default function AdminAlunas() {
                   {aluna.sign_moon && aluna.sign_rising
                     ? `Sol ${aluna.sign_sun ?? '?'} · Lua ${aluna.sign_moon} · Asc ${aluna.sign_rising}`
                     : <span className="text-netzach-rose/90">Mapa astral incompleto</span>}
+                  <button onClick={() => testarNotificacao(aluna)} disabled={testando === aluna.id}
+                    className="ml-3 underline underline-offset-2 hover:text-netzach-gold disabled:opacity-40">
+                    {testando === aluna.id ? 'enviando...' : 'testar notificação'}
+                  </button>
                   {podeCalcular(aluna) && !ehAdmin && (
                     <button onClick={() => recalcularUma(aluna)} disabled={recalculando === aluna.id || lote !== null}
                       className="ml-2 underline underline-offset-2 hover:text-netzach-gold disabled:opacity-40">

@@ -2,6 +2,25 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-04 — Notificação funcionando no iPhone (inscrição chegou ao banco) e envio de teste
+
+Com `VITE_VAPID_PUBLIC_KEY` na Cloudflare (variável de texto, Production) e novo deploy, o iPhone da
+Raquel pediu a permissão e o botão virou "Desativar". **Confirmado no banco** (somente leitura): 1
+inscrição, de 1 aluna, em `web.push.apple.com`, gravada às 19:31 UTC. Falta só ela receber uma.
+
+Como o painel só dispara push ao publicar conteúdo real (Arcano/Céu da Semana, para todas as
+alunas), e a função de envio nunca tinha enviado nada em produção, rodei o `send-push` de ponta a
+ponta aqui antes do primeiro teste real: biblioteca `web-push` de verdade, chaves VAPID **de teste**
+geradas na hora, servidor https local no papel do serviço da Apple. Resultados: envio normal
+`{sent:1,total:1}` com cabeçalho `vapid` e carga `aes128gcm`; resposta 410 apaga a inscrição morta;
+aluna sem inscrição dá `total:0`; URL de fora é trocada por `/`. Também ganhou na aba Alunas o link
+**"testar notificação"** por aluna (pede confirmação; avisa quando a aluna não tem aparelho ou
+quando a inscrição venceu e foi removida), usando `send-push` com `user_id`.
+
+Pendente: a Raquel confirmar que a notificação chegou ao celular.
+
+---
+
 ## 2026-11-04 — Notificação no iPhone: o botão "Ativar" nunca funcionou (causa achada)
 
 Depois de confirmar pela etiqueta de versão que o iPhone rodava o código novo (3a0049f), o botão

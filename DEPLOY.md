@@ -139,13 +139,41 @@ para a aluna). `send-push` mudou junto: as duas usam `_shared/push.ts`.
 
 ---
 
-## Passo 4 — Publicar o app
+## Passo 4 — Publicar o app (e as variáveis de build)
 
-Pelo caminho de sempre (Vercel). Se for por linha de comando:
+O app é publicado pela **Cloudflare Pages**, a cada push na `main`. O Vite **embute no código**,
+na hora do build, as variáveis que começam com `VITE_`. Faltando uma delas na Cloudflare, o app é
+montado sem ela e **o recurso correspondente não funciona, sem erro nenhum**. Em Workers & Pages →
+(o projeto) → Settings → Variables and Secrets, confira que existem, em **Production**:
+
+| Variável | O que é | Se faltar |
+|----------|---------|-----------|
+| `VITE_SUPABASE_URL` | Endereço do projeto Supabase | O app nem abre |
+| `VITE_SUPABASE_ANON_KEY` | Chave pública (anon) do Supabase | O app nem abre |
+| `VITE_VAPID_PUBLIC_KEY` | A **chave pública** do par VAPID das notificações (começa com `B`, uns 87 caracteres) | **"Ativar notificações" não faz nada**; o iPhone só deixa o botão dourado por ter sido tocado |
+
+Variável de build só vale no **próximo** build: depois de criar ou mudar uma, faça *Retry
+deployment* (ou um novo push) e depois confira na Cloudflare que o build terminou.
+
+**A chave do `VITE_VAPID_PUBLIC_KEY` tem de ser a pública do mesmo par cujas chaves estão em
+`VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` no Supabase.** Se você não a tem guardada, os valores dos
+segredos do Supabase não podem ser lidos de volta. Gere um par novo e atualize os dois lados:
 
 ```bash
-pnpm build
+npx web-push generate-vapid-keys
 ```
+
+```bash
+npx supabase secrets set VAPID_PUBLIC_KEY="<a pública>" VAPID_PRIVATE_KEY="<a privada>"
+```
+
+Gerar um par novo invalida as inscrições de notificação que já existam (as alunas precisariam
+ativar de novo), o que não importa se ninguém conseguiu ativar até agora.
+
+Para conferir no app publicado, abra o Perfil: no fim da página aparece a versão (`Versão
+3a0049f · 04/11 15:52`), que é o commit do deploy.
+
+Localmente: `pnpm build`, com as variáveis no `.env` (veja `.env.example`).
 
 ---
 

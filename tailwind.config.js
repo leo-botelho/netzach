@@ -1,5 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // `hover:` só vale em aparelho com mouse. No celular um toque deixa o
+  // estilo de hover preso até a pessoa tocar em outro lugar, e os botões
+  // pareciam ligados sem estar: foi o que escondeu que "Ativar" notificações
+  // nunca tinha funcionado.
+  future: { hoverOnlyWhenSupported: true },
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",

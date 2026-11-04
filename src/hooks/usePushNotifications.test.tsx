@@ -98,3 +98,23 @@ describe('usePushNotifications', () => {
     expect(inscricao.unsubscribe).toHaveBeenCalled();
   });
 });
+
+describe('usePushNotifications sem a chave VAPID configurada', () => {
+  it('avisa em vez de não fazer nada', async () => {
+    // O caso real de 04/11/2026: a hospedagem montou o app sem a variável,
+    // e tocar em Ativar não pedia permissão nem mostrava erro.
+    vi.resetModules();
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', '');
+    const { usePushNotifications } = await import('./usePushNotifications');
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(result.current.isSupported).toBe(true));
+
+    let ok = true;
+    await act(async () => { ok = await result.current.subscribe(); });
+
+    expect(ok).toBe(false);
+    expect(result.current.erro).toMatch(/ainda não estão disponíveis/);
+    expect(Notification.requestPermission).not.toHaveBeenCalled();
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U');
+  });
+});

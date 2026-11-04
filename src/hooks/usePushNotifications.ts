@@ -54,7 +54,18 @@ export function usePushNotifications() {
   }, []);
 
   const subscribe = async (): Promise<boolean> => {
-    if (!isSupported || !VAPID_PUBLIC_KEY) return false;
+    if (!isSupported) return false;
+
+    // A chave pública é lida na montagem do app. Sem ela configurada na
+    // hospedagem, esta função era compilada como "não faz nada": tocar em
+    // Ativar não pedia permissão nem mostrava erro, e o botão só parecia
+    // aceso porque o iPhone mantém o estilo de "tocado" até outro toque.
+    if (!VAPID_PUBLIC_KEY) {
+      console.error('VITE_VAPID_PUBLIC_KEY ausente: as notificações não foram configuradas nesta versão do app.');
+      setErro('As notificações ainda não estão disponíveis neste app. Avise a Raquel.');
+      return false;
+    }
+
     acoes.current += 1;
     setIsLoading(true);
     setErro(null);

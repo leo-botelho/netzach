@@ -2,6 +2,38 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-04 — Notificação no iPhone: o botão "Ativar" nunca funcionou (causa achada)
+
+Depois de confirmar pela etiqueta de versão que o iPhone rodava o código novo (3a0049f), o botão
+continuava "ativando e apagando ao rolar". Lendo o **código publicado** (chunk do Templo) apareceu:
+`subscribe:async()=>!1`. A função de ativar foi compilada como "devolve falso". Motivo:
+`VITE_VAPID_PUBLIC_KEY` **não existe no build da Cloudflare**; o Vite a substitui por `undefined`,
+a checagem `if (!VAPID_PUBLIC_KEY) return false` vira constante verdadeira e o minificador apaga o
+resto da função. Tocar em "Ativar" não pede permissão nem mostra erro. O que a Raquel via como
+"aceso" era o estilo `hover:` do botão, que o iPhone deixa preso depois do toque até a pessoa tocar
+em outro lugar ("dourado ao tocar, apaga ao tocar fora e rolar"). **Todas as minhas correções
+anteriores desse botão (toque acidental, checagem atrasada, confirmação de desativar) trataram de
+um problema que não era esse.** O hook de ativar nunca tinha rodado em produção desde a mudança de
+hospedagem (o CLAUDE.md ainda cita Vercel; o app está na Cloudflare Pages).
+
+Corrigido no código: sem a chave, `subscribe` mostra "As notificações ainda não estão disponíveis
+neste app. Avise a Raquel." e loga o motivo, em vez de calar. Verificado no build real: sem a chave a
+mensagem sobrevive; com a chave existe `applicationServerKey` e a função vazia some. Também:
+`future.hoverOnlyWhenSupported` no Tailwind, então o `hover:` só vale com mouse (33 utilitários, todos
+dentro de `@media(hover:hover) and (pointer:fine)`, conferido): em celular o dourado preso some em
+**todos** os botões do app, que enganava em toda parte. `.env.example` e `DEPLOY.md` (Passo 4,
+agora descrevendo a Cloudflare e as três variáveis de build) documentam a chave.
+
+**Confirmado no banco** (consulta somente leitura, só contagens): `push_subscriptions` tem **0 linhas**,
+de qualquer aluna, desde sempre. Ninguém jamais conseguiu ativar.
+
+**Falta a Raquel:** pôr `VITE_VAPID_PUBLIC_KEY` na Cloudflare Pages (Production) e refazer o deploy.
+Se ela não tiver o par VAPID guardado, gerar um novo e atualizar também os dois segredos do Supabase
+(os valores dos segredos não podem ser lidos de volta). Lição geral: variável `VITE_` ausente falha
+**calada**; vale uma checagem no build ou no painel.
+
+---
+
 ## 2026-11-04 — Causas encontradas: app em cache sem atualizar e busca de cidade bloqueada
 
 ### 1. O service worker nunca atualizava (falha sistêmica, a maior descoberta do dia)

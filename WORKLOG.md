@@ -45,6 +45,17 @@ chamada inteira é a etapa `api_astrologia`, e a resposta de erro devolve `detal
 erro, mas só para a admin e para o gatilho: a aluna vê só a frase amigável, porque mensagem
 inesperada pode expor detalhe interno.
 
+### Erro meu: `cidade is not defined` (visto nos logs da Raquel, 15:48)
+Ao trocar a busca de coordenadas apaguei a linha que definia `cidade` e deixei a que a usava
+(`const geoUrl = ...encodeURIComponent(cidade)`). Toda chamada falhava com "desconhecida". Duas
+checagens que eu fazia **não pegam isso**: sintaxe válida (`transpileModule`) e testes das funções
+puras. Passei a usar (a) o compilador do TypeScript procurando nomes inexistentes (TS2304) e
+(b) uma execução da função inteira em Node com Deno simulado, `fetch` simulado (Nominatim
+recusando, API de astrologia caindo) e o Open-Meteo de verdade. Os scripts ficam no scratchpad da
+sessão, não no repositório. **Regra daqui em diante: função de borda não vai para a Raquel sem ter
+sido executada de ponta a ponta.** Resultado do caso de Canoas (dez/1963): fuso -2, `timezone=-2`
+enviado à API, signos gravados.
+
 ### Mapa nulo ainda não confirmado
 Falta a Raquel publicar a função de novo e clicar "recalcular" para ver se agora fecha. A etapa
 `api_astrologia` ainda pode falhar (limite diário do plano gratuito, formato da resposta).

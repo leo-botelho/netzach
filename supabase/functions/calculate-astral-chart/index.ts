@@ -142,8 +142,7 @@ Deno.serve(async (req) => {
     const timeStr = birth_time || '12:00:00';
     const [hora, minuto] = timeStr.split(':').map(Number);
 
-    // ── 2. Geocodificação via Nominatim ──────────────────────────
-    const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade)}&format=json&limit=1`;
+    // ── 2. Coordenadas da cidade (Nominatim, com Open-Meteo de reserva) ─
     const { lat, lon, fonte: fonteDaCidade } = await buscarCoordenadas(birth_city);
 
     // ── 3. Fuso do local e do dia do nascimento ──────────────────

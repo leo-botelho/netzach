@@ -95,3 +95,77 @@ function arredondar(horas: number): number {
 export function nomeDaCidade(bruto: string): string {
   return bruto.split(/\s+[-–—]\s+/)[0].trim();
 }
+
+// ───────────────────────────────────────────────────────────────
+// Escolha da cidade quando a busca devolve várias
+// ───────────────────────────────────────────────────────────────
+
+const ESTADOS: Record<string, string> = {
+  AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará',
+  DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão',
+  MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará',
+  PB: 'Paraíba', PR: 'Paraná', PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro',
+  RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima',
+  SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins',
+};
+
+/** Sem acento, minúscula, hífen como espaço: "Ji-Paraná" e "Ji Paraná" são a mesma. */
+function normalizar(texto: string): string {
+  return texto
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[-–—]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Separa o nome da cidade e o estado, nos dois formatos que existem no
+ * banco: "Campinas, SP, BR" (cadastro) e "Rio de Janeiro - RJ" (antigo).
+ * O estado serve para escolher entre cidades de mesmo nome.
+ */
+export function separarCidade(bruto: string): { nome: string; uf: string | null } {
+  const porVirgula = bruto.split(',').map(p => p.trim()).filter(Boolean);
+  if (porVirgula.length > 1) {
+    const uf = porVirgula.slice(1).map(p => p.toUpperCase()).find(p => p in ESTADOS) ?? null;
+    return { nome: porVirgula[0], uf };
+  }
+
+  const comTraco = bruto.match(/^(.*?)\s+[-–—]\s*([A-Za-z]{2})\s*$/);
+  if (comTraco && comTraco[2].toUpperCase() in ESTADOS) {
+    return { nome: comTraco[1].trim(), uf: comTraco[2].toUpperCase() };
+  }
+  return { nome: bruto.trim(), uf: null };
+}
+
+export interface ResultadoDeBusca {
+  name: string;
+  admin1?: string;
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Entre os resultados de uma busca por nome, o certo: o de mesmo nome e,
+ * havendo estado, o daquele estado. Os resultados vêm misturados com
+ * aeroportos, bairros e cidades homônimas; pegar o primeiro daria
+ * "Santa Maria" do Distrito Federal para quem nasceu em Santa Maria, RS.
+ * Devolve null quando não há um resultado confiável.
+ */
+export function escolherResultado(
+  resultados: ResultadoDeBusca[],
+  nome: string,
+  uf: string | null,
+): { lat: number; lon: number } | null {
+  const alvo = normalizar(nome);
+  const estado = uf ? normalizar(ESTADOS[uf] ?? '') : null;
+
+  const mesmoNome = resultados.filter(r => normalizar(r.name) === alvo);
+  const doEstado = (r: ResultadoDeBusca) => !estado || normalizar(r.admin1 ?? '') === estado;
+
+  const escolhido =
+    mesmoNome.find(doEstado) ??
+    // Sem estado conhecido, o primeiro de mesmo nome é o mais relevante.
+    (estado ? undefined : mesmoNome[0]) ??
+    // Nome com grafia levemente diferente na base ("Ji Paraná"), mas no estado certo.
+    (estado ? resultados.find(r => doEstado(r) && !/aeroporto|airport/i.test(r.name)) : undefined);
+
+  return escolhido ? { lat: escolhido.latitude, lon: escolhido.longitude } : null;
+}

@@ -2,9 +2,17 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// A Cloudflare informa o commit do deploy; local e testes caem em "local".
+const versao = (process.env.CF_PAGES_COMMIT_SHA ?? process.env.GITHUB_SHA ?? 'local').slice(0, 7);
+
 // https://vitejs.dev/config/
 export default defineConfig({
   server: { port: 5174 },
+  // Mostrada no Perfil: é como saber qual versão o aparelho está rodando.
+  define: {
+    __APP_VERSAO__: JSON.stringify(versao),
+    __APP_COMPILADO_EM__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     VitePWA({

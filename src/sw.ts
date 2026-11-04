@@ -6,6 +6,13 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Atualização imediata. Sem isto uma versão nova instala e fica esperando
+// todas as janelas do app fecharem, e no celular o app instalado quase
+// nunca fecha: cada correção publicada chegava dias depois. A página que
+// já estava aberta recarrega por conta própria (lib/atualizacaoDoApp.ts).
+self.addEventListener('install', () => { self.skipWaiting(); });
+self.addEventListener('activate', (event) => { event.waitUntil(self.clients.claim()); });
+
 // Push notification handler
 self.addEventListener('push', (event) => {
   if (!event.data) return;

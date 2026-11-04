@@ -35,7 +35,7 @@ export default function AdminAlunas() {
   const [alunas, setAlunas] = useState<Profile[]>([]);
   const [busca, setBusca] = useState('');
   const [carregando, setCarregando] = useState(true);
-  const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro' | 'info'; texto: string } | null>(null);
 
   const carregar = useCallback(async () => {
     const { data, error } = await supabase.from('profiles').select('*')
@@ -110,15 +110,16 @@ export default function AdminAlunas() {
     fuso: 'no cálculo do fuso horário',
     api_astrologia: 'na API de astrologia (chave, limite do plano ou serviço fora do ar)',
     gravacao: 'ao gravar o resultado',
+    sem_resposta: 'sem resposta da função em 45 segundos',
   };
 
   type ResultadoDoMapa =
     | { ok: true; sign_sun: string; sign_moon: string; sign_rising: string; fuso: { zona: string; horas: number } }
-    | { ok: false; etapa: string | null };
+    | { ok: false; etapa: string | null; detalhe: string | null };
 
   /** Devolve o que o servidor calculou, ou em que passo ele falhou. */
   const calcularMapa = async (a: Profile): Promise<ResultadoDoMapa> => {
-    const { data, error } = await supabase.functions.invoke('calculate-astral-chart', {
+    const chamada = supabase.functions.invoke('calculate-astral-chart', {
       body: {
         user_id: a.user_id,
         birth_date: a.birth_date,
@@ -126,28 +127,39 @@ export default function AdminAlunas() {
         birth_city: a.birth_city,
       },
     });
+    // Se a função ficar pendurada, a tela precisa de um fim: antes o
+    // botão parecia não fazer nada.
+    const limite = new Promise<'estourou'>(resolver => setTimeout(() => resolver('estourou'), 45_000));
+    const resposta = await Promise.race([chamada, limite]);
+    if (resposta === 'estourou') return { ok: false, etapa: 'sem_resposta', detalhe: null };
+    const { data, error } = resposta;
     if (error || !data?.ok) {
       console.error('Falha ao calcular o mapa:', error?.message ?? 'sem retorno');
       // Quando a função responde com erro, a resposta fica em error.context.
       let etapa: string | null = null;
+      let detalhe: string | null = null;
       try {
         const corpo = await (error as { context?: Response } | null)?.context?.json();
         etapa = corpo?.etapa ?? null;
+        detalhe = corpo?.detalhe ?? corpo?.error ?? null;
       } catch { /* resposta sem corpo legível */ }
-      return { ok: false, etapa };
+      return { ok: false, etapa, detalhe };
     }
     return data as ResultadoDoMapa;
   };
 
   const recalcularUma = async (a: Profile) => {
-    setAviso(null);
+    setAviso({ tipo: 'info', texto: `Calculando o mapa de ${a.full_name || 'aluna'}... pode levar até 30 segundos.` });
     setRecalculando(a.id);
     const r = await calcularMapa(a);
     setRecalculando(null);
 
     if (!r.ok) {
       const onde = r.etapa ? ETAPAS[r.etapa] ?? `no passo "${r.etapa}"` : 'por um motivo que a função não informou';
-      setAviso({ tipo: 'erro', texto: `Não consegui calcular o mapa de ${a.full_name || 'aluna'}: falhou ${onde}.` });
+      setAviso({
+        tipo: 'erro',
+        texto: `Não consegui calcular o mapa de ${a.full_name || 'aluna'}: falhou ${onde}.${r.detalhe ? ` Detalhe: ${r.detalhe}` : ''}`,
+      });
       return;
     }
     setAviso({
@@ -170,7 +182,8 @@ export default function AdminAlunas() {
       const r = await calcularMapa(alvo[i]);
       if (!r.ok) {
         falhas += 1;
-        etapasQueFalharam.add(r.etapa ? ETAPAS[r.etapa] ?? r.etapa : 'passo não informado');
+        const base = r.etapa ? ETAPAS[r.etapa] ?? r.etapa : 'passo não informado';
+        etapasQueFalharam.add(r.detalhe ? `${base} (${r.detalhe})` : base);
       }
       // A API gratuita limita a um pedido por segundo.
       await new Promise(r => setTimeout(r, 1500));
@@ -210,7 +223,10 @@ export default function AdminAlunas() {
 
       {aviso && (
         <p role={aviso.tipo === 'erro' ? 'alert' : 'status'}
-          className={`text-sm rounded-lg px-4 py-3 border ${aviso.tipo === 'erro' ? 'border-netzach-rose/40 text-netzach-rose' : 'border-netzach-gold/40 text-netzach-gold'}`}>
+          className={`sticky top-2 z-10 bg-netzach-bg text-sm rounded-lg px-4 py-3 border shadow-lg ${
+            aviso.tipo === 'erro' ? 'border-netzach-rose/40 text-netzach-rose'
+              : aviso.tipo === 'info' ? 'border-netzach-border text-netzach-text'
+              : 'border-netzach-gold/40 text-netzach-gold'}`}>
           {aviso.texto}
         </p>
       )}

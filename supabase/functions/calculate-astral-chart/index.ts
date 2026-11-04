@@ -1,7 +1,7 @@
 // @ts-ignore — tz-lookup via npm: coordenadas → zona IANA, sem rede
 import tzlookup from 'npm:tz-lookup@6.1.25';
 import { corsHeaders, servico, erro, exigirUsuaria, exigirAdmin, segredoInternoValido } from '../_shared/auth.ts';
-import { offsetNoHorarioLocal, nomeDaCidade } from '../_shared/nascimento.ts';
+import { offsetNoHorarioLocal, nomeDaCidade, separarCidade, escolherResultado } from '../_shared/nascimento.ts';
 
 /**
  * Replica o fluxo N8N supabase-netzach:
@@ -26,6 +26,52 @@ class FalhaNaEtapa extends Error {
   constructor(public etapa: string, detalhe: string) {
     super(detalhe);
   }
+}
+
+/**
+ * Coordenadas da cidade, com duas fontes.
+ *
+ * O Nominatim é gratuito e recusa, com frequência, pedidos vindos de
+ * servidores de nuvem como os do Supabase: foi o que derrubou o primeiro
+ * cálculo real. Quando ele falha, o Open-Meteo responde sem chave e
+ * informa o estado de cada resultado, o que permite escolher entre as
+ * várias "Santa Maria" do país.
+ */
+async function buscarCoordenadas(cidadeBruta: string): Promise<{ lat: number; lon: number; fonte: string }> {
+  const falhas: string[] = [];
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nomeDaCidade(cidadeBruta))}&format=json&limit=1`;
+    const res = await fetch(url, {
+      // A política do Nominatim pede um User-Agent que identifique o app.
+      headers: { 'User-Agent': 'Netzach/1.0 (+https://netzach.app.br)', 'Accept-Language': 'pt-BR' },
+      signal: AbortSignal.timeout(8000),
+    });
+    // Quando bloqueia ou limita, ele responde HTML e não JSON.
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const dados = await res.json();
+    if (Array.isArray(dados) && dados.length > 0) {
+      return { lat: parseFloat(dados[0].lat), lon: parseFloat(dados[0].lon), fonte: 'nominatim' };
+    }
+    falhas.push('nominatim: cidade não encontrada');
+  } catch (e) {
+    falhas.push(`nominatim: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  try {
+    const { nome, uf } = separarCidade(cidadeBruta);
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nome)}&count=10&language=pt&format=json`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const dados = await res.json();
+    const achado = escolherResultado(dados?.results ?? [], nome, uf);
+    if (achado) return { ...achado, fonte: 'open-meteo' };
+    falhas.push('open-meteo: cidade não encontrada');
+  } catch (e) {
+    falhas.push(`open-meteo: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  throw new FalhaNaEtapa('busca_da_cidade', falhas.join(' | '));
 }
 
 Deno.serve(async (req) => {
@@ -88,31 +134,9 @@ Deno.serve(async (req) => {
     const timeStr = birth_time || '12:00:00';
     const [hora, minuto] = timeStr.split(':').map(Number);
 
-    // "Rio de Janeiro - RJ" → "Rio de Janeiro". Cortar em qualquer hífen
-    // quebrava "Ji-Paraná" (virava "Ji") e "Embu-Guaçu"; ver nascimento.ts.
-    const cidade = nomeDaCidade(birth_city);
-
     // ── 2. Geocodificação via Nominatim ──────────────────────────
     const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade)}&format=json&limit=1`;
-    let geoData: Array<{ lat: string; lon: string }>;
-    try {
-      const geoRes = await fetch(geoUrl, {
-        headers: { 'User-Agent': 'NetzachApp/1.0' },
-      });
-      // O Nominatim recusa com HTML (e não JSON) quando bloqueia ou limita
-      // o pedido; sem este teste o erro virava "Unexpected token <".
-      if (!geoRes.ok) throw new Error(`HTTP ${geoRes.status}`);
-      geoData = await geoRes.json();
-    } catch (e) {
-      throw new FalhaNaEtapa('busca_da_cidade', e instanceof Error ? e.message : String(e));
-    }
-
-    if (!geoData || geoData.length === 0) {
-      return erro(req, 422, `Cidade não encontrada: ${cidade}`);
-    }
-
-    const lat = parseFloat(geoData[0].lat);
-    const lon = parseFloat(geoData[0].lon);
+    const { lat, lon, fonte: fonteDaCidade } = await buscarCoordenadas(birth_city);
 
     // ── 3. Fuso do local e do dia do nascimento ──────────────────
     // Antes era `timezone: -3` para todo mundo. O Brasil teve horário de
@@ -153,6 +177,7 @@ Deno.serve(async (req) => {
           language: 'pt',
         },
       }),
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!astroRes.ok) {
@@ -184,6 +209,7 @@ Deno.serve(async (req) => {
       ok: true, sign_sun, sign_moon, sign_rising,
       // Para conferir a conta: o fuso usado e de onde ele veio.
       fuso: { zona, horas: timezone },
+      coordenadas_de: fonteDaCidade,
       recalculado_pela_admin: chamadaPelaAdmin,
     }), {
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
@@ -192,7 +218,11 @@ Deno.serve(async (req) => {
   } catch (err: unknown) {
     const etapa = err instanceof FalhaNaEtapa ? err.etapa : 'desconhecida';
     console.error(`calculate-astral-chart [${etapa}]:`, err instanceof Error ? err.message : String(err));
-    return new Response(JSON.stringify({ error: 'Não foi possível calcular o mapa astral agora', etapa }), {
+    // `detalhe` é o status HTTP e o começo da resposta do serviço externo,
+    // nunca dado da aluna: serve para a administradora ver o motivo no
+    // painel sem depender dos logs.
+    const detalhe = err instanceof FalhaNaEtapa ? err.message.slice(0, 240) : undefined;
+    return new Response(JSON.stringify({ error: 'Não foi possível calcular o mapa astral agora', etapa, detalhe }), {
       status: 500,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     });

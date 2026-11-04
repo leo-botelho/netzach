@@ -476,6 +476,11 @@ export default function ProfilePage() {
         {/* Direitos sobre os próprios dados (§16, LGPD) */}
         <MeusDados />
 
+        {/* Para conferir qual versão o aparelho está rodando. */}
+        <p className="text-center text-[11px] text-netzach-muted pt-2">
+          Versão {__APP_VERSAO__} · {new Date(__APP_COMPILADO_EM__).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
+        </p>
+
       </main>
     </div>
   );

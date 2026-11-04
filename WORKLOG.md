@@ -2,6 +2,53 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-04 — Causas encontradas: app em cache sem atualizar e busca de cidade bloqueada
+
+### 1. O service worker nunca atualizava (falha sistêmica, a maior descoberta do dia)
+`src/sw.ts` não chamava `skipWaiting` nem `clients.claim`, e nada na página recarregava depois de
+uma atualização. Com `injectManifest` o `registerType: 'autoUpdate'` não faz isso sozinho. Uma
+versão nova instalava e **ficava esperando até todas as janelas do app fecharem**, o que no celular
+(app instalado, que quase nunca fecha) pode levar dias. Provas: o link de confirmação do cadastro
+saiu sem `/portal` e o painel da Raquel mostrou o texto *antigo* ("Confira a cidade de
+nascimento") com o bundle novo já no ar. Isso também pode ter mantido no iPhone dela a versão do
+botão de notificação anterior à correção de 7ef4bc0, e fazer cada correção minha chegar tarde.
+
+Corrigido: `sw.ts` assume o controle ao instalar; `lib/atualizacaoDoApp.ts` recarrega a página
+quando o SW novo assume, **mas só quando a pessoa sai da tela** (formulário em uso não se perde) ou
+quando um arquivo de página some (`vite:preloadError`), com trava contra laço de recarga. Primeira
+visita não recarrega. Versão no rodapé do Perfil (`__APP_VERSAO__`, commit curto da Cloudflare,
+`CF_PAGES_COMMIT_SHA`) para a aluna e a Raquel conferirem o que o aparelho roda. 7 testes.
+Primeira transição: o SW antigo não tem o código de recarga, então quem está com uma sessão aberta
+pode ver uma página falhar uma vez ao abrir tela nova; fechar e abrir o app resolve.
+
+### 2. Mapa astral: falha na busca da cidade (etapa `busca_da_cidade`)
+Com o diagnóstico por etapa publicado, a Raquel viu o erro vir da busca de coordenadas: o
+Nominatim costuma recusar IPs de nuvem como os do Supabase. A função agora tenta o Nominatim (com
+User-Agent que identifica o app, como a política pede, e 8 s de limite) e, se falhar, o Open-Meteo
+(sem chave; devolve o estado de cada resultado). `separarCidade` e `escolherResultado` escolhem
+entre cidades homônimas pelo estado (Santa Maria do RS, não a do DF), ignoram aeroportos e tratam
+"Ji-Paraná"/"Ji Paraná" como iguais. A resposta de erro traz `detalhe` (status HTTP, começo da
+resposta do serviço externo, nunca dado da aluna) e o painel o mostra, para não depender dos logs
+do Supabase (que a Raquel não conseguiu ver). Também ganhou limite de 20 s na API de astrologia.
+Aviso do painel: "Calculando..." ao clicar, aviso fixo no topo da área visível, e o fim claro
+("sem resposta da função em 45 segundos") se a função ficar pendurada.
+
+Conferido na internet de verdade (script no scratchpad) com as cidades do banco: Rio de Janeiro
+-3 (1984), Canoas **-2** (dez/1963, horário de verão), Franca -3, Santa Maria RS -2, Ji-Paraná
+-4. A aluna de Canoas tem o mapa gravado com -3, ou seja, provavelmente errado até refazer.
+
+### Mapa nulo ainda não confirmado
+Falta a Raquel publicar a função de novo e clicar "recalcular" para ver se agora fecha. A etapa
+`api_astrologia` ainda pode falhar (limite diário do plano gratuito, formato da resposta).
+
+### Notificação no iPhone
+Segue sem causa comprovada. Hipótese mais forte agora: o iPhone dela rodava o app antigo (item 1).
+Plano B, se persistir com a versão nova (conferir pela etiqueta no Perfil): um modo `?diagnostico=1`
+que anota na tela o que acontece com a inscrição (cheguei a escrever e removi para não deixar
+código sem uso).
+
+---
+
 ## 2026-11-04 — Mapa astral: o cálculo no cadastro falha dentro da função (investigação)
 
 Primeiro teste real da Raquel após aplicar a migration e publicar a função: cadastro novo, perfil

@@ -2,6 +2,57 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-04 — Mapa astral: fuso com horário de verão e cálculo automático no cadastro
+
+A Raquel notou que uma aluna nova ficou sem mapa e que, ao calcular à mão pelo N8N, o resultado
+mudava por causa do horário de verão no ano do nascimento (ela acrescentou um nó que usa o fuso
+histórico de America/Sao_Paulo).
+
+### Causa 1: `timezone: -3` fixo
+`calculate-astral-chart` mandava `-3` para todo mundo. O Brasil teve horário de verão de 1985 a
+2019, então nascida em janeiro de 1990 em São Paulo tem fuso -2, e o ascendente e a Lua saíam
+errados (às vezes o signo). Corrigido em `supabase/functions/_shared/nascimento.ts`
+(`offsetNoHorarioLocal`): a zona vem das **coordenadas** (`tz-lookup`) e o deslocamento do
+histórico de horários da zona na data, via `Intl`. Melhora o nó do N8N, que usa São Paulo para
+tudo: Cuiabá em jan/1990 dá -3 (padrão -4 mais verão) e não -2; o Acre ficou em -4 de 2008 a 2013;
+cidades de fora do país também passam a funcionar. Bordas do relógio: horário repetido vale a
+primeira ocorrência (verão); horário que não existiu é empurrado para frente. Se a zona não for
+descoberta, a função **falha** em vez de cair num fuso qualquer: mapa errado em silêncio é pior
+que nenhum.
+
+### Causa 2: o cálculo no cadastro nunca foi religado (erro meu)
+Em 19/08 removi o gatilho `profilesUpdate` (N8N) e deixei o substituto como Database Webhook a
+criar à mão no painel, que o DEPLOY.md nunca pediu. O modelo desse webhook ainda mandava a chave
+de serviço como Bearer, que a função recusa desde a fase 1. Aluna nova ficava sem mapa.
+`20261104_mapa_astral_automatico.sql`: gatilho em `profiles` (insert, ou primeira vez que a data
+de nascimento chega) que chama a função com `x-internal-secret` via pg_net. Falha no envio vira
+aviso e nunca bloqueia o cadastro. Em edição de perfil o app segue recalculando por conta própria.
+
+### Cidade com hífen
+`birth_city.split('-')[0]` geocodava "Ji-Paraná" como "Ji" e "Embu-Guaçu" como "Embu", em lugares
+errados. `nomeDaCidade` só corta no separador com espaços ("Rio de Janeiro - RJ").
+
+### Painel (aba Alunas)
+Cada linha mostra Sol, Lua e Ascendente (ou "Mapa astral incompleto"), com "recalcular". Botão
+"Refazer todos os mapas astrais" refaz todas em sequência (1,5 s entre chamadas: a API gratuita
+limita a 1 por segundo). **Os mapas já gravados com -3 continuam errados até serem refeitos.** A
+função passou a aceitar a admin calculando o mapa de outra aluna, e responde o fuso usado.
+
+### Testes
+285 (eram 267). `supabase/functions/_shared/nascimento.test.ts`, 18 casos, com valores conferidos
+por fora no banco de fusos do sistema. Verificado por script: Campinas jan/1990 = -2, jul/1990 =
+-3, Cuiabá jan/1990 = -3, Manaus 2020 = -4. **A função não foi executada**: não há Deno nesta
+máquina; só foi checada a sintaxe. A chamada real à API de astrologia e ao Nominatim fica para a
+Raquel testar.
+
+### Pendente
+- Publicar `calculate-astral-chart` (`--use-api`) e rodar a migration 12 com os 2 valores
+- Refazer os mapas existentes pelo painel
+- Se a API gratuita tiver limite diário menor que o número de alunas, o lote falha no fim: o aviso
+  conta as falhas, e dá para repetir no dia seguinte
+
+---
+
 ## 2026-10-06 — Bloqueio de assinatura: a trava barrava a própria Raquel
 
 A Raquel deu acesso a duas alunas, com plano lilith e vencimento em 30/09 e 03/10, e queria saber

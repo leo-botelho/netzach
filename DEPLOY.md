@@ -80,10 +80,19 @@ conferindo se deu certo antes de ir para o próximo.
 | 8 | `20260819_agendamentos.sql` | **Todos os agendamentos** ⚠️ *substituir 3 valores* |
 | 9 | `20260921_cursos.sql` | Área de cursos: cursos, módulos, aulas, acessos, progresso e comentários |
 | 10 | `20260921_duvidas.sql` | Caixa de dúvidas dos cursos e a opção de aviso de resposta |
+| 11 | `20261006_admin_assinatura.sql` | A admin pode bloquear e liberar alunas pelo painel |
+| 12 | `20261104_mapa_astral_automatico.sql` | **Mapa astral calculado sozinho no cadastro** ⚠️ *substituir 2 valores* |
 
 **Só o arquivo 8 pede substituição**, e é o único que depende das
 extensões do Passo 0. Se ele falhar, os sete primeiros continuam
 valendo: o portal funciona, só as tarefas automáticas ficam pendentes.
+
+**O arquivo 12 pede substituição, como o 8:** `<PROJECT_REF>` e `<INTERNAL_SECRET>`, os mesmos
+valores dos agendamentos. Ele devolve ao cadastro o cálculo do mapa astral que o gatilho do N8N
+fazia e que foi removido em 19/08 sem um substituto de fato. Se existir um Database Webhook
+`netzach-astral-chart` criado à mão no painel, apague-o: com os dois o cálculo roda duas vezes.
+E publique também a função `calculate-astral-chart`, que passou a calcular o fuso do dia do
+nascimento (com horário de verão), em vez de `-3` fixo.
 
 **O arquivo 10 depende do 9.** E rode os dois logo depois de publicar o app: a tela
 de Perfil já grava a opção "Respostas às suas dúvidas", e enquanto a coluna não

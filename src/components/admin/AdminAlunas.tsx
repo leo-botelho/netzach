@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search, ShieldCheck, ShieldOff, AlertTriangle } from 'lucide-react';
+import { Search, ShieldCheck, ShieldOff, AlertTriangle, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { avaliarAssinatura, descreverAssinatura, dataDeEntrada } from '../../lib/assinatura';
 import type { Profile } from '../../types';
@@ -95,6 +95,72 @@ export default function AdminAlunas() {
     );
   };
 
+  // ── Mapa astral ─────────────────────────────────────────────
+  // O cálculo usava fuso fixo de -3 e errava o mapa de quem nasceu em
+  // horário de verão. Corrigida a função, os mapas já gravados seguem
+  // errados até serem refeitos: daqui a admin refaz um a um ou todos.
+  const [recalculando, setRecalculando] = useState<string | null>(null);
+  const [lote, setLote] = useState<{ feitas: number; total: number } | null>(null);
+
+  const podeCalcular = (a: Profile) => Boolean(a.birth_date && a.birth_city);
+
+  /** Devolve o resumo do que o servidor calculou, ou null se falhou. */
+  const calcularMapa = async (a: Profile) => {
+    const { data, error } = await supabase.functions.invoke('calculate-astral-chart', {
+      body: {
+        user_id: a.user_id,
+        birth_date: a.birth_date,
+        birth_time: a.birth_time || null,
+        birth_city: a.birth_city,
+      },
+    });
+    if (error || !data?.ok) {
+      console.error('Falha ao calcular o mapa:', error?.message ?? 'sem retorno');
+      return null;
+    }
+    return data as { sign_sun: string; sign_moon: string; sign_rising: string; fuso: { zona: string; horas: number } };
+  };
+
+  const recalcularUma = async (a: Profile) => {
+    setAviso(null);
+    setRecalculando(a.id);
+    const r = await calcularMapa(a);
+    setRecalculando(null);
+
+    if (!r) {
+      setAviso({ tipo: 'erro', texto: `Não consegui calcular o mapa de ${a.full_name || 'aluna'}. Confira a cidade de nascimento.` });
+      return;
+    }
+    setAviso({
+      tipo: 'ok',
+      texto: `${a.full_name || 'Aluna'}: Sol em ${r.sign_sun}, Lua em ${r.sign_moon}, Ascendente em ${r.sign_rising} (fuso ${r.fuso.horas > 0 ? '+' : ''}${r.fuso.horas}, ${r.fuso.zona}).`,
+    });
+    carregar();
+  };
+
+  const recalcularTodas = async () => {
+    const alvo = alunas.filter(a => a.role !== 'admin' && podeCalcular(a));
+    if (!alvo.length) return;
+    if (!confirm(`Refazer o mapa astral de ${alvo.length} alunas? Leva cerca de ${Math.ceil(alvo.length * 1.5 / 60)} min e usa ${alvo.length} chamadas da API de astrologia.`)) return;
+
+    setAviso(null);
+    let falhas = 0;
+    for (let i = 0; i < alvo.length; i++) {
+      setLote({ feitas: i, total: alvo.length });
+      if (!(await calcularMapa(alvo[i]))) falhas += 1;
+      // A API gratuita limita a um pedido por segundo.
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    setLote(null);
+    setAviso({
+      tipo: falhas ? 'erro' : 'ok',
+      texto: falhas
+        ? `${alvo.length - falhas} mapas refeitos e ${falhas} falharam. Confira a cidade dessas alunas e recalcule uma a uma.`
+        : `${alvo.length} mapas refeitos.`,
+    });
+    carregar();
+  };
+
   const filtradas = alunas.filter(a =>
     `${a.full_name ?? ''} ${a.whatsapp ?? ''}`.toLowerCase().includes(busca.toLowerCase()),
   );
@@ -107,6 +173,15 @@ export default function AdminAlunas() {
         <input id="busca-aluna" placeholder="Buscar por nome ou WhatsApp"
           className="bg-transparent w-full outline-none text-white text-sm"
           value={busca} onChange={e => setBusca(e.target.value)} />
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-netzach-muted">{alunas.length} contas</p>
+        <button onClick={recalcularTodas} disabled={lote !== null || carregando}
+          className="text-xs px-3 py-2 rounded-lg border border-netzach-gold/50 text-netzach-gold hover:bg-netzach-gold/10 disabled:opacity-40 flex items-center gap-1.5">
+          <Sparkles size={14} aria-hidden="true" />
+          {lote ? `Refazendo ${lote.feitas + 1} de ${lote.total}...` : 'Refazer todos os mapas astrais'}
+        </button>
       </div>
 
       {aviso && (
@@ -133,6 +208,17 @@ export default function AdminAlunas() {
                 </p>
                 <p className="text-xs text-netzach-muted mt-0.5">
                   Entrou em {dataDeEntrada(aluna.created_at)}
+                </p>
+                <p className="text-xs text-netzach-muted mt-0.5">
+                  {aluna.sign_moon && aluna.sign_rising
+                    ? `Sol ${aluna.sign_sun ?? '?'} · Lua ${aluna.sign_moon} · Asc ${aluna.sign_rising}`
+                    : <span className="text-netzach-rose/90">Mapa astral incompleto</span>}
+                  {podeCalcular(aluna) && !ehAdmin && (
+                    <button onClick={() => recalcularUma(aluna)} disabled={recalculando === aluna.id || lote !== null}
+                      className="ml-2 underline underline-offset-2 hover:text-netzach-gold disabled:opacity-40">
+                      {recalculando === aluna.id ? 'calculando...' : 'recalcular'}
+                    </button>
+                  )}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 mt-2">

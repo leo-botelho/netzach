@@ -1,11 +1,15 @@
-import { corsHeaders, servico, erro, exigirUsuaria, segredoInternoValido } from '../_shared/auth.ts';
+// @ts-ignore — tz-lookup via npm: coordenadas → zona IANA, sem rede
+import tzlookup from 'npm:tz-lookup@6.1.25';
+import { corsHeaders, servico, erro, exigirUsuaria, exigirAdmin, segredoInternoValido } from '../_shared/auth.ts';
+import { offsetNoHorarioLocal, nomeDaCidade } from '../_shared/nascimento.ts';
 
 /**
  * Replica o fluxo N8N supabase-netzach:
  * 1. Recebe dados de nascimento (ou payload de webhook do Supabase)
  * 2. Geocodifica cidade → lat/lon via Nominatim
- * 3. Chama freeastrologyapi.com → ascendente, solar, lunar
- * 4. Atualiza profiles com sign_sun, sign_moon, sign_rising
+ * 3. Descobre o fuso que valia no local e no dia do nascimento
+ * 4. Chama freeastrologyapi.com → ascendente, solar, lunar
+ * 5. Atualiza profiles com sign_sun, sign_moon, sign_rising
  *
  * Pode ser chamada:
  * - Via Database Webhook (INSERT em profiles) — substitui o N8N
@@ -28,6 +32,8 @@ Deno.serve(async (req) => {
     // O Database Webhook se identifica pelo segredo interno.
     const viaWebhook = segredoInternoValido(req);
     let idAutenticado: string | null = null;
+
+    let chamadaPelaAdmin = false;
 
     if (!viaWebhook) {
       const auth = await exigirUsuaria(req, supabase);
@@ -56,8 +62,13 @@ Deno.serve(async (req) => {
       return erro(req, 400, 'user_id, birth_date e birth_city são obrigatórios');
     }
 
+    // A aluna só calcula o próprio mapa. A administradora pode recalcular o
+    // de qualquer uma, pelo painel: foi preciso quando o fuso estava errado
+    // e os mapas já gravados precisaram ser refeitos.
     if (idAutenticado && user_id !== idAutenticado) {
-      return erro(req, 403, 'Só é possível calcular o próprio mapa');
+      const admin = await exigirAdmin(req, supabase);
+      if ('resposta' in admin) return erro(req, 403, 'Só é possível calcular o próprio mapa');
+      chamadaPelaAdmin = true;
     }
 
     // ── 1. Parsear data e hora (mesmo que o N8N faz) ─────────────
@@ -65,8 +76,9 @@ Deno.serve(async (req) => {
     const timeStr = birth_time || '12:00:00';
     const [hora, minuto] = timeStr.split(':').map(Number);
 
-    // Cidade: pega só antes do " - " (ex: "Rio de Janeiro - RJ" → "Rio de Janeiro")
-    const cidade = birth_city.split('-')[0].trim();
+    // "Rio de Janeiro - RJ" → "Rio de Janeiro". Cortar em qualquer hífen
+    // quebrava "Ji-Paraná" (virava "Ji") e "Embu-Guaçu"; ver nascimento.ts.
+    const cidade = nomeDaCidade(birth_city);
 
     // ── 2. Geocodificação via Nominatim ──────────────────────────
     const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade)}&format=json&limit=1`;
@@ -82,7 +94,24 @@ Deno.serve(async (req) => {
     const lat = parseFloat(geoData[0].lat);
     const lon = parseFloat(geoData[0].lon);
 
-    // ── 3. Mapa astral via freeastrologyapi.com ──────────────────
+    // ── 3. Fuso do local e do dia do nascimento ──────────────────
+    // Antes era `timezone: -3` para todo mundo. O Brasil teve horário de
+    // verão de 1985 a 2019, e quem nasceu nesses meses tem o horário de
+    // Greenwich uma hora diferente: o ascendente e a Lua saíam errados,
+    // às vezes o signo inteiro. A zona vem das coordenadas (Manaus, Cuiabá
+    // e o exterior não são "America/Sao_Paulo") e o deslocamento, do
+    // histórico de horários daquela zona na data.
+    let zona: string;
+    let timezone: number;
+    try {
+      zona = tzlookup(lat, lon);
+      timezone = offsetNoHorarioLocal(zona, ano, mes, dia, hora, minuto);
+    } catch (e) {
+      // Melhor sem mapa do que com um mapa silenciosamente errado.
+      throw new Error(`Não foi possível descobrir o fuso (${e instanceof Error ? e.message : String(e)})`);
+    }
+
+    // ── 4. Mapa astral via freeastrologyapi.com ──────────────────
     const astroRes = await fetch('https://json.freeastrologyapi.com/western/planets', {
       method: 'POST',
       headers: {
@@ -98,7 +127,7 @@ Deno.serve(async (req) => {
         seconds: 0,
         latitude: lat,
         longitude: lon,
-        timezone: -3,
+        timezone,
         config: {
           ayanamsha: 'tropical',
           language: 'pt',
@@ -123,7 +152,7 @@ Deno.serve(async (req) => {
       throw new Error('API retornou dados incompletos: ' + JSON.stringify(output?.slice(0, 3)));
     }
 
-    // ── 4. Atualiza perfil ───────────────────────────────────────
+    // ── 5. Atualiza perfil ───────────────────────────────────────
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ sign_sun, sign_moon, sign_rising })
@@ -131,7 +160,12 @@ Deno.serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ ok: true, sign_sun, sign_moon, sign_rising }), {
+    return new Response(JSON.stringify({
+      ok: true, sign_sun, sign_moon, sign_rising,
+      // Para conferir a conta: o fuso usado e de onde ele veio.
+      fuso: { zona, horas: timezone },
+      recalculado_pela_admin: chamadaPelaAdmin,
+    }), {
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     });
 

@@ -2,6 +2,46 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-04 — Mapa astral: o cálculo no cadastro falha dentro da função (investigação)
+
+Primeiro teste real da Raquel após aplicar a migration e publicar a função: cadastro novo, perfil
+nasceu com data, hora e cidade, mas Lua e Ascendente ficaram nulos.
+
+**Evidência (`net._http_response`, 12:55:36 UTC):** duas chamadas saíram do cadastro. A do meu
+gatilho chegou na função e voltou **500**, o que prova que o gatilho, o segredo interno e os
+marcadores estão certos e que o erro está **dentro** de `calculate-astral-chart`. A outra foi do
+gatilho `calculo-mapa-astral`, um Database Webhook criado à mão que chama o N8N
+(`webhook.smartskillshub.com.br/webhook/calculo-mapa`) e respondeu "Workflow was started". A
+Raquel desconectou esse fluxo do restante do N8N (esperava que o Supabase calculasse sozinho),
+então o gatilho segue ligado e inútil.
+
+**Hipótese descartada:** a falta da `FREEASTROLOGY_API_KEY`. Conferida por `supabase secrets list`
+(só nomes): ela existe, de junho. A API devolve 403 sem chave, mas isso não é o caso aqui. Lição:
+o `DEPLOY.md` não menciona essa chave, mas ela já estava configurada.
+
+**Erro meu na investigação:** pedi `limit 5` em `net._http_response` e o agendador, que chama a
+cada 15 min, empurrou a linha do cadastro para fora. Consultas desse tipo precisam de janela de
+tempo.
+
+**Causa ainda não identificada.** Suspeitos: Nominatim recusando o IP dos servidores do Supabase
+(responde HTML, não JSON); a API de astrologia (chave inválida, limite diário do plano gratuito,
+formato de resposta); ou meu código de fuso em Deno (testado só em Node).
+
+### Para o próximo erro dizer onde foi
+`calculate-astral-chart` agora marca cada falha com a etapa (`busca_da_cidade`, `fuso`,
+`api_astrologia`, `gravacao`), registra o detalhe (status HTTP e começo da resposta, nunca dado da
+aluna) e devolve `etapa` no corpo do 500. O Nominatim passou a ser checado por `res.ok` antes de
+ler JSON. O painel (aba Alunas) mostra a etapa em português ao falhar e, no lote, resume as etapas
+que falharam.
+
+### Pendente
+- Publicar a função de novo, clicar em "recalcular" na linha da aluna de teste e ler a etapa
+- Apagar o gatilho morto: `drop trigger if exists "calculo-mapa-astral" on public.profiles;`
+  (ele ainda manda o registro completo do perfil, com dados de saúde, para o servidor do N8N a
+  cada alteração, sem ninguém usar)
+
+---
+
 ## 2026-11-04 — Link de confirmação do cadastro leva para o portal
 
 Quem se cadastrava recebia o email, clicava no link de confirmação e caía na home

@@ -104,8 +104,20 @@ export default function AdminAlunas() {
 
   const podeCalcular = (a: Profile) => Boolean(a.birth_date && a.birth_city);
 
-  /** Devolve o resumo do que o servidor calculou, ou null se falhou. */
-  const calcularMapa = async (a: Profile) => {
+  /** Em que passo da função o cálculo parou, dito em português. */
+  const ETAPAS: Record<string, string> = {
+    busca_da_cidade: 'na busca da cidade (o serviço de mapas recusou o pedido ou não conhece o nome)',
+    fuso: 'no cálculo do fuso horário',
+    api_astrologia: 'na API de astrologia (chave, limite do plano ou serviço fora do ar)',
+    gravacao: 'ao gravar o resultado',
+  };
+
+  type ResultadoDoMapa =
+    | { ok: true; sign_sun: string; sign_moon: string; sign_rising: string; fuso: { zona: string; horas: number } }
+    | { ok: false; etapa: string | null };
+
+  /** Devolve o que o servidor calculou, ou em que passo ele falhou. */
+  const calcularMapa = async (a: Profile): Promise<ResultadoDoMapa> => {
     const { data, error } = await supabase.functions.invoke('calculate-astral-chart', {
       body: {
         user_id: a.user_id,
@@ -116,9 +128,15 @@ export default function AdminAlunas() {
     });
     if (error || !data?.ok) {
       console.error('Falha ao calcular o mapa:', error?.message ?? 'sem retorno');
-      return null;
+      // Quando a função responde com erro, a resposta fica em error.context.
+      let etapa: string | null = null;
+      try {
+        const corpo = await (error as { context?: Response } | null)?.context?.json();
+        etapa = corpo?.etapa ?? null;
+      } catch { /* resposta sem corpo legível */ }
+      return { ok: false, etapa };
     }
-    return data as { sign_sun: string; sign_moon: string; sign_rising: string; fuso: { zona: string; horas: number } };
+    return data as ResultadoDoMapa;
   };
 
   const recalcularUma = async (a: Profile) => {
@@ -127,8 +145,9 @@ export default function AdminAlunas() {
     const r = await calcularMapa(a);
     setRecalculando(null);
 
-    if (!r) {
-      setAviso({ tipo: 'erro', texto: `Não consegui calcular o mapa de ${a.full_name || 'aluna'}. Confira a cidade de nascimento.` });
+    if (!r.ok) {
+      const onde = r.etapa ? ETAPAS[r.etapa] ?? `no passo "${r.etapa}"` : 'por um motivo que a função não informou';
+      setAviso({ tipo: 'erro', texto: `Não consegui calcular o mapa de ${a.full_name || 'aluna'}: falhou ${onde}.` });
       return;
     }
     setAviso({
@@ -145,9 +164,14 @@ export default function AdminAlunas() {
 
     setAviso(null);
     let falhas = 0;
+    const etapasQueFalharam = new Set<string>();
     for (let i = 0; i < alvo.length; i++) {
       setLote({ feitas: i, total: alvo.length });
-      if (!(await calcularMapa(alvo[i]))) falhas += 1;
+      const r = await calcularMapa(alvo[i]);
+      if (!r.ok) {
+        falhas += 1;
+        etapasQueFalharam.add(r.etapa ? ETAPAS[r.etapa] ?? r.etapa : 'passo não informado');
+      }
       // A API gratuita limita a um pedido por segundo.
       await new Promise(r => setTimeout(r, 1500));
     }
@@ -155,7 +179,7 @@ export default function AdminAlunas() {
     setAviso({
       tipo: falhas ? 'erro' : 'ok',
       texto: falhas
-        ? `${alvo.length - falhas} mapas refeitos e ${falhas} falharam. Confira a cidade dessas alunas e recalcule uma a uma.`
+        ? `${alvo.length - falhas} mapas refeitos e ${falhas} falharam: ${[...etapasQueFalharam].join('; ')}.`
         : `${alvo.length} mapas refeitos.`,
     });
     carregar();

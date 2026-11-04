@@ -16,6 +16,18 @@ import { offsetNoHorarioLocal, nomeDaCidade } from '../_shared/nascimento.ts';
  * - Diretamente do frontend (quando usuária atualiza dados de nascimento)
  */
 
+/**
+ * Diz em qual passo o cálculo falhou. Antes todo erro virava a mesma frase
+ * genérica, e descobrir se era a busca da cidade, o fuso, a API de
+ * astrologia ou a gravação exigia ler os logs. A etapa vai na resposta
+ * (sem dados da aluna) para o painel mostrá-la à administradora.
+ */
+class FalhaNaEtapa extends Error {
+  constructor(public etapa: string, detalhe: string) {
+    super(detalhe);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
@@ -82,10 +94,18 @@ Deno.serve(async (req) => {
 
     // ── 2. Geocodificação via Nominatim ──────────────────────────
     const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade)}&format=json&limit=1`;
-    const geoRes = await fetch(geoUrl, {
-      headers: { 'User-Agent': 'NetzachApp/1.0' },
-    });
-    const geoData = await geoRes.json();
+    let geoData: Array<{ lat: string; lon: string }>;
+    try {
+      const geoRes = await fetch(geoUrl, {
+        headers: { 'User-Agent': 'NetzachApp/1.0' },
+      });
+      // O Nominatim recusa com HTML (e não JSON) quando bloqueia ou limita
+      // o pedido; sem este teste o erro virava "Unexpected token <".
+      if (!geoRes.ok) throw new Error(`HTTP ${geoRes.status}`);
+      geoData = await geoRes.json();
+    } catch (e) {
+      throw new FalhaNaEtapa('busca_da_cidade', e instanceof Error ? e.message : String(e));
+    }
 
     if (!geoData || geoData.length === 0) {
       return erro(req, 422, `Cidade não encontrada: ${cidade}`);
@@ -108,7 +128,7 @@ Deno.serve(async (req) => {
       timezone = offsetNoHorarioLocal(zona, ano, mes, dia, hora, minuto);
     } catch (e) {
       // Melhor sem mapa do que com um mapa silenciosamente errado.
-      throw new Error(`Não foi possível descobrir o fuso (${e instanceof Error ? e.message : String(e)})`);
+      throw new FalhaNaEtapa('fuso', e instanceof Error ? e.message : String(e));
     }
 
     // ── 4. Mapa astral via freeastrologyapi.com ──────────────────
@@ -137,7 +157,7 @@ Deno.serve(async (req) => {
 
     if (!astroRes.ok) {
       const errText = await astroRes.text();
-      throw new Error(`freeastrologyapi error ${astroRes.status}: ${errText}`);
+      throw new FalhaNaEtapa('api_astrologia', `HTTP ${astroRes.status}: ${errText.slice(0, 200)}`);
     }
 
     const astroData = await astroRes.json();
@@ -149,7 +169,7 @@ Deno.serve(async (req) => {
     const sign_moon   = output?.[2]?.zodiac_sign?.name?.pt ?? null;
 
     if (!sign_sun && !sign_moon && !sign_rising) {
-      throw new Error('API retornou dados incompletos: ' + JSON.stringify(output?.slice(0, 3)));
+      throw new FalhaNaEtapa('api_astrologia', 'a resposta veio sem os signos: ' + JSON.stringify(output?.slice?.(0, 3) ?? output).slice(0, 200));
     }
 
     // ── 5. Atualiza perfil ───────────────────────────────────────
@@ -158,7 +178,7 @@ Deno.serve(async (req) => {
       .update({ sign_sun, sign_moon, sign_rising })
       .eq('user_id', user_id);
 
-    if (updateError) throw updateError;
+    if (updateError) throw new FalhaNaEtapa('gravacao', updateError.message);
 
     return new Response(JSON.stringify({
       ok: true, sign_sun, sign_moon, sign_rising,
@@ -170,7 +190,11 @@ Deno.serve(async (req) => {
     });
 
   } catch (err: unknown) {
-    console.error('calculate-astral-chart error:', err instanceof Error ? err.message : String(err));
-    return erro(req, 500, 'Não foi possível calcular o mapa astral agora');
+    const etapa = err instanceof FalhaNaEtapa ? err.etapa : 'desconhecida';
+    console.error(`calculate-astral-chart [${etapa}]:`, err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Não foi possível calcular o mapa astral agora', etapa }), {
+      status: 500,
+      headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+    });
   }
 });

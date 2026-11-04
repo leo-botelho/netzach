@@ -77,6 +77,12 @@ async function buscarCoordenadas(cidadeBruta: string): Promise<{ lat: number; lo
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
+  // Quem pode ver o motivo técnico de uma falha: a administradora e o
+  // gatilho do banco. A aluna calculando o próprio mapa só vê a frase
+  // amigável, porque uma mensagem de erro inesperada pode expor detalhes
+  // internos.
+  let podeVerDetalhe = false;
+
   try {
     const supabase = servico();
 
@@ -89,6 +95,7 @@ Deno.serve(async (req) => {
     // sobrescrever os signos de qualquer usuária.
     // O Database Webhook se identifica pelo segredo interno.
     const viaWebhook = segredoInternoValido(req);
+    podeVerDetalhe = viaWebhook;
     let idAutenticado: string | null = null;
 
     let chamadaPelaAdmin = false;
@@ -127,6 +134,7 @@ Deno.serve(async (req) => {
       const admin = await exigirAdmin(req, supabase);
       if ('resposta' in admin) return erro(req, 403, 'Só é possível calcular o próprio mapa');
       chamadaPelaAdmin = true;
+      podeVerDetalhe = true;
     }
 
     // ── 1. Parsear data e hora (mesmo que o N8N faz) ─────────────
@@ -156,36 +164,43 @@ Deno.serve(async (req) => {
     }
 
     // ── 4. Mapa astral via freeastrologyapi.com ──────────────────
-    const astroRes = await fetch('https://json.freeastrologyapi.com/western/planets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': astroApiKey,
-      },
-      body: JSON.stringify({
-        year: ano,
-        month: mes,
-        date: dia,
-        hours: hora,
-        minutes: minuto,
-        seconds: 0,
-        latitude: lat,
-        longitude: lon,
-        timezone,
-        config: {
-          ayanamsha: 'tropical',
-          language: 'pt',
+    // Tempo esgotado, rede e resposta que não é JSON também são falhas
+    // desta etapa. Antes só o status HTTP era marcado, e o resto caía em
+    // "passo desconhecido".
+    let astroData: { output?: Array<{ zodiac_sign?: { name?: { pt?: string } } }> };
+    try {
+      const astroRes = await fetch('https://json.freeastrologyapi.com/western/planets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': astroApiKey,
         },
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
+        body: JSON.stringify({
+          year: ano,
+          month: mes,
+          date: dia,
+          hours: hora,
+          minutes: minuto,
+          seconds: 0,
+          latitude: lat,
+          longitude: lon,
+          timezone,
+          config: {
+            ayanamsha: 'tropical',
+            language: 'pt',
+          },
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
 
-    if (!astroRes.ok) {
-      const errText = await astroRes.text();
-      throw new FalhaNaEtapa('api_astrologia', `HTTP ${astroRes.status}: ${errText.slice(0, 200)}`);
+      if (!astroRes.ok) {
+        const errText = await astroRes.text();
+        throw new Error(`HTTP ${astroRes.status}: ${errText.slice(0, 200)}`);
+      }
+      astroData = await astroRes.json();
+    } catch (e) {
+      throw new FalhaNaEtapa('api_astrologia', e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     }
-
-    const astroData = await astroRes.json();
     const output = astroData.output;
 
     // output[0] = ascendente, output[1] = solar, output[2] = lunar
@@ -221,7 +236,7 @@ Deno.serve(async (req) => {
     // `detalhe` é o status HTTP e o começo da resposta do serviço externo,
     // nunca dado da aluna: serve para a administradora ver o motivo no
     // painel sem depender dos logs.
-    const detalhe = err instanceof FalhaNaEtapa ? err.message.slice(0, 240) : undefined;
+    const detalhe = podeVerDetalhe && err instanceof Error ? `${err.name}: ${err.message}`.slice(0, 240) : undefined;
     return new Response(JSON.stringify({ error: 'Não foi possível calcular o mapa astral agora', etapa, detalhe }), {
       status: 500,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

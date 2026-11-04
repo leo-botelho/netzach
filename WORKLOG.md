@@ -37,6 +37,14 @@ Conferido na internet de verdade (script no scratchpad) com as cidades do banco:
 -3 (1984), Canoas **-2** (dez/1963, horário de verão), Franca -3, Santa Maria RS -2, Ji-Paraná
 -4. A aluna de Canoas tem o mapa gravado com -3, ou seja, provavelmente errado até refazer.
 
+### Atualização (mesmo dia): a busca da cidade passou, falhou outro passo
+Depois do deploy, o painel da Raquel mostrou "falhou no passo desconhecida": a busca da cidade
+já passa (Open-Meteo), e o erro veio de algo sem etiqueta, quase certamente a chamada à API de
+astrologia (tempo esgotado, rede ou resposta que não é JSON ficavam fora do try marcado). Agora a
+chamada inteira é a etapa `api_astrologia`, e a resposta de erro devolve `detalhe` para **qualquer**
+erro, mas só para a admin e para o gatilho: a aluna vê só a frase amigável, porque mensagem
+inesperada pode expor detalhe interno.
+
 ### Mapa nulo ainda não confirmado
 Falta a Raquel publicar a função de novo e clicar "recalcular" para ver se agora fecha. A etapa
 `api_astrologia` ainda pode falhar (limite diário do plano gratuito, formato da resposta).

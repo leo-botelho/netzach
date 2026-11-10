@@ -135,6 +135,32 @@ Se preferir uma a uma: `sacerdotisa`, `asaas-checkout`, `asaas-webhook`,
 `calculate-astral-chart`, `ingest-knowledge`, `ingest-bulk`, `send-push`,
 `scheduled-notifications`, `testar-conhecimento`, `responder-duvida`.
 
+### Se o `supabase functions deploy` não abrir, ou se preferir o painel
+
+**O CLI novo (3.x e as 2.1xx recentes) pode travar com "Illegal instruction".** O programa é compilado com
+uma extensão de processador (AVX2) que nem todo computador tem, e a falha não tem relação com o projeto.
+Use uma versão antiga, do tempo em que o programa era feito em Go, trocando `supabase` por `supabase@2.40.7`:
+
+```bash
+npx supabase@2.40.7 functions deploy ia-config --use-api
+```
+
+**Pelo painel do Supabase** (Edge Functions → a função → editor): o painel só envia o arquivo da função e
+deixa para trás a pasta `_shared`, por isso falha com "Module not found ... _shared/auth.ts". Gere um arquivo
+único por função, com o código compartilhado embutido:
+
+```bash
+node scripts/empacotar-funcoes.mjs
+```
+
+Os arquivos saem em `funcoes-para-colar/<função>/index.ts`: cole o conteúdo no editor e publique. Para uma só,
+`node scripts/empacotar-funcoes.mjs sacerdotisa`. Funções novas (como `ia-config`) entram em *Deploy a new
+function → Via Editor*. **Gere de novo depois de qualquer mudança nos fontes**, e não edite os arquivos gerados.
+
+Cuidado com o *Verify JWT* de cada função: as chamadas feitas pelo banco ou por serviços de fora (`calculate-astral-chart`,
+`scheduled-notifications`, `send-push`, `asaas-webhook`) não trazem login de aluna e precisam dele **desligado**.
+Só republique essas pelo painel se tiver certeza de que a opção continua desligada depois.
+
 **Modelos de IA pelo painel (arquivo 13).** Para a aba "Netzach IA" guardar chaves, falta definir,
 uma vez, o segredo que as cifra no banco, e publicar duas funções:
 

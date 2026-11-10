@@ -49,6 +49,22 @@ Gemini e DeepSeek, com um **principal** e uma **reserva**; podendo usar dois mod
 - Achado no caminho: o log de erro do banco aparecia como `[object Object]` (o erro do PostgREST não é `Error`);
   corrigido em `_shared/ia.ts`.
 
+### Publicar sem o CLI novo (10/11)
+O `npx supabase` passou a baixar a 3.x, que vem sem o programa do Windows; as 2.1xx recentes baixam, mas o
+executável (compilado com Bun) trava com "Illegal instruction" no processador da Raquel (sem AVX2). **A 2.40.7,
+feita em Go, roda e enxerga o projeto** (`functions list` ok). Usar `npx supabase@2.40.7 ...`. A `sacerdotisa`
+publicada é de 20/08: a versão com vários modelos ainda não está no ar.
+
+Para quem prefere o painel: `scripts/empacotar-funcoes.mjs` gera `funcoes-para-colar/<função>/index.ts`, um arquivo
+por função com `_shared` embutido (esbuild, que já vem com o Vite; `npm:` e `jsr:` ficam externos). O painel só
+envia o arquivo da função, por isso falhava com "Module not found ... _shared/auth.ts". Verificado: nenhum import
+relativo sobra, e os 23 cenários (7 da Sacerdotisa e 16 da `ia-config`) dão o mesmo resultado contra os arquivos
+gerados. Cuidado: funções chamadas pelo banco ou por serviço de fora precisam de *Verify JWT* desligado.
+
+**Disco:** o C: chegou a 0,16 GB livres. Medido, o que eu gravei lá nos últimos 10 dias foi ~1,8 GB (conversas
+`.claude` 0,96, cache do npx 0,53, pasta temporária 0,30); a maior parte (12,9 GB) era o cache do Stremio. Apaguei só as
+três cópias do CLI que eu mesma tinha baixado.
+
 ### Para ativar
 Migration 13; `supabase secrets set IA_ENCRYPTION_KEY=...`; deploy de `ia-config` e `sacerdotisa` (`--use-api`).
 

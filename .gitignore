@@ -35,3 +35,6 @@ supabase/.temp/
 
 # Cache de compilação do TypeScript
 *.tsbuildinfo
+
+# Gerado por scripts/empacotar-funcoes.mjs (uma função por arquivo, para colar no painel)
+funcoes-para-colar/

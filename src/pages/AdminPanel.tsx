@@ -10,6 +10,7 @@ import {
 import AdminCursos from '../components/admin/AdminCursos';
 import AdminAlunas from '../components/admin/AdminAlunas';
 import AdminDuvidas from '../components/admin/AdminDuvidas';
+import AdminIA from '../components/admin/AdminIA';
 
 /** Plano com o preço em texto, do jeito que o campo de edição usa. */
 type PlanoEditavel = PlanConfig & { _price: string };
@@ -434,6 +435,9 @@ export default function AdminPanel() {
       {/* 7. BASE DE CONHECIMENTO */}
       {activeTab === 'conhecimento' && (
         <div className="space-y-6 max-w-3xl">
+
+          {/* MODELOS DE IA: chaves, principal e reserva */}
+          <AdminIA />
 
           {/* TESTAR O QUE A SACERDOTISA RECEBE */}
           <div className="bg-netzach-card p-6 rounded-2xl border border-netzach-border space-y-4">

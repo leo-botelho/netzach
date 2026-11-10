@@ -2,6 +2,58 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-10 — Modelos de IA configuráveis pelo painel (OpenAI, Claude, Gemini, DeepSeek) com reserva
+
+**Pedido da Raquel:** na aba "Netzach IA" do painel, cadastrar a chave e o modelo, entre OpenAI, Claude,
+Gemini e DeepSeek, com um **principal** e uma **reserva**; podendo usar dois modelos da mesma plataforma
+(gpt-5.1-mini + gpt-5.4) ou plataformas diferentes (gemini-3.8-flash + claude-opus-5.5), e **trocar quando quiser**.
+
+### Desenho
+- **Uma chave por plataforma** (`ia_chaves`), cifrada com AES-256-GCM (`_shared/cifra.ts`) usando o segredo
+  `IA_ENCRYPTION_KEY`, que mora só nos segredos da função, nunca no banco. O nome da plataforma entra como dado
+  autenticado: valor cifrado para uma não abre na linha de outra. Principal e reserva só escolhem plataforma +
+  modelo (`ia_config`, uma linha). As duas tabelas ficam sem política e com revoke: só a service_role acessa.
+- **`ia-config`** (edge function, só admin) é a única porta das chaves: ler, salvar_chave, remover_chave,
+  salvar_config, trocar, testar. Nada devolve uma chave (só `ultimos4`) e nada a registra: todo texto que vira
+  log ou resposta passa por `redigir`, que apaga a chave exata e padrões `sk-`, `AIza`, `Bearer`.
+- **`_shared/llm.ts`**: `fetch` direto às quatro plataformas, sem SDK, com leitura de SSE (testada com pedaços
+  cortados no meio, CRLF e emoji partido entre pedaços) e interface única. Claude mantém `cache_control` no
+  bloco estável; as outras juntam o sistema numa mensagem. Modelos que raciocinam (gpt-5*, o*, gemini 2.5+/3+,
+  deepseek-reasoner) ganham 4x de folga no limite de saída, porque o raciocínio gasta parte dele. A OpenAI
+  recusa `reasoning_effort` ou `max_completion_tokens` conforme o modelo: se disser qual não aceita, repete sem ele.
+- **Reserva** (`abrirComReserva`): só entra se o principal falhar **antes da primeira palavra** (chave, limite,
+  modelo inexistente, fora do ar, resposta vazia, 25 s sem responder). Depois que a aluna está lendo, trocar
+  misturaria dois textos, então uma queda no meio segue como antes (aviso "a conexão se interrompeu"). A troca
+  fica registrada no log como `ia_reserva_usada`, com o motivo de cada falha.
+- **Sacerdotisa** passou a usar isso no lugar do SDK da Anthropic (o import saiu). Estorno de crédito, memória
+  da conversa, limites e prompts ficaram como estavam. O log de uso agora traz `modelo` e `usou_reserva`.
+- **Sem configuração, nada muda**: o padrão é Claude Haiku com `ANTHROPIC_API_KEY`. Se a migration não rodou, a
+  chave não decifra ou o segredo falta, a Sacerdotisa cai nesse padrão em vez de ficar sem resposta.
+- **Painel** (`AdminIA.tsx`, no topo da aba): chaves por plataforma (campo de senha; depois de salva só aparece
+  "termina em ••••abcd"), principal, reserva com liga/desliga, **Testar** (chama o modelo de verdade com um
+  pedido mínimo, usando o que está escrito na tela, mesmo sem salvar), Salvar e **Trocar principal e reserva**
+  (aplica na hora; fica travado se houver algo sem salvar).
+
+### Como foi verificado (e o que não foi)
+- 73 testes novos (308 -> 381): cifra (10), `llm.ts` (42) e tela (21).
+- As **duas funções rodaram de ponta a ponta** em Node, com Deno, banco e plataformas simulados. Sacerdotisa em 7
+  cenários: padrão; principal ok; OpenAI 401 -> Gemini responde; gpt-5.1-mini 404 -> gpt-5.4; reserva desligada;
+  tudo falha (crédito estornado); migration pendente. `ia-config` em 16: aluna barrada com 403, chave cifrada no
+  banco, mensagens de erro sem a chave, remover chave em uso recusado, nome de modelo malicioso recusado, troca.
+  Nenhuma chave apareceu em resposta ao navegador nem em log em nenhum cenário.
+- Tela vista no navegador com dados de exemplo (desktop e celular).
+- **Não testado com as plataformas de verdade**: sem chaves aqui. Os formatos de requisição e de resposta seguem a
+  documentação de cada uma, mas qualquer divergência aparece no botão **Testar**, que mostra o status e o motivo.
+  Os nomes `gpt-5.1-mini`, `gpt-5.4`, `gemini-3.8-flash` e `claude-opus-5.5` foram os que a Raquel citou; o campo
+  de modelo aceita qualquer nome, a lista é só sugestão.
+- Achado no caminho: o log de erro do banco aparecia como `[object Object]` (o erro do PostgREST não é `Error`);
+  corrigido em `_shared/ia.ts`.
+
+### Para ativar
+Migration 13; `supabase secrets set IA_ENCRYPTION_KEY=...`; deploy de `ia-config` e `sacerdotisa` (`--use-api`).
+
+---
+
 ## 2026-11-04 — Notificação funcionando no iPhone (inscrição chegou ao banco) e envio de teste
 
 Com `VITE_VAPID_PUBLIC_KEY` na Cloudflare (variável de texto, Production) e novo deploy, o iPhone da

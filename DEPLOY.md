@@ -82,6 +82,7 @@ conferindo se deu certo antes de ir para o próximo.
 | 10 | `20260921_duvidas.sql` | Caixa de dúvidas dos cursos e a opção de aviso de resposta |
 | 11 | `20261006_admin_assinatura.sql` | A admin pode bloquear e liberar alunas pelo painel |
 | 12 | `20261104_mapa_astral_automatico.sql` | **Mapa astral calculado sozinho no cadastro** ⚠️ *substituir 2 valores* |
+| 13 | `20261110_ia_modelos.sql` | Modelos de IA configuráveis pelo painel (chaves cifradas, principal e reserva) |
 
 **Só o arquivo 8 pede substituição**, e é o único que depende das
 extensões do Passo 0. Se ele falhar, os sete primeiros continuam
@@ -133,6 +134,26 @@ npx supabase functions deploy
 Se preferir uma a uma: `sacerdotisa`, `asaas-checkout`, `asaas-webhook`,
 `calculate-astral-chart`, `ingest-knowledge`, `ingest-bulk`, `send-push`,
 `scheduled-notifications`, `testar-conhecimento`, `responder-duvida`.
+
+**Modelos de IA pelo painel (arquivo 13).** Para a aba "Netzach IA" guardar chaves, falta definir,
+uma vez, o segredo que as cifra no banco, e publicar duas funções:
+
+```bash
+npx supabase secrets set IA_ENCRYPTION_KEY="<uma frase longa e aleatória, 24 caracteres ou mais>"
+```
+
+```bash
+npx supabase functions deploy ia-config --use-api
+```
+
+```bash
+npx supabase functions deploy sacerdotisa --use-api
+```
+
+Guarde esse segredo em lugar seguro: **se for perdido ou trocado, as chaves cadastradas deixam de abrir**
+(basta cadastrá-las de novo). Enquanto nada for configurado no painel, a Sacerdotisa segue usando o
+Claude Haiku com a chave `ANTHROPIC_API_KEY` dos segredos, como antes. Publicar a `sacerdotisa` antes de
+rodar a migration 13 é seguro: sem as tabelas, ela cai nesse padrão.
 
 `responder-duvida` é nova (resposta da Raquel às dúvidas dos cursos, com aviso
 para a aluna). `send-push` mudou junto: as duas usam `_shared/push.ts`.

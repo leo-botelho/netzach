@@ -1,7 +1,8 @@
-import Anthropic from 'npm:@anthropic-ai/sdk@0.40.0';
 import { corsHeaders, servico, erro, exigirUsuaria } from '../_shared/auth.ts';
 import { montarPrompt, MODULOS_VALIDOS, MAX_ENTRADA } from '../_shared/prompts.ts';
 import { faseLunar, faseDoCiclo, arcanoCentral } from '../_shared/ciclos.ts';
+import { abrirComReserva } from '../_shared/llm.ts';
+import { resolverAlvos } from '../_shared/ia.ts';
 
 // ── Limites semanais por plano ───────────────────────────────
 const PLAN_LIMITS: Record<string, number> = {
@@ -352,9 +353,11 @@ Deno.serve(async (req: Request) => {
       await supabase.rpc('increment_sacerdotisa_usage', { p_user_id: user.id });
     }
 
-    // ── Claude Haiku streaming ───────────────────────────────
-    // Se a geração falhar aqui, o crédito já debitado volta para a
-    // usuária: ela não perde a consulta por uma falha nossa.
+    // ── Modelo de IA, em fluxo ───────────────────────────────
+    // Qual modelo responde, e qual é a reserva, vem do painel da
+    // administradora (ver _shared/ia.ts); sem configuração, é o Claude
+    // Haiku de sempre. Se a geração falhar aqui, o crédito já debitado
+    // volta para a usuária: ela não perde a consulta por uma falha nossa.
     const estornarCredito = async () => {
       if (moduleKey === 'geral') return;
       await supabase.rpc('refund_module_credit', {
@@ -364,38 +367,47 @@ Deno.serve(async (req: Request) => {
       });
     };
 
-    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
+    const alvos = await resolverAlvos(supabase);
+    if (alvos.length === 0) {
+      await estornarCredito();
+      throw new Error('nenhum modelo de IA com chave utilizável');
+    }
 
-    let stream;
+    let resposta;
     try {
-      stream = await anthropic.messages.stream({
-        model: 'claude-haiku-4-5-20251001',
+      // `abrirComReserva` só devolve depois de a primeira palavra chegar:
+      // se o principal falhar antes disso (chave, limite, modelo, fora do
+      // ar), a reserva assume e a usuária não percebe. Depois que ela
+      // começa a ler, trocar de modelo misturaria dois textos.
+      resposta = await abrirComReserva(alvos, {
         // O prompt pede respostas de 150 a 350 palavras. Em português
         // isso pode passar de 1024 tokens, que era o teto anterior e
         // cortava a resposta no meio da frase. O custo não muda: paga-se
         // pelo que é gerado, não pelo teto.
-        max_tokens: 2048,
-        system: [
+        maxTokens: 2048,
+        sistema: [
           // Bloco estável (persona + regras): é o único que pode ser
           // reaproveitado entre chamadas. Antes o cache_control cobria
           // também o RAG e o contexto, que mudam a cada consulta, então
           // o prefixo nunca se repetia e não havia acerto de cache.
-          {
-            type: 'text',
-            text: persona + BASE_KNOWLEDGE,
-            cache_control: { type: 'ephemeral' },
-          },
+          { texto: persona + BASE_KNOWLEDGE, cache: true },
           // Bloco volátil: sem cache.
-          {
-            type: 'text',
-            text: knowledgeContext + userContext,
-          },
+          { texto: knowledgeContext + userContext },
         ],
-        messages: [...historico, { role: 'user', content: promptFinal }],
+        mensagens: [...historico, { role: 'user', content: promptFinal }],
       });
     } catch (modeloErr) {
       await estornarCredito();
       throw modeloErr;
+    }
+
+    if (resposta.usouReserva) {
+      // Para a administradora ver nos logs que o principal falhou, e por quê.
+      console.warn(JSON.stringify({
+        evento: 'ia_reserva_usada',
+        respondeu: `${resposta.provedor}/${resposta.modelo}`,
+        falhas: resposta.falhas,
+      }));
     }
 
     const encoder = new TextEncoder();
@@ -404,13 +416,11 @@ Deno.serve(async (req: Request) => {
         let respostaCompleta = '';
 
         try {
-          for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              respostaCompleta += chunk.delta.text;
-              controller.enqueue(encoder.encode(
-                `data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`
-              ));
-            }
+          for await (const texto of resposta.deltas) {
+            respostaCompleta += texto;
+            controller.enqueue(encoder.encode(
+              `data: ${JSON.stringify({ text: texto })}\n\n`
+            ));
           }
 
           // ── Guarda a troca, para a próxima mensagem ter contexto ──
@@ -425,23 +435,24 @@ Deno.serve(async (req: Request) => {
             if (memoriaErro) console.error('Falha ao guardar a conversa:', memoriaErro.message);
           }
 
-          // ── Mede o aproveitamento de cache ───────────────────────
-          // O bloco estável tem cerca de 900 tokens, abaixo do mínimo
-          // para cachear. Este registro diz se o cache pega de verdade:
-          // se `cache_lidos` ficar sempre em zero, o cache_control não
-          // está entregando nada e pode sair.
+          // ── Registro de uso e de aproveitamento de cache ─────────
+          // `cache_lidos` em zero o tempo todo indica que o cache não está
+          // entregando nada (vale para a Claude; as outras plataformas
+          // reaproveitam o prefixo sozinhas e informam à sua maneira).
+          // `parou_porque` com "max_tokens", "length" ou "MAX_TOKENS"
+          // significa resposta cortada no meio.
           try {
-            const final = await stream.finalMessage();
-            const uso = final.usage;
+            const uso = resposta.uso();
             console.log(JSON.stringify({
               modulo: moduleKey,
-              entrada: uso.input_tokens,
-              saida: uso.output_tokens,
-              cache_escritos: uso.cache_creation_input_tokens ?? 0,
-              cache_lidos: uso.cache_read_input_tokens ?? 0,
+              modelo: `${resposta.provedor}/${resposta.modelo}`,
+              usou_reserva: resposta.usouReserva,
+              entrada: uso.entrada,
+              saida: uso.saida,
+              cache_escritos: uso.cacheEscritos ?? 0,
+              cache_lidos: uso.cacheLidos ?? 0,
               trocas_lembradas: historico.length / 2,
-              // "max_tokens" aqui significa resposta cortada no meio.
-              parou_porque: final.stop_reason,
+              parou_porque: uso.parouPor,
             }));
           } catch { /* medição não pode derrubar a resposta */ }
 

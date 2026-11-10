@@ -10,7 +10,9 @@ export default defineConfig([
   // outro tsconfig. Analisá-las com as regras do navegador produzia
   // erros que não fazem sentido ali (o `@ts-ignore` do import npm, por
   // exemplo, é a forma correta em Deno).
-  globalIgnores(['dist', 'supabase/functions/**', 'coverage']),
+  // `funcoes-para-colar` é código gerado (scripts/empacotar-funcoes.mjs), com o
+  // mesmo motivo das funções: roda em Deno e ninguém o edita à mão.
+  globalIgnores(['dist', 'supabase/functions/**', 'funcoes-para-colar/**', 'coverage']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

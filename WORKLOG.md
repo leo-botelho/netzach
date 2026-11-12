@@ -2,6 +2,28 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-12 — Fitoenergética preparada para a base (um trecho por planta)
+
+**Pedido da Raquel:** ajustar `Fitoenergética.md` e subir os trechos para a base, como banho e ervas.
+
+- O texto veio de PDF e estava bagunçado (nomes ora com `#`, ora soltos, ora na mesma linha dos campos, cabeçalhos
+  falsos no meio das frases). Um script separou **117 plantas** (confere com o livro) e conferiu campo a campo:
+  43 plantas com restrição, as outras 74 sem, igual ao arquivo original.
+- Arquivo pronto: `.claude/references/Fitoenergética-para-subir.md`, **124 seções** (117 plantas + 7 da introdução),
+  cada uma começando por `@@ Nome`. Cada planta é um trecho autossuficiente: nome popular e científico, caráter,
+  chacra, nível, polaridade, função e restrições. Isso evita o problema do `diagnostico-base.sql` (o divisor por
+  palavras separava o nome da descrição).
+- `ingest-bulk` aprendeu o modo por seções (`_shared/secoes.ts`, 6 testes): texto com linhas `@@ Título` vira um
+  trecho por seção; texto sem marcas segue no divisor por palavras, como antes (conferido com harness de ponta a ponta).
+- **Categoria:** `banho`, uma cópia só. O chat filtra por `banho` quando a pergunta fala de banho/erva, e sem filtro nas
+  demais; uma segunda cópia em `ervas` duplicaria o conteúdo nas buscas sem filtro. Se a Raquel preferir `ervas`, é
+  `update knowledge_base set category='ervas' where metadata->>'source'='Fitoenergética'`, mas aí o chat de banho
+  deixa de achar (a busca de banho só olha `banho`; mudar isso exige alterar `match_knowledge`).
+- **Não subi eu mesma:** o painel exige login de administradora e eu não digito senha. Falta a Raquel publicar
+  `ingest-bulk` e enviar o arquivo pela aba Conhecimento.
+- **Para revisar:** o trecho de introdução "Fitoenergética x Fitoterapia" diz que uso externo/infusão a frio "anula"
+  as restrições. Cada planta traz a própria restrição, mas a Sacerdotisa pode repetir essa frase a quem está grávida.
+
 ## 2026-11-12 — Excluir conteúdo da base de conhecimento pelo painel não funcionava
 
 **Sintoma (Raquel):** a lixeira dos itens de Criança Interior e Ho'oponopono, na aba de conhecimento, não apagava.

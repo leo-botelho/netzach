@@ -1,4 +1,5 @@
 import { corsHeaders, servico, erro, exigirAdmin } from '../_shared/auth.ts';
+import { dividirEmSecoes } from '../_shared/secoes.ts';
 
 // Teto de entrada: sem limite, um texto grande gerava centenas de
 // embeddings numa única invocação e estourava o tempo da função.
@@ -98,15 +99,34 @@ Deno.serve(async (req: Request) => {
       return erro(req, 400, `text deve ser texto de até ${MAX_TEXTO} caracteres. Divida em partes menores.`);
     }
 
-    const chunks = chunkText(text, chunk_size ?? 300, overlap_size ?? 40);
+    // Texto com marcas `@@ Título`: um trecho por seção (cada item com o
+    // próprio nome). Sem marcas: divisão por palavras, como sempre.
+    const secoes = dividirEmSecoes(text);
+    const maxPalavras = chunk_size ?? 300;
+    const itens: Array<{ titulo: string; conteudo: string; extra: Record<string, unknown> }> = secoes
+      ? secoes.flatMap(s => {
+          const partes = s.texto.split(/\s+/).length > maxPalavras * 1.5
+            ? chunkText(s.texto, maxPalavras, overlap_size ?? 40)
+            : [s.texto];
+          return partes.map((conteudo, k) => ({
+            titulo: `${source_title} — ${s.titulo || 'trecho'}${partes.length > 1 ? ` (${k + 1}/${partes.length})` : ''}`,
+            conteudo,
+            extra: s.titulo ? { secao: s.titulo } : {},
+          }));
+        })
+      : chunkText(text, maxPalavras, overlap_size ?? 40).map((conteudo, i, todos) => ({
+          titulo: `${source_title} — parte ${i + 1}/${todos.length}`,
+          conteudo,
+          extra: {},
+        }));
 
-    if (chunks.length === 0) {
+    if (itens.length === 0) {
       return erro(req, 400, 'Nenhum chunk gerado — texto muito curto ou vazio');
     }
 
-    if (chunks.length > MAX_CHUNKS) {
+    if (itens.length > MAX_CHUNKS) {
       return erro(req, 400,
-        `Este texto geraria ${chunks.length} trechos, acima do limite de ${MAX_CHUNKS} por envio. Divida em partes menores.`);
+        `Este texto geraria ${itens.length} trechos, acima do limite de ${MAX_CHUNKS} por envio. Divida em partes menores.`);
     }
 
     const model = new (Supabase as any).ai.Session('gte-small');
@@ -127,16 +147,16 @@ Deno.serve(async (req: Request) => {
       pendentes = [];
     };
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
+    for (let i = 0; i < itens.length; i++) {
+      const { titulo, conteudo, extra } = itens[i];
       try {
-        const embedding = await model.run(chunk, { mean_pool: true, normalize: true });
+        const embedding = await model.run(conteudo, { mean_pool: true, normalize: true });
         pendentes.push({
-          title: `${source_title} — parte ${i + 1}/${chunks.length}`,
-          content: chunk,
+          title: titulo,
+          content: conteudo,
           category,
           embedding,
-          metadata: { source: source_title, chunk_index: i, total_chunks: chunks.length },
+          metadata: { source: source_title, chunk_index: i, total_chunks: itens.length, ...extra },
         });
         if (pendentes.length >= LOTE) await gravar();
       } catch (e: unknown) {
@@ -148,7 +168,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        total_chunks: chunks.length,
+        total_chunks: itens.length,
         inserted,
         errors: errors.length > 0 ? errors : undefined,
       }),

@@ -2,6 +2,21 @@
 
 Histórico de features, decisões técnicas e pendências do projeto. Entrada mais recente no topo. Todo agente lê este arquivo no início da sessão e registra o que implementar.
 
+## 2026-11-12 — Excluir conteúdo da base de conhecimento pelo painel não funcionava
+
+**Sintoma (Raquel):** a lixeira dos itens de Criança Interior e Ho'oponopono, na aba de conhecimento, não apagava.
+
+**Causa:** `20260819_fase1_seguranca.sql` trocou a policy pública da `knowledge_base` por uma só de SELECT para
+admin e não criou a de DELETE. Com RLS ligada e sem policy, o DELETE não dá erro: apaga zero linhas. O painel
+(`handleDeleteKnowledge`) não conferia o resultado, então nada acontecia e nada era dito.
+
+**Correção:** migration `20261112_knowledge_base_excluir.sql` (policy de DELETE com `is_admin()`; inserir e
+alterar seguem só pelas edge functions). O painel agora pede `.select('id')` no DELETE e avisa quando o banco
+recusa ou quando zero linhas são apagadas. Migration 14 no DEPLOY.md.
+
+**Pendente:** a Raquel precisa rodar a migration 14. Os outros deletes diretos do painel (`horoscopes`,
+`services_catalog`) estão cobertos por policies `for all using (is_admin())` do schema base, então não têm o problema.
+
 ## 2026-11-10 — Modelos de IA configuráveis pelo painel (OpenAI, Claude, Gemini, DeepSeek) com reserva
 
 **Pedido da Raquel:** na aba "Netzach IA" do painel, cadastrar a chave e o modelo, entre OpenAI, Claude,

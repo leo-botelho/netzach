@@ -261,7 +261,15 @@ export default function AdminPanel() {
 
   const handleDeleteKnowledge = async (id: string) => {
     if (!confirm('Excluir este conhecimento?')) return;
-    await supabase.from('knowledge_base').delete().eq('id', id);
+    // `.select()` devolve as linhas apagadas: com RLS, um DELETE bloqueado
+    // não dá erro, apenas apaga zero linhas, e antes isso passava em silêncio.
+    const { data, error } = await supabase.from('knowledge_base').delete().eq('id', id).select('id');
+    if (error) {
+      console.error('Falha ao excluir conhecimento:', error.message);
+      alert('Não consegui excluir: ' + error.message);
+    } else if (!data || data.length === 0) {
+      alert('Nada foi excluído. O banco não permitiu a exclusão: confira se a migration 20261112_knowledge_base_excluir.sql já foi rodada.');
+    }
     fetchKnowledge();
   };
 

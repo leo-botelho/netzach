@@ -83,6 +83,7 @@ conferindo se deu certo antes de ir para o próximo.
 | 11 | `20261006_admin_assinatura.sql` | A admin pode bloquear e liberar alunas pelo painel |
 | 12 | `20261104_mapa_astral_automatico.sql` | **Mapa astral calculado sozinho no cadastro** ⚠️ *substituir 2 valores* |
 | 13 | `20261110_ia_modelos.sql` | Modelos de IA configuráveis pelo painel (chaves cifradas, principal e reserva) |
+| 14 | `20261112_knowledge_base_excluir.sql` | A administradora volta a poder excluir itens da base de conhecimento pelo painel |
 
 **Só o arquivo 8 pede substituição**, e é o único que depende das
 extensões do Passo 0. Se ele falhar, os sete primeiros continuam

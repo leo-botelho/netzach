@@ -281,7 +281,14 @@ export default function AdminPanel() {
     const { data, error } = await supabase.functions.invoke('ingest-bulk', { body: bulkForm });
     setBulkLoading(false);
     if (error) {
-      alert('Erro ao chamar a função: ' + error.message);
+      // "non-2xx status code" não diz nada: a causa vem no corpo da resposta.
+      let detalhe = '';
+      try {
+        const corpo = await (error as { context?: Response }).context?.json();
+        detalhe = corpo?.error ? ` (${corpo.error})` : '';
+      } catch { /* sem corpo legível: fica só a mensagem genérica */ }
+      const status = (error as { context?: Response }).context?.status;
+      alert('Erro ao chamar a função: ' + error.message + detalhe + (status ? ` [HTTP ${status}]` : ''));
       return;
     }
     if (data?.error) {

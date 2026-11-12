@@ -21,6 +21,7 @@ Histórico de features, decisões técnicas e pendências do projeto. Entrada ma
   deixa de achar (a busca de banho só olha `banho`; mudar isso exige alterar `match_knowledge`).
 - **Não subi eu mesma:** o painel exige login de administradora e eu não digito senha. Falta a Raquel publicar
   `ingest-bulk` e enviar o arquivo pela aba Conhecimento.
+- **Envio em lotes:** o primeiro envio dos 124 trechos de uma vez deu "non-2xx" (suspeita: tempo da função). O arquivo foi dividido em 5 lotes de até 25 trechos em `.claude/references/fitoenergetica-lotes/`, e o painel passou a mostrar o corpo/HTTP do erro da função em vez de só "non-2xx". A base tinha 42 trechos antigos da Fitoenergética (apagados pela Raquel antes do reenvio) e 325 trechos em cada uma de crianca_interior e hooponopono (exclusão pedida; ela roda o delete no SQL Editor).
 - **Para revisar:** o trecho de introdução "Fitoenergética x Fitoterapia" diz que uso externo/infusão a frio "anula"
   as restrições. Cada planta traz a própria restrição, mas a Sacerdotisa pode repetir essa frase a quem está grávida.
 

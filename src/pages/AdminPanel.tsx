@@ -11,6 +11,10 @@ import AdminCursos from '../components/admin/AdminCursos';
 import AdminAlunas from '../components/admin/AdminAlunas';
 import AdminDuvidas from '../components/admin/AdminDuvidas';
 import AdminIA from '../components/admin/AdminIA';
+import { dividirEmLotes } from '../lib/lotesDeSecoes';
+
+// Quantas seções `@@` vão por chamada ao ingest-bulk (ver lotesDeSecoes.ts).
+const SECOES_POR_LOTE = 6;
 
 /** Plano com o preço em texto, do jeito que o campo de edição usa. */
 type PlanoEditavel = PlanConfig & { _price: string };
@@ -78,6 +82,7 @@ export default function AdminPanel() {
   // Ingestão em lote
   const [bulkForm, setBulkForm] = useState({ source_title: '', text: '', category: 'geral' });
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkProgresso, setBulkProgresso] = useState('');
   const [bulkResult, setBulkResult] = useState<{ inserted: number; total_chunks: number; errors?: string[] } | null>(null);
 
   // Planos
@@ -278,24 +283,55 @@ export default function AdminPanel() {
     if (bulkForm.text.split(/\s+/).length < 50) return alert('Texto muito curto — cole pelo menos um capítulo.');
     setBulkLoading(true);
     setBulkResult(null);
-    const { data, error } = await supabase.functions.invoke('ingest-bulk', { body: bulkForm });
+
+    // Texto com marcas `@@ Título`: vai em lotes pequenos, porque o servidor
+    // derruba (HTTP 546) uma chamada que gera embeddings demais de uma vez.
+    // Sem marcas, segue numa chamada só, como sempre foi.
+    const lotes = dividirEmLotes(bulkForm.text, SECOES_POR_LOTE) ?? [bulkForm.text];
+    let gravados = 0;
+    let total = 0;
+    const avisos: string[] = [];
+
+    for (let i = 0; i < lotes.length; i++) {
+      setBulkProgresso(lotes.length > 1 ? `Lote ${i + 1} de ${lotes.length}` : '');
+      const { data, error } = await supabase.functions.invoke('ingest-bulk', { body: { ...bulkForm, text: lotes[i] } });
+
+      let falha = '';
+      if (error) {
+        // "non-2xx status code" não diz nada: a causa vem no corpo da resposta.
+        let detalhe = '';
+        try {
+          const corpo = await (error as { context?: Response }).context?.json();
+          detalhe = corpo?.error ? ` (${corpo.error})` : '';
+        } catch { /* sem corpo legível: fica só a mensagem genérica */ }
+        const status = (error as { context?: Response }).context?.status;
+        falha = error.message + detalhe + (status ? ` [HTTP ${status}]` : '');
+      } else if (data?.error) {
+        falha = data.error;
+      }
+
+      if (falha) {
+        // Para no primeiro erro: seguir adiante deixaria buracos no livro, e
+        // reenviar tudo duplicaria o que já foi gravado.
+        setBulkLoading(false);
+        setBulkProgresso('');
+        if (gravados > 0) {
+          setBulkResult({ inserted: gravados, total_chunks: total, errors: [...avisos, `Parou no lote ${i + 1} de ${lotes.length}: ${falha}. Os lotes anteriores já foram gravados: não reenvie o arquivo inteiro.`] });
+          fetchKnowledge();
+        } else {
+          alert('Erro ao chamar a função: ' + falha);
+        }
+        return;
+      }
+
+      gravados += data.inserted ?? 0;
+      total += data.total_chunks ?? 0;
+      if (data.errors?.length) avisos.push(...data.errors);
+    }
+
     setBulkLoading(false);
-    if (error) {
-      // "non-2xx status code" não diz nada: a causa vem no corpo da resposta.
-      let detalhe = '';
-      try {
-        const corpo = await (error as { context?: Response }).context?.json();
-        detalhe = corpo?.error ? ` (${corpo.error})` : '';
-      } catch { /* sem corpo legível: fica só a mensagem genérica */ }
-      const status = (error as { context?: Response }).context?.status;
-      alert('Erro ao chamar a função: ' + error.message + detalhe + (status ? ` [HTTP ${status}]` : ''));
-      return;
-    }
-    if (data?.error) {
-      alert('Erro: ' + data.error);
-      return;
-    }
-    setBulkResult(data);
+    setBulkProgresso('');
+    setBulkResult({ inserted: gravados, total_chunks: total, errors: avisos.length ? avisos : undefined });
     fetchKnowledge();
   };
 
@@ -594,7 +630,7 @@ export default function AdminPanel() {
                 className="bg-netzach-gold text-netzach-bg px-6 py-3 rounded font-bold hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2 text-sm"
               >
                 {bulkLoading
-                  ? <><Loader2 size={15} className="animate-spin"/> Processando chunks...</>
+                  ? <><Loader2 size={15} className="animate-spin"/> Processando chunks{bulkProgresso ? ` (${bulkProgresso})` : '...'}</>
                   : <><BookOpen size={15}/> Processar e Indexar</>
                 }
               </button>

@@ -22,6 +22,7 @@ Histórico de features, decisões técnicas e pendências do projeto. Entrada ma
 - **Não subi eu mesma:** o painel exige login de administradora e eu não digito senha. Falta a Raquel publicar
   `ingest-bulk` e enviar o arquivo pela aba Conhecimento.
 - **Envio em lotes:** o primeiro envio dos 124 trechos de uma vez deu "non-2xx" (suspeita: tempo da função). O arquivo foi dividido em 5 lotes de até 25 trechos em `.claude/references/fitoenergetica-lotes/`, e o painel passou a mostrar o corpo/HTTP do erro da função em vez de só "non-2xx". A base tinha 42 trechos antigos da Fitoenergética (apagados pela Raquel antes do reenvio) e 325 trechos em cada uma de crianca_interior e hooponopono (exclusão pedida; ela roda o delete no SQL Editor).
+- **HTTP 546 (limite de recursos da função):** mesmo em lotes de arquivo, o envio falhou. O painel agora divide sozinho qualquer texto com marcas `@@` em chamadas de 6 seções (`src/lib/lotesDeSecoes.ts`, 6 testes), mostra "Lote X de Y" e PARA no primeiro erro, avisando quantos já foram gravados (reenviar tudo duplicaria). Texto sem marcas segue numa chamada só. Uma chamada que morre com 546 pode ter gravado parte dos trechos antes: conferir a contagem em `knowledge_base` antes de reenviar.
 - **Para revisar:** o trecho de introdução "Fitoenergética x Fitoterapia" diz que uso externo/infusão a frio "anula"
   as restrições. Cada planta traz a própria restrição, mas a Sacerdotisa pode repetir essa frase a quem está grávida.
 
